@@ -23,10 +23,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
     onToggleMute
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isFastSpeed, setIsFastSpeed] = useState(false);
   
   // 触摸滑动相关状态
   const [isSeeking, setIsSeeking] = useState(false);
@@ -37,6 +39,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const posterSrc = item.ImageTags?.Primary 
     ? getImageUrl(config.url, item.Id, item.ImageTags.Primary, 'Primary') 
     : undefined;
+
+  // 检查视频时长是否超过3分钟 (180秒)
+  const isLongVideo = item.RunTimeTicks ? (item.RunTimeTicks / 10000000) > 180 : false;
 
   // 更新进度条
   const updateProgress = useCallback(() => {
@@ -85,6 +90,36 @@ const VideoCard: React.FC<VideoCardProps> = ({
     };
   }, [updateProgress]);
 
+  // 处理长按开始
+  const handleLongPressStart = () => {
+    if (!isActive) return;
+    
+    // 设置长按定时器（500毫秒）
+    longPressTimer.current = setTimeout(() => {
+      const video = videoRef.current;
+      if (video) {
+        video.playbackRate = 2.0;
+        setIsFastSpeed(true);
+      }
+    }, 500);
+  };
+
+  // 处理长按结束
+  const handleLongPressEnd = () => {
+    // 清除长按定时器
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // 恢复正常播放速度
+    const video = videoRef.current;
+    if (video && isFastSpeed) {
+      video.playbackRate = 1.0;
+      setIsFastSpeed(false);
+    }
+  };
+
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
@@ -112,6 +147,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isActive) return;
     
+    // 开始长按检测
+    handleLongPressStart();
+    
     const video = videoRef.current;
     if (!video) return;
     
@@ -127,6 +165,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   // 处理触摸移动事件
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isSeeking || !isActive) return;
+    
+    // 如果在滑动，则取消长按
+    handleLongPressEnd();
     
     const video = videoRef.current;
     if (!video) return;
@@ -147,6 +188,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   // 处理触摸结束事件
   const handleTouchEnd = () => {
+    // 结束长按检测
+    handleLongPressEnd();
+    
     if (!isSeeking || !isActive) return;
     
     const video = videoRef.current;
@@ -179,6 +223,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onContextMenu={(e) => e.preventDefault()} // 阻止右键菜单
     >
       {/* Video Element */}
       <video
@@ -191,6 +236,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         muted={isMuted}
         onError={() => setError("无法加载视频")}
         onClick={togglePlay}
+        onContextMenu={(e) => e.preventDefault()} // 阻止视频右键菜单
       />
 
       {/* Play Icon Overlay (only when paused and no error) */}
@@ -209,8 +255,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       )}
 
       {/* 进度预览 */}
-      {isSeeking && seekPreview !== null && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white px-4 py-2 rounded-lg z-30">
+      {isSeeking && seekPreview !== null && !isFastSpeed && (
+        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg z-30">
           <div className="text-center">
             <div className="text-lg font-bold">{formatVideoTime(seekPreview)}</div>
             <div className="text-xs opacity-75">拖拽调整进度</div>
@@ -218,13 +264,32 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
 
-      {/* 进度条 */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-black/30 z-20">
-        <div 
-          className="h-full bg-red-500 transition-all duration-100"
-          style={{ width: `${progress}%` }}
-        ></div>
-      </div>
+      {/* 2倍速播放提示 */}
+      {isFastSpeed && (
+        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg z-30">
+          <div className="text-center">
+            <div className="text-lg font-bold">{formatVideoTime(seekPreview !== null ? seekPreview : (videoRef.current?.currentTime || 0))}</div>
+            <div className="text-xs opacity-75">x2 倍速播放中</div>
+          </div>
+        </div>
+      )}
+
+      {/* 右上角 2x 标识 */}
+      {isFastSpeed && (
+        <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full z-30 text-sm font-bold">
+          2x
+        </div>
+      )}
+
+      {/* 底部进度条 - 仅对超过3分钟的视频显示 */}
+      {isLongVideo && (
+        <div className="absolute bottom-20 left-4 right-4 h-1.5 bg-black/30 z-20 rounded-full">
+          <div 
+            className="h-full bg-red-500 transition-all duration-100 rounded-full"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      )}
 
       {/* RIGHT SIDEBAR ACTION BAR */}
       <div className="absolute right-2 bottom-24 flex flex-col items-center gap-6 z-20">
