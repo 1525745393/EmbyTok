@@ -1,11 +1,12 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { EmbyItem, ServerConfig } from '../types';
-import { getVideoUrl, getImageUrl } from '../services/embyService';
-import { Play, AlertCircle, Heart, Info, Disc } from 'lucide-react';
+
+import React, { useRef, useEffect, useState } from 'react';
+import { EmbyItem } from '../types';
+import { MediaClient } from '../services/MediaClient';
+import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap } from 'lucide-react';
 
 interface VideoCardProps {
   item: EmbyItem;
-  config: ServerConfig;
+  client: MediaClient;
   isActive: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
@@ -15,7 +16,7 @@ interface VideoCardProps {
 
 const VideoCard: React.FC<VideoCardProps> = ({ 
     item, 
-    config, 
+    client, 
     isActive, 
     isFavorite, 
     onToggleFavorite,
@@ -23,43 +24,48 @@ const VideoCard: React.FC<VideoCardProps> = ({
     onToggleMute
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isFastSpeed, setIsFastSpeed] = useState(false);
   
-  // 触摸滑动相关状态
+  // Progress State
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
-  const [seekStart, setSeekStart] = useState({ x: 0, time: 0 });
-  const [seekPreview, setSeekPreview] = useState<number | null>(null);
 
-  const videoSrc = getVideoUrl(config.url, item.Id, config.token);
+  // Gesture State
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [seekOffset, setSeekOffset] = useState<number | null>(null);
+  
+  // Gesture Refs
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isDragging = useRef(false);
+  const isLongPress = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Determine URL based on Plex Key or Emby ID
+  const videoSrc = (item as any)._PlexKey 
+     ? client.getVideoUrl((item as any)) // Plex needs full object for Part Key
+     : client.getVideoUrl(item.Id);      // Emby uses ID
+
   const posterSrc = item.ImageTags?.Primary 
-    ? getImageUrl(config.url, item.Id, item.ImageTags.Primary, 'Primary') 
+    ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
     : undefined;
-
-  // 检查视频时长是否超过3分钟 (180秒)
-  const isLongVideo = item.RunTimeTicks ? (item.RunTimeTicks / 10000000) > 180 : false;
-
-  // 更新进度条
-  const updateProgress = useCallback(() => {
-    const video = videoRef.current;
-    if (video && video.duration) {
-      setProgress((video.currentTime / video.duration) * 100);
-    }
-  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
-    // Sync mute state
     video.muted = isMuted;
 
     if (isActive) {
       setError(null);
+      // Reset speed on new video
+      video.playbackRate = 1.0;
+      setPlaybackRate(1.0);
+      
       const playPromise = video.play();
       if (playPromise !== undefined) {
         playPromise
@@ -67,8 +73,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           .catch((err) => {
             console.warn("Autoplay failed", err);
             setIsPlaying(false);
-            // If failed, likely due to unmuted autoplay policies. Ensure mute is on and try again locally?
-            // Since we control isMuted globally, if autoplay fails, it's often user interaction required.
           });
       }
     } else {
@@ -77,48 +81,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
       setIsPlaying(false);
     }
   }, [isActive, isMuted]);
-
-  // 监听时间更新以更新进度条
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    video.addEventListener('timeupdate', updateProgress);
-    
-    return () => {
-      video.removeEventListener('timeupdate', updateProgress);
-    };
-  }, [updateProgress]);
-
-  // 处理长按开始
-  const handleLongPressStart = () => {
-    if (!isActive) return;
-    
-    // 设置长按定时器（500毫秒）
-    longPressTimer.current = setTimeout(() => {
-      const video = videoRef.current;
-      if (video) {
-        video.playbackRate = 2.0;
-        setIsFastSpeed(true);
-      }
-    }, 500);
-  };
-
-  // 处理长按结束
-  const handleLongPressEnd = () => {
-    // 清除长按定时器
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    
-    // 恢复正常播放速度
-    const video = videoRef.current;
-    if (video && isFastSpeed) {
-      video.playbackRate = 1.0;
-      setIsFastSpeed(false);
-    }
-  };
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -133,6 +95,27 @@ const VideoCard: React.FC<VideoCardProps> = ({
     }
   };
 
+  const handleTimeUpdate = () => {
+      if (videoRef.current && !isSeeking) {
+          setCurrentTime(videoRef.current.currentTime);
+      }
+  };
+
+  const handleLoadedMetadata = () => {
+      if (videoRef.current) {
+          setDuration(videoRef.current.duration);
+      }
+  };
+
+  // --- Button Handlers with Stop Propagation ---
+  // IMPORTANT: We use onClick for the action to avoid double-firing (touchend + click).
+  // But we MUST use onTouchStart to stop propagation so the parent container's 
+  // Long Press timer doesn't start when touching a button.
+
+  const stopProp = (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+  };
+
   const handleFavorite = (e: React.MouseEvent) => {
       e.stopPropagation();
       onToggleFavorite();
@@ -143,171 +126,201 @@ const VideoCard: React.FC<VideoCardProps> = ({
       onToggleMute();
   };
 
-  // 处理触摸开始事件
+  const handleInfoToggle = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowInfo(!showInfo);
+  }
+
+  const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+  };
+
+  // --- Seek Bar Handlers ---
+  const handleSeekStart = (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+      setIsSeeking(true);
+  };
+
+  const handleSeekMove = (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isSeeking || !containerRef.current) return;
+      
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const rect = containerRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, clientX / rect.width));
+      setCurrentTime(percent * duration);
+  };
+
+  const handleSeekEnd = (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isSeeking) return;
+      
+      setIsSeeking(false);
+      if (videoRef.current) {
+          videoRef.current.currentTime = currentTime;
+      }
+  };
+
+  // --- Gesture Handlers ---
+
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isActive) return;
-    
-    // 开始长按检测
-    handleLongPressStart();
-    
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const touch = e.touches[0];
-    setSeekStart({
-      x: touch.clientX,
-      time: video.currentTime
-    });
-    setIsSeeking(true);
-    setSeekPreview(video.currentTime);
+      // If we are here, it means the touch was NOT on a button (because buttons call stopPropagation)
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      isDragging.current = false;
+      isLongPress.current = false;
+      setSeekOffset(null);
+
+      // Start Timer for Long Press (2x Speed)
+      longPressTimer.current = setTimeout(() => {
+          isLongPress.current = true;
+          setPlaybackRate(2.0);
+          if (videoRef.current) videoRef.current.playbackRate = 2.0;
+      }, 500);
   };
 
-  // 处理触摸移动事件
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSeeking || !isActive) return;
-    
-    // 如果在滑动，则取消长按
-    handleLongPressEnd();
-    
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - seekStart.x;
-    const containerWidth = video.clientWidth;
-    
-    // 计算预览时间（限制在视频长度范围内）
-    const percentDelta = (deltaX / containerWidth) * 2; // 增加灵敏度
-    const newTime = Math.max(0, Math.min(video.duration, seekStart.time + (percentDelta * video.duration)));
-    
-    setSeekPreview(newTime);
-    
-    // 阻止默认滚动行为
-    e.preventDefault();
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - touchStartX.current;
+      const deltaY = currentY - touchStartY.current;
+
+      // If moved significantly (>10px), cancel Long Press Timer
+      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+          if (longPressTimer.current) {
+              clearTimeout(longPressTimer.current);
+              longPressTimer.current = null;
+          }
+      }
+
+      // Horizontal Swipe Logic (Seek)
+      // Condition: Not currently long pressing, moved > 20px, and horizontal move > vertical move
+      if (!isLongPress.current && Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
+           isDragging.current = true;
+           // Calculate seek seconds (e.g., 5px = 1 second)
+           const offset = Math.round(deltaX / 5); 
+           setSeekOffset(offset);
+      }
   };
 
-  // 处理触摸结束事件
-  const handleTouchEnd = () => {
-    // 结束长按检测
-    handleLongPressEnd();
-    
-    if (!isSeeking || !isActive) return;
-    
-    const video = videoRef.current;
-    if (!video || seekPreview === null) return;
-    
-    // 设置新的播放位置
-    video.currentTime = seekPreview;
-    setProgress((seekPreview / video.duration) * 100);
-    
-    setIsSeeking(false);
-    setSeekPreview(null);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+      // Clear Long Press Timer
+      if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+      }
+
+      const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+      const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+
+      if (isLongPress.current) {
+          // End 2x Speed
+          isLongPress.current = false;
+          setPlaybackRate(1.0);
+          if (videoRef.current) videoRef.current.playbackRate = 1.0;
+      } else if (isDragging.current) {
+          // Apply Seek
+          if (videoRef.current && seekOffset !== null) {
+              const newTime = videoRef.current.currentTime + seekOffset;
+              videoRef.current.currentTime = Math.min(Math.max(newTime, 0), videoRef.current.duration);
+          }
+          isDragging.current = false;
+          setSeekOffset(null);
+      } else {
+          // Tap Logic (Toggle Play)
+          // Only trigger if movement was minimal (not a scroll)
+          if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+              togglePlay();
+          }
+      }
   };
 
-  const formatTime = (ticks?: number) => {
+  const formatTimeText = (ticks?: number) => {
       if (!ticks) return '';
       const minutes = Math.round(ticks / 10000000 / 60);
       return `${minutes} 分钟`;
   }
 
-  // 格式化时间为 mm:ss
-  const formatVideoTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   return (
     <div 
-      className="relative w-full h-full bg-black snap-start shrink-0 flex items-center justify-center overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onContextMenu={(e) => e.preventDefault()} // 阻止右键菜单
+        ref={containerRef}
+        className="relative w-full h-full bg-black snap-start shrink-0 flex items-center justify-center overflow-hidden touch-pan-y select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={handleContextMenu}
     >
-      {/* Video Element */}
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover pointer-events-none" // pointer-events-none ensures touches go to container
         src={videoSrc}
         poster={posterSrc}
         loop
         playsInline
         muted={isMuted}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
         onError={() => setError("无法加载视频")}
-        onClick={togglePlay}
-        onContextMenu={(e) => e.preventDefault()} // 阻止视频右键菜单
       />
 
-      {/* Play Icon Overlay (only when paused and no error) */}
-      {!isPlaying && !error && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      {/* Play/Pause Overlay Icon */}
+      {!isPlaying && !error && !seekOffset && !isLongPress.current && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20">
           <Play className="w-16 h-16 text-white/50 fill-white/50" />
         </div>
       )}
 
-      {/* Error State */}
+      {/* 2x Speed Overlay - Top Center */}
+      {playbackRate > 1.0 && (
+          <div className="absolute top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full animate-in fade-in zoom-in duration-200">
+                <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <span className="text-white font-bold text-sm">2倍速中</span>
+                <ChevronsRight className="w-4 h-4 text-white" />
+            </div>
+          </div>
+      )}
+
+      {/* Seek Overlay - Top Center (Smaller) */}
+      {seekOffset !== null && (
+          <div className="absolute top-24 left-0 right-0 flex flex-col items-center justify-start z-50 pointer-events-none">
+              <div className="flex flex-col items-center gap-1 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl">
+                  {seekOffset > 0 ? (
+                       <FastForward className="w-6 h-6 text-white/90 fill-white/20" />
+                  ) : (
+                       <Rewind className="w-6 h-6 text-white/90 fill-white/20" />
+                  )}
+                  <div className="text-lg font-bold text-white drop-shadow-lg">
+                      {seekOffset > 0 ? '+' : ''}{seekOffset}s
+                  </div>
+              </div>
+          </div>
+      )}
+
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 z-10">
           <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
           <p className="text-center">{error}</p>
         </div>
       )}
 
-      {/* 进度预览 */}
-      {isSeeking && seekPreview !== null && !isFastSpeed && (
-        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg z-30">
-          <div className="text-center">
-            <div className="text-lg font-bold">{formatVideoTime(seekPreview)}</div>
-            <div className="text-xs opacity-75">拖拽调整进度</div>
-          </div>
-        </div>
-      )}
-
-      {/* 2倍速播放提示 */}
-      {isFastSpeed && (
-        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg z-30">
-          <div className="text-center">
-            <div className="text-lg font-bold">{formatVideoTime(seekPreview !== null ? seekPreview : (videoRef.current?.currentTime || 0))}</div>
-            <div className="text-xs opacity-75">x2 倍速播放中</div>
-          </div>
-        </div>
-      )}
-
-      {/* 右上角 2x 标识 */}
-      {isFastSpeed && (
-        <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full z-30 text-sm font-bold">
-          2x
-        </div>
-      )}
-
-      {/* 底部进度条 - 仅对超过3分钟的视频显示 */}
-      {isLongVideo && (
-        <div className="absolute bottom-20 left-4 right-4 h-1.5 bg-black/30 z-20 rounded-full">
-          <div 
-            className="h-full bg-red-500 transition-all duration-100 rounded-full"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-      )}
-
       {/* RIGHT SIDEBAR ACTION BAR */}
-      <div className="absolute right-2 bottom-24 flex flex-col items-center gap-6 z-20">
-          {/* Avatar / Poster Circle */}
+      <div className="absolute right-2 bottom-24 flex flex-col items-center gap-6 z-20 pointer-events-auto">
           <div className="relative w-12 h-12 mb-2">
               <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-zinc-800">
                   {posterSrc ? (
                       <img src={posterSrc} alt="Poster" className="w-full h-full object-cover" />
                   ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-xs">Emby</div>
+                      <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-xs">Media</div>
                   )}
               </div>
           </div>
 
-          {/* Heart / Favorite */}
           <div className="flex flex-col items-center gap-1">
               <button 
-                onClick={handleFavorite}
+                onTouchStart={stopProp} 
+                onMouseDown={stopProp}
+                onClick={handleFavorite} 
                 className="p-2 rounded-full transition-transform active:scale-75"
               >
                   <Heart 
@@ -320,10 +333,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
               </span>
           </div>
 
-          {/* Info / More Details */}
           <div className="flex flex-col items-center gap-1">
               <button 
-                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+                onTouchStart={stopProp}
+                onMouseDown={stopProp}
+                onClick={handleInfoToggle}
                 className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20"
               >
                   <Info className="w-7 h-7 text-white drop-shadow-md" />
@@ -331,8 +345,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
               <span className="text-white text-xs font-bold shadow-black drop-shadow-md">信息</span>
           </div>
 
-           {/* Mute / Spinning Disc Toggle */}
            <div 
+                onTouchStart={stopProp}
+                onMouseDown={stopProp}
                 onClick={handleMuteToggle}
                 className={`mt-4 w-10 h-10 rounded-full bg-zinc-900 border-4 cursor-pointer transition-colors duration-300 flex items-center justify-center overflow-hidden ${isMuted ? 'border-red-500/80' : 'border-zinc-800'} ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}
            >
@@ -344,23 +359,22 @@ const VideoCard: React.FC<VideoCardProps> = ({
            </div>
       </div>
 
-      {/* BOTTOM TEXT OVERLAY */}
-      <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-all duration-300 ${showInfo ? 'h-2/3 from-black/95' : 'pt-24'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-all duration-300 pointer-events-auto ${showInfo ? 'h-2/3 from-black/95' : 'pt-24'}`}>
         <div className="flex flex-col items-start max-w-[80%]">
             <h3 className="text-white font-bold text-lg drop-shadow-md mb-2 leading-tight">
               {item.Name}
             </h3>
             
-            {/* Metadata Row */}
             <div className="flex items-center gap-3 text-xs text-white/90 mb-2 font-medium drop-shadow-md">
                {item.ProductionYear && <span className="bg-white/20 px-1.5 py-0.5 rounded">{item.ProductionYear}</span>}
-               <span>{formatTime(item.RunTimeTicks)}</span>
+               <span>{formatTimeText(item.RunTimeTicks)}</span>
                <span className="uppercase border border-white/30 px-1 rounded text-[10px]">{item.MediaType || '视频'}</span>
             </div>
 
-            {/* Description - Expandable */}
             <div 
-                onClick={(e) => { e.stopPropagation(); setShowInfo(!showInfo); }}
+                onTouchStart={stopProp}
+                onMouseDown={stopProp}
+                onClick={handleInfoToggle}
                 className={`text-white/80 text-sm drop-shadow-md transition-all duration-300 cursor-pointer ${showInfo ? 'line-clamp-none overflow-y-auto max-h-[40vh]' : 'line-clamp-2'}`}
             >
                 {item.Overview || '暂无简介'}
@@ -368,7 +382,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
             
             {!showInfo && item.Overview && (
                 <button 
-                    onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
+                    onTouchStart={stopProp}
+                    onMouseDown={stopProp}
+                    onClick={handleInfoToggle}
                     className="text-white/60 text-xs font-semibold mt-1"
                 >
                     更多
@@ -376,6 +392,31 @@ const VideoCard: React.FC<VideoCardProps> = ({
             )}
         </div>
       </div>
+
+      {/* Progress Bar for Videos > 3 minutes (180s) */}
+      {duration > 180 && (
+          <div 
+            className="absolute bottom-8 left-4 right-4 h-8 flex items-center z-50 pointer-events-auto touch-none"
+            onTouchStart={handleSeekStart}
+            onTouchMove={handleSeekMove}
+            onTouchEnd={handleSeekEnd}
+            onClick={(e) => e.stopPropagation()} 
+          >
+              {/* Visual Track */}
+              <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
+                   {/* Played Portion */}
+                  <div 
+                      className="h-full bg-indigo-500 transition-all duration-75"
+                      style={{ width: `${(currentTime / duration) * 100}%` }}
+                  />
+              </div>
+               {/* Thumb / Slider Handle */}
+               <div 
+                    className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-2"
+                    style={{ left: `${(currentTime / duration) * 100}%` }}
+               />
+          </div>
+      )}
     </div>
   );
 };

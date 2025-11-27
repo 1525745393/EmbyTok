@@ -1,15 +1,14 @@
+
 import React, { useEffect, useRef } from 'react';
-import { EmbyItem, ServerConfig, FeedType } from '../types';
-import { getImageUrl } from '../services/embyService';
+import { EmbyItem, FeedType } from '../types';
+import { MediaClient } from '../services/MediaClient';
 import { PlayCircle, Clock, RefreshCw, Shuffle } from 'lucide-react';
 
 interface VideoGridProps {
   videos: EmbyItem[];
-  config: ServerConfig;
+  client: MediaClient;
   onSelect: (index: number) => void;
   isLoading?: boolean;
-  
-  // Pagination & Refresh
   feedType: FeedType;
   hasMore: boolean;
   onLoadMore: () => void;
@@ -18,7 +17,7 @@ interface VideoGridProps {
 
 const VideoGrid: React.FC<VideoGridProps> = ({ 
     videos, 
-    config, 
+    client, 
     onSelect, 
     isLoading,
     feedType,
@@ -34,7 +33,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
     return `${minutes}m`;
   };
 
-  // Infinite Scroll Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -72,11 +70,10 @@ const VideoGrid: React.FC<VideoGridProps> = ({
 
   return (
     <div className="w-full h-full overflow-y-auto bg-black p-2 pb-24">
-      {/* Grid Layout: 2 cols on mobile, 3-4 cols on larger screens */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 pt-16">
         {videos.map((item, index) => {
           const posterSrc = item.ImageTags?.Primary
-            ? getImageUrl(config.url, item.Id, item.ImageTags.Primary, 'Primary')
+            ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary')
             : undefined;
 
           return (
@@ -85,7 +82,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
               onClick={() => onSelect(index)}
               className="relative aspect-[2/3] bg-zinc-900 rounded-lg overflow-hidden cursor-pointer active:opacity-80 transition-opacity group"
             >
-              {/* Image */}
               {posterSrc ? (
                 <img 
                   src={posterSrc} 
@@ -95,19 +91,16 @@ const VideoGrid: React.FC<VideoGridProps> = ({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                   Emby
+                   Media
                 </div>
               )}
 
-              {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
 
-              {/* Play Icon (Shows on Hover/Focus) */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <PlayCircle className="w-10 h-10 text-white/80 fill-black/50" />
               </div>
 
-              {/* Metadata Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-2">
                  <h3 className="text-white text-xs font-bold line-clamp-2 drop-shadow-md mb-1">
                     {item.Name}
@@ -126,15 +119,11 @@ const VideoGrid: React.FC<VideoGridProps> = ({
         })}
       </div>
       
-      {/* Bottom Controls / Loading State */}
       <div className="w-full py-8 flex flex-col items-center justify-center text-zinc-500 gap-4" ref={loadMoreRef}>
-          
-          {/* Case 1: Loading */}
           {isLoading && (
               <RefreshCw className="w-6 h-6 animate-spin text-indigo-500" />
           )}
 
-          {/* Case 2: Random Feed Refresh Button */}
           {!isLoading && feedType === 'random' && (
               <button 
                 onClick={onRefresh}
@@ -144,7 +133,6 @@ const VideoGrid: React.FC<VideoGridProps> = ({
               </button>
           )}
 
-          {/* Case 3: Latest Feed End of List */}
           {!isLoading && feedType === 'latest' && !hasMore && (
               <span className="text-xs">- 到底了 -</span>
           )}

@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import Login from './components/Login';
 import VideoFeed from './components/VideoFeed';
 import VideoGrid from './components/VideoGrid';
 import LibrarySelect from './components/LibrarySelect';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType } from './types';
-import { getLibraries, getVerticalVideos, getTokPlaylistItems, addToTokPlaylist, removeFromTokPlaylist } from './services/embyService';
+import { ClientFactory } from './services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX } from 'lucide-react';
 
 type ViewMode = 'feed' | 'grid';
-const PAGE_SIZE = 80;
+const PAGE_SIZE = 15;
 
 function App() {
   const [config, setConfig] = useState<ServerConfig | null>(() => {
     const saved = localStorage.getItem('embyConfig');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Client Instance
+  const client = useMemo(() => {
+    return config ? ClientFactory.create(config) : null;
+  }, [config]);
 
   const [libraries, setLibraries] = useState<EmbyLibrary[]>([]);
   const [selectedLib, setSelectedLib] = useState<EmbyLibrary | null>(null);
@@ -23,7 +29,7 @@ function App() {
   const [videos, setVideos] = useState<EmbyItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [serverStartIndex, setServerStartIndex] = useState(0); // Track Emby's cursor
+  const [serverStartIndex, setServerStartIndex] = useState(0); 
   
   // UI State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,23 +55,20 @@ function App() {
     }
   }, [config]);
 
-  // Persist Hidden Libs
   useEffect(() => {
       localStorage.setItem('embyHiddenLibs', JSON.stringify(Array.from(hiddenLibIds)));
   }, [hiddenLibIds]);
 
   useEffect(() => {
-    if (config) {
+    if (client) {
       fetchLibraries();
-      // Initial load handled by the feedType/selectedLib effect below
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config]);
+  }, [client]);
 
   const fetchLibraries = async () => {
-    if (!config) return;
+    if (!client) return;
     try {
-      const libs = await getLibraries(config.url, config.userId, config.token);
+      const libs = await client.getLibraries();
       setLibraries(libs);
     } catch (e) {
       console.error("Error fetching libs", e);
@@ -76,14 +79,12 @@ function App() {
       return lib ? lib.Name : "收藏"; 
   };
 
-  // Central function to load videos (both initial and pagination)
   const loadVideos = async (reset: boolean = false) => {
-      if (!config) return;
+      if (!client) return;
       if (loading) return;
 
       setLoading(true);
       
-      // If resetting, we start from 0. If loading more, we use the saved server index.
       const currentServerSkip = reset ? 0 : serverStartIndex;
 
       if (reset) {
@@ -95,11 +96,10 @@ function App() {
 
       const libName = getCurrentLibraryName(selectedLib);
 
-      // 1. Fetch Favorites IDs (only on reset/initial load to save bandwidth)
+      // 1. Fetch Favorites IDs
       if (reset) {
         try {
-            const favItems = await getTokPlaylistItems(config.url, config.userId, config.token, libName);
-            const ids = new Set(favItems.map(i => i.Id));
+            const ids = await client.getFavorites(libName);
             setFavoriteIds(ids);
         } catch (e) {
             console.error("Failed to load favorites list", e);
@@ -108,10 +108,7 @@ function App() {
 
       // 2. Fetch Videos
       try {
-          const { items: newVideos, nextStartIndex, totalCount } = await getVerticalVideos(
-            config.url, 
-            config.userId, 
-            config.token, 
+          const { items: newVideos, nextStartIndex, totalCount } = await client.getVerticalVideos(
             selectedLib ? selectedLib.Id : undefined,
             libName,
             feedType,
@@ -125,10 +122,8 @@ function App() {
               setVideos(prev => [...prev, ...newVideos]);
           }
 
-          // Update the cursor for next time
           setServerStartIndex(nextStartIndex);
 
-          // Determine if we have more based on server totals
           if (nextStartIndex >= totalCount) {
               setHasMore(false);
           } else {
@@ -143,35 +138,27 @@ function App() {
       }
   };
 
-  // Wrapper for refreshing content (switching tabs, libraries, or manual refresh)
   const refreshContent = () => {
       loadVideos(true);
   };
 
   const handleLibrarySelect = (lib: EmbyLibrary | null) => {
     setSelectedLib(lib);
-    // Rely on useEffect to trigger load
   };
 
   const handleFeedTypeChange = (type: FeedType) => {
       if (type === feedType) return;
       setFeedType(type);
-      // CRITICAL FIX: Do NOT call loadVideos here. 
-      // Rely on the useEffect below to trigger loadVideos when the state actually updates.
-      // This prevents the "stale closure" bug where it loads with the old feedType.
   };
 
-  // This effect ensures we load videos whenever the context changes (Type or Library)
   useEffect(() => {
-     if (config) {
+     if (client) {
          loadVideos(true);
      }
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedType, selectedLib]);
-
+  }, [feedType, selectedLib, client]); // Depend on client instance
 
   const handleToggleFavorite = async (itemId: string, isCurrentlyFavorite: boolean) => {
-      if (!config) return;
+      if (!client) return;
       
       const nextFavIds = new Set(favoriteIds);
       if (isCurrentlyFavorite) {
@@ -183,13 +170,9 @@ function App() {
 
       const libName = getCurrentLibraryName(selectedLib);
       try {
-          if (isCurrentlyFavorite) {
-              await removeFromTokPlaylist(config.url, config.userId, config.token, libName, itemId);
-          } else {
-              await addToTokPlaylist(config.url, config.userId, config.token, libName, itemId);
-          }
+          await client.toggleFavorite(itemId, isCurrentlyFavorite, libName);
       } catch (e) {
-          console.error("Failed to toggle favorite playlist", e);
+          console.error("Failed to toggle favorite", e);
           setFavoriteIds(favoriteIds);
       }
   };
@@ -216,7 +199,7 @@ function App() {
       setIsMenuOpen(false);
   };
 
-  if (!config) {
+  if (!config || !client) {
     return <Login onLogin={setConfig} />;
   }
 
@@ -291,10 +274,9 @@ function App() {
         {viewMode === 'grid' ? (
             <VideoGrid 
                 videos={videos} 
-                config={config} 
+                client={client}
                 onSelect={handleGridSelect} 
                 isLoading={loading}
-                // New Props for Grid Logic
                 feedType={feedType}
                 hasMore={hasMore}
                 onLoadMore={() => loadVideos(false)}
@@ -302,18 +284,15 @@ function App() {
             />
         ) : (
             <VideoFeed 
-                key={`${selectedLib?.Id}-${feedType}`} // Force remount on context change
+                key={`${selectedLib?.Id}-${feedType}`} 
                 videos={videos} 
-                serverUrl={config.url} 
-                token={config.token} 
+                client={client}
                 onRefresh={refreshContent}
                 isLoading={loading}
                 favoriteIds={favoriteIds}
                 onToggleFavorite={handleToggleFavorite}
                 initialIndex={currentIndex}
                 onIndexChange={setCurrentIndex}
-                
-                // New Props
                 isMuted={isMuted}
                 onToggleMute={() => setIsMuted(!isMuted)}
                 feedType={feedType}
@@ -329,7 +308,6 @@ function App() {
         libraries={libraries}
         selectedId={selectedLib?.Id || null}
         onSelect={handleLibrarySelect}
-        // Settings Props
         hiddenLibIds={hiddenLibIds}
         onToggleHidden={handleToggleHideLib}
         onLogout={handleLogout}

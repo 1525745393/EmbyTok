@@ -1,24 +1,21 @@
+
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { EmbyItem, FeedType } from '../types';
+import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
-import { RefreshCw, Film, ArrowDownCircle, Shuffle } from 'lucide-react';
+import { RefreshCw, Film, Shuffle } from 'lucide-react';
 
 interface VideoFeedProps {
   videos: EmbyItem[];
-  serverUrl: string;
-  token: string;
+  client: MediaClient;
   onRefresh?: () => void;
   isLoading?: boolean;
   favoriteIds: Set<string>;
   onToggleFavorite: (itemId: string, isFavorite: boolean) => void;
   initialIndex?: number;
   onIndexChange?: (index: number) => void;
-  
-  // Audio
   isMuted: boolean;
   onToggleMute: () => void;
-  
-  // Pagination / Refresh
   feedType: FeedType;
   hasMore: boolean;
   onLoadMore: () => void;
@@ -26,8 +23,7 @@ interface VideoFeedProps {
 
 const VideoFeed: React.FC<VideoFeedProps> = ({ 
     videos, 
-    serverUrl, 
-    token, 
+    client, 
     onRefresh, 
     isLoading,
     favoriteIds,
@@ -44,7 +40,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const isFirstRender = useRef(true);
 
-  // Handle Initial Scroll Position
   useLayoutEffect(() => {
     if (isFirstRender.current && containerRef.current && initialIndex > 0) {
         const windowHeight = window.innerHeight;
@@ -53,7 +48,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, [initialIndex]);
 
-  // Intersection Observer to detect active video AND end of list
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -73,9 +67,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               onIndexChange(index);
           }
           
-          // Infinite Scroll Logic:
-          // If we are near the end (e.g., last video or second to last), triggers load more
-          // But only for 'latest' or 'favorites' (if paginated). Random usually refreshes the whole batch.
           if (feedType === 'latest' && index >= videos.length - 2 && hasMore && !isLoading) {
               onLoadMore();
           }
@@ -84,14 +75,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     };
 
     const observer = new IntersectionObserver(handleIntersect, options);
-
     const elements = container.querySelectorAll('.video-card-container');
     elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
   }, [videos, onIndexChange, feedType, hasMore, isLoading, onLoadMore]);
 
-  // Empty State
   if (videos.length === 0 && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-white bg-black pt-20">
@@ -122,7 +111,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           {Math.abs(activeIndex - index) <= 1 ? (
             <VideoCard
               item={item}
-              config={{ url: serverUrl, token, username: '', userId: '' }} 
+              client={client}
               isActive={activeIndex === index}
               isFavorite={favoriteIds.has(item.Id)}
               onToggleFavorite={() => onToggleFavorite(item.Id, favoriteIds.has(item.Id))}
@@ -137,7 +126,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       ))}
       
-      {/* End of Feed Controls */}
       {feedType === 'random' && videos.length > 0 && (
          <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
              <Shuffle className="w-16 h-16 text-zinc-700" />
@@ -152,7 +140,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
          </div>
       )}
 
-      {/* Loading Indicator for Infinite Scroll */}
       {feedType === 'latest' && hasMore && (
           <div className="h-24 w-full flex items-center justify-center bg-black snap-align-none">
                <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
@@ -165,7 +152,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
       )}
 
-      {/* Global Loading Overlay (Initial) */}
       {isLoading && videos.length === 0 && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
               <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin" />
