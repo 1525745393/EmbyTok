@@ -1,12 +1,12 @@
 # EmbyTok
 
-EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。
+EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。
 
 <div style="display:flex; flex-direction:row;">
-<img src="public/1.jpg" width="24%" />
-<img src="public/2.jpg" width="24%" />
-<img src="public/3.jpg" width="24%" />
-<img src="public/4.jpg" width="24%" />
+<img src="tmp/1.jpg" width="24%" />
+<img src="tmp/2.jpg" width="24%" />
+<img src="tmp/3.jpg" width="24%" />
+<img src="tmp/4.jpg" width="24%" />
 </div>
 
 ## 功能特性
@@ -22,7 +22,6 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 - 🌐 **响应式设计**：适配移动端和桌面端
 - ⏩ **滑动控制进度**：左右滑动调整视频播放进度
 - 📦 **Android 应用**：可通过 Capacitor 构建为原生 Android 应用
-- 🔄 **多服务器支持**：同时支持 Emby 和 Plex 媒体服务器
 
 ## 技术栈
 
@@ -65,15 +64,10 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 
 ## 使用方法
 
-1. 启动应用后，在登录界面选择您的媒体服务器类型并输入相应信息：
-   - 对于 Emby 服务器：
-     - 服务器地址（例如：http://192.168.1.100:8096）
-     - 用户名
-     - 密码（如果需要）
-   - 对于 Plex 服务器：
-     - 服务器地址（例如：http://192.168.1.100:32400）
-     - 用户名
-     - 密码（如果需要）
+1. 启动应用后，在登录界面输入您的 Emby 服务器信息：
+   - 服务器地址（例如：http://192.168.1.100:8096）
+   - 用户名
+   - 密码（如果需要）
 
 2. 登录成功后，您可以：
    - 上下滑动浏览视频
@@ -159,4 +153,4 @@ docker-compose -f docker-compose.simple.yml up -d
 
 ## 免责声明
 
-EmbyTok 是一个非官方的客户端，与 Emby 和 Plex 官方没有关联。使用时请确保遵守您所在地区的相关法律法规。
+EmbyTok 是一个非官方的 Emby 客户端，与 Emby 官方没有关联。使用时请确保遵守您所在地区的相关法律法规。
