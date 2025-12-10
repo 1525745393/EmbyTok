@@ -93,13 +93,44 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 
 ## Docker 部署
 
-项目包含 Docker 支持，可以轻松部署为 Web 应用：
+项目包含 Docker 支持，可以轻松部署为 Web 应用。
+
+### 使用默认配置
 
 ```bash
 docker-compose up -d
 ```
 
 默认情况下，应用将在端口 8080 上可用。
+
+### 使用简单配置
+
+可以使用 `docker-compose.simple.yml` 进行更简单的部署：
+
+```yaml
+version: '3.8'
+
+services:
+  # EmbyTok 前端应用 - 简单版配置
+  embytok:
+    image: crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok:latest
+    container_name: embytok-web
+    restart: unless-stopped
+    ports:
+      - "5175:80"  # Web界面端口
+    environment:
+      - NODE_ENV=production
+    network_mode: bridge
+networks: {}
+```
+
+运行简单配置：
+
+```bash
+docker-compose -f docker-compose.simple.yml up -d
+```
+
+默认情况下，应用将在端口 5175 上可用。
 
 ## 配置
 
