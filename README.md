@@ -12,16 +12,23 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 ## 功能特性
 
 - 📱 **TikTok 式浏览体验**：全屏竖屏视频浏览，上下滑动切换视频
-- 🎵 **音频控制**：一键静音/取消静音，支持旋转专辑封面
-- ❤️ **收藏功能**：点赞并收藏喜欢的视频
+- 🎵 **音频控制**：一键静音/取消静音，直观的音量图标反馈
+- ❤️ **收藏功能**：点赞并收藏喜欢的视频，支持在收藏夹中浏览
 - 🔍 **多种浏览模式**：
   - 最新视频
   - 随机推荐
   - 收藏夹
-- 📁 **媒体库管理**：支持多个媒体库的浏览和隐藏
-- 🌐 **响应式设计**：适配移动端和桌面端
+- 📁 **媒体库管理**：支持多个媒体库的浏览、选择和隐藏
+- 🌐 **响应式设计**：适配移动端和桌面端，自动调整布局
 - ⏩ **滑动控制进度**：左右滑动调整视频播放进度
 - 📦 **Android 应用**：可通过 Capacitor 构建为原生 Android 应用
+- 📱 **视图切换**：支持视频流视图和网格视图的一键切换
+- 📐 **方向过滤**：可选择只显示垂直、水平或两者都显示的视频
+- 🖥️ **全屏模式**：支持进入/退出全屏播放
+- 🎯 **自动布局**：根据屏幕方向自动调整最佳显示方式
+- 📱 **竖屏优化**：专为手机竖屏体验优化的界面设计
+- � **无限连播模式**：支持视频自动连续播放，无需手动操作
+- �📱 **平板模式**：支持平板模式
 
 ## 技术栈
 
@@ -31,6 +38,9 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 - Tailwind CSS
 - Capacitor (用于构建 Android 应用)
 - Lucide React (图标)
+- 多架构 Docker 支持 (AMD64/ARM64)
+- Nginx 生产环境部署
+- PWA 支持
 
 ## 安装和设置
 
@@ -98,19 +108,30 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 
 ## Docker 部署
 
-项目包含 Docker 支持，可以轻松部署为 Web 应用。
+项目包含 Docker 支持，可以轻松部署为 Web 应用。支持多架构（AMD64/ARM64），可在不同硬件平台上运行。
 
-### 使用默认配置
+### 镜像信息
+
+- **镜像名称**：crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
+- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **标签**：latest, 1.0.2
+
+### 直接使用 Docker 命令
 
 ```bash
-docker-compose up -d
+# 拉取并运行镜像（Docker 会自动选择适合您硬件架构的版本）
+docker run -d \
+  --name embytok-web \
+  --restart unless-stopped \
+  -p 8080:80 \
+  crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok:latest
 ```
 
-默认情况下，应用将在端口 8080 上可用。
+### 使用 Docker Compose
 
-### 使用简单配置
+#### 简单部署
 
-可以使用 `docker-compose.simple.yml` 进行更简单的部署：
+使用 `docker-compose.simple.yml` 进行快速部署：
 
 ```yaml
 version: '3.8'
