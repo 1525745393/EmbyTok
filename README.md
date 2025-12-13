@@ -3,10 +3,17 @@
 EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。
 
 <div style="display:flex; flex-direction:row;">
-<img src="tmp/1.jpg" width="24%" />
-<img src="tmp/2.jpg" width="24%" />
-<img src="tmp/3.jpg" width="24%" />
-<img src="tmp/4.jpg" width="24%" />
+<img src="tmp/1.jpg" width="19%" />
+<img src="tmp/2.jpg" width="19%" />
+<img src="tmp/3.jpg" width="19%" />
+<img src="tmp/4.jpg" width="19%" />
+<img src="tmp/5.jpg" width="19%" />
+</div>
+~
+<div style="display:flex; flex-direction:row;">
+<img src="tmp/6.jpg" width="32%" />
+<img src="tmp/7.jpg" width="32%" />
+<img src="tmp/8.jpg" width="32%" />
 </div>
 
 ## 功能特性
@@ -27,7 +34,7 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 - 🖥️ **全屏模式**：支持进入/退出全屏播放
 - 🎯 **自动布局**：根据屏幕方向自动调整最佳显示方式
 - 📱 **竖屏优化**：专为手机竖屏体验优化的界面设计
-- ♾️ **无限连播模式**：支持视频自动连续播放，无需手动操作
+- ♾️ **无限连播模式**：无限连播+纯净模式
 - 📱 **平板模式**：支持平板模式
 
 ## 技术栈
