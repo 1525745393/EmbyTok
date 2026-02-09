@@ -105,14 +105,7 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                   <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-3xl border border-white/5 text-white">
                       <div className="text-xl sm:text-2xl font-black text-white mb-2 tracking-tighter">EmbyTok <span className="text-indigo-400 font-mono text-xs">TV</span></div>
                       <p className="text-xs text-white/40 leading-relaxed mb-4 sm:mb-6">极致的大屏媒体体验。为智能电视与大尺寸显示器进行深度像素优化。</p>
-                      <div className="space-y-2 mb-4">
-                          <p className="text-xs text-white/40">• 遥控器友好的导航系统</p>
-                          <p className="text-xs text-white/40">• 左侧导航栏上下选择保持展开状态</p>
-                          <p className="text-xs text-white/40">• 电视分辨率适配（960x540及以上）</p>
-                          <p className="text-xs text-white/40">• 设置页面响应式设计，适配不同屏幕尺寸</p>
-                      </div>
-                      <p className="text-xs text-white/40 leading-relaxed mb-4 sm:mb-6">电视APK下载：<span className="text-indigo-400">Gitee发行版</span></p>
-                      <div className="flex gap-2 sm:gap-3"><div className="bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">V 1.2.0</div></div>
+                      <div className="flex gap-2 sm:gap-3"><div className="bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">V 1.2.1</div></div>
                   </div>
               </div>
           )}
