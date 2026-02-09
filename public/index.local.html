@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <title>EmbyTok</title>
+    <script src="/cdn/tailwindcss.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {},
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: black;
+        color: white;
+        overscroll-behavior-y: none;
+      }
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "/cdn/react.js",
+    "react-dom/": "/cdn/react-dom.js",
+    "react/": "/cdn/react.js",
+    "lucide-react": "/cdn/lucide-react.js",
+    "vite": "/cdn/vite.js",
+    "@vitejs/plugin-react": "/cdn/plugin-react.js",
+    "@capacitor/cli": "/cdn/capacitor-cli.js",
+    "vite-plugin-pwa": "/cdn/vite-plugin-pwa.js"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

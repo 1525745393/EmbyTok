@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- Black background -->
+  <rect width="640" height="360" fill="#000000" />
+  
+  <!-- M-shaped ribbon design -->
+  <g transform="translate(160, 60) scale(0.8)">
+    <!-- Outer blue ribbon -->
+    <path d="
+      M 0 240 
+      C 120 -60, 180 -60, 300 240 
+      C 360 120, 420 120, 480 240
+    " fill="none" stroke="#0066FF" stroke-width="40" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- Middle white ribbon -->
+    <path d="
+      M 0 240 
+      C 120 -60, 180 -60, 300 240 
+      C 360 120, 420 120, 480 240
+    " fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+    
+    <!-- Inner cyan ribbon -->
+    <path d="
+      M 0 240 
+      C 120 -60, 180 -60, 300 240 
+      C 360 120, 420 120, 480 240
+    " fill="none" stroke="#00FFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

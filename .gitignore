@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+
+# IDE and editor files
+.trae/
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Platform specific
+android
+*.local
+
+# Temporary files and directories
+tmp/
+output/
+
+# CDN files
+public/cdn/
+
+# Temporary images
+WechatIMG557.png
+temp-icon.png
+
+# Log files
+log.txt
+
+# Local documentation
+安卓图标生成帮助.md
+
+# Archive files
+*.tar
