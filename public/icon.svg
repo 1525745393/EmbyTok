@@ -1,21 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#000000"/>
+  <rect width="512" height="512" fill="#000000" rx="120"/>
   <defs>
-    <style>
-      .k-font {
-        font-family: sans-serif;
-        font-weight: 900;
-        font-size: 650px;
-        text-anchor: middle;
-      }
-    </style>
+    <path id="m-rabbit-cute" d="M 110 512 C 110 380, 120 60, 200 60 C 230 60, 240 160, 256 160 C 272 160, 282 60, 312 60 C 392 60, 402 380, 402 512" fill="none" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
   </defs>
-  <!-- Cyan Layer (Offset Left/Top) -->
-  <text x="48%" y="83%" class="k-font" fill="#25F4EE" opacity="0.9">K</text>
-  
-  <!-- Red Layer (Offset Right/Bottom) -->
-  <text x="52%" y="87%" class="k-font" fill="#FE2C55" opacity="0.9">K</text>
-  
-  <!-- White Layer (Center) -->
-  <text x="50%" y="85%" class="k-font" fill="#FFFFFF">K</text>
+  <g transform="translate(-8, -2)" stroke="#25F4EE" opacity="0.6"><use href="#m-rabbit-cute" /></g>
+  <g transform="translate(8, 2)" stroke="#FE2C55" opacity="0.6"><use href="#m-rabbit-cute" /></g>
+  <g stroke="#FFFFFF"><use href="#m-rabbit-cute" /></g>
 </svg>

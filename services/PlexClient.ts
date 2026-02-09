@@ -48,6 +48,17 @@ export class PlexClient extends MediaClient {
         }));
     }
 
+    // 补全缺失的方法实现，解决编译错误
+    async getResumeItems(): Promise<EmbyItem[]> {
+        try {
+            const response = await fetch(`${this.getCleanUrl()}/library/onDeck`, { headers: this.getHeaders() });
+            const data = await response.json();
+            return this.mapPlexItems(data.MediaContainer.Metadata || []).slice(0, 12);
+        } catch (e) {
+            return [];
+        }
+    }
+
     private filterItems(items: EmbyItem[], mode: OrientationMode): EmbyItem[] {
         if (mode === 'both') return items;
         return items.filter(item => {
@@ -69,7 +80,8 @@ export class PlexClient extends MediaClient {
         feedType: FeedType, 
         skip: number, 
         limit: number, 
-        orientationMode: OrientationMode
+        orientationMode: OrientationMode,
+        includeIds?: string
     ): Promise<VideoResponse> {
         const libraryName = library ? library.Name : "收藏";
         
@@ -91,11 +103,15 @@ export class PlexClient extends MediaClient {
             url = `${this.getCleanUrl()}/library/metadata/${navParentId}/children?X-Plex-Container-Start=${skip}&X-Plex-Container-Size=${limit}`;
         } else {
             const sectionId = navParentId || library?.Id;
-            if (!sectionId) return { items: [], nextStartIndex: 0, totalCount: 0 };
-            
-            let sort = 'addedAt:desc';
-            if (feedType === 'random') sort = 'random';
-            url = `${this.getCleanUrl()}/library/sections/${sectionId}/all?sort=${sort}&X-Plex-Container-Start=${skip}&X-Plex-Container-Size=${limit}`;
+            if (!sectionId && includeIds) {
+                url = `${this.getCleanUrl()}/library/sections/${includeIds.split(',')[0]}/all?X-Plex-Container-Start=${skip}&X-Plex-Container-Size=${limit}`;
+            } else if (!sectionId) {
+                return { items: [], nextStartIndex: 0, totalCount: 0 };
+            } else {
+                let sort = 'addedAt:desc';
+                if (feedType === 'random') sort = 'random';
+                url = `${this.getCleanUrl()}/library/sections/${sectionId}/all?sort=${sort}&X-Plex-Container-Start=${skip}&X-Plex-Container-Size=${limit}`;
+            }
         }
 
         const response = await fetch(url, { headers: this.getHeaders() });

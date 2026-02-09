@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { EmbyItem, FeedType } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
@@ -43,7 +43,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [showToast, setShowToast] = useState(false);
+  const [isTV, setIsTV] = useState(false);
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    setIsTV(window.navigator.userAgent.toLowerCase().includes('tv'));
+  }, []);
 
   useLayoutEffect(() => {
     if (isFirstRender.current && containerRef.current && initialIndex > 0) {
@@ -53,16 +58,47 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, [initialIndex]);
 
-  // Handle AutoPlay Toast Notification (Global for the feed)
   useEffect(() => {
-      if (isAutoPlay) {
-          setShowToast(true);
-          const timer = setTimeout(() => setShowToast(false), 2000);
-          return () => clearTimeout(timer);
-      } else {
-          setShowToast(false);
-      }
+    if (isAutoPlay) {
+        setShowToast(true);
+        const timer = setTimeout(() => setShowToast(false), 2000);
+        return () => clearTimeout(timer);
+    }
   }, [isAutoPlay]);
+
+  const scrollToVideo = useCallback((index: number) => {
+    if (containerRef.current && index >= 0 && index < videos.length) {
+        containerRef.current.scrollTo({
+            top: index * window.innerHeight,
+            behavior: 'smooth'
+        });
+        setActiveIndex(index);
+    }
+  }, [videos.length]);
+
+  // 关键：电视遥控器按键接管
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isTV) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (activeIndex < videos.length - 1) {
+            scrollToVideo(activeIndex + 1);
+        } else if (hasMore) {
+            onLoadMore();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (activeIndex > 0) {
+            scrollToVideo(activeIndex - 1);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isTV, activeIndex, videos.length, hasMore, scrollToVideo, onLoadMore]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -79,10 +115,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         if (entry.isIntersecting) {
           const index = Number(entry.target.getAttribute('data-index'));
           setActiveIndex(index);
-          if (onIndexChange) {
-              onIndexChange(index);
-          }
-          
+          if (onIndexChange) onIndexChange(index);
           if (feedType === 'latest' && index >= videos.length - 2 && hasMore && !isLoading) {
               onLoadMore();
           }
@@ -97,16 +130,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     return () => observer.disconnect();
   }, [videos, onIndexChange, feedType, hasMore, isLoading, onLoadMore]);
 
-  // Handle scrolling to next video when auto-play is on
   const handleNextVideo = () => {
-    if (activeIndex < videos.length - 1 && containerRef.current) {
-        const nextIndex = activeIndex + 1;
-        containerRef.current.scrollTo({
-            top: nextIndex * window.innerHeight,
-            behavior: 'smooth'
-        });
-    } else if (activeIndex >= videos.length - 1 && hasMore) {
-        // Try to load more if at end
+    if (activeIndex < videos.length - 1) {
+        scrollToVideo(activeIndex + 1);
+    } else if (hasMore) {
         onLoadMore();
     }
   };
@@ -116,25 +143,18 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       <div className="flex flex-col items-center justify-center h-full text-white bg-black pt-20">
         <Film className="w-16 h-16 text-zinc-800 mb-4" />
         <p className="text-lg mb-2 font-bold">未找到视频</p>
-        <p className="text-zinc-500 text-sm mb-6 px-8 text-center">请尝试切换标签或选择其他媒体库</p>
-        <button 
-            onClick={onRefresh}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-bold transition-colors"
-        >
-            <RefreshCw className="w-4 h-4" /> 刷新
-        </button>
+        <button onClick={onRefresh} className="px-6 py-3 bg-indigo-600 rounded-full text-sm font-bold">刷新</button>
       </div>
     );
   }
 
   return (
     <div className="relative h-full w-full bg-black">
-        {/* Global Toast Notification Overlay */}
         {showToast && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
                   <Infinity className="w-5 h-5 text-green-400" />
-                  <span className="font-bold">已开启自动连播 (纯净模式)</span>
+                  <span className="font-bold">自动连播已开启</span>
               </div>
           </div>
         )}
@@ -163,9 +183,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
                   onVideoEnd={handleNextVideo}
                 />
               ) : (
-                <div className="w-full h-full bg-black flex items-center justify-center">
-                    <div className="w-10 h-10 border-2 border-zinc-800 rounded-full animate-pulse"></div>
-                </div>
+                <div className="w-full h-full bg-black" />
               )}
             </div>
           ))}
@@ -173,33 +191,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           {feedType === 'random' && videos.length > 0 && (
             <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
                 <Shuffle className="w-16 h-16 text-zinc-700" />
-                <h3 className="text-xl font-bold">看完了？</h3>
-                <p className="text-zinc-400 mb-4">重新生成随机列表，发现更多惊喜</p>
-                <button 
-                    onClick={onRefresh}
-                    className="flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-full text-lg font-bold transition-all active:scale-95"
-                >
-                    <RefreshCw className="w-6 h-6" /> 换一批
-                </button>
+                <button onClick={onRefresh} className="px-8 py-4 bg-indigo-600 rounded-full text-lg font-bold">换一批</button>
             </div>
-          )}
-
-          {feedType === 'latest' && hasMore && (
-              <div className="h-24 w-full flex items-center justify-center bg-black snap-align-none">
-                  <RefreshCw className="w-6 h-6 text-zinc-500 animate-spin" />
-              </div>
-          )}
-          
-          {feedType === 'latest' && !hasMore && videos.length > 0 && (
-              <div className="h-32 w-full flex items-center justify-center bg-black snap-center text-zinc-600 text-sm">
-                  - 到底了 -
-              </div>
-          )}
-
-          {isLoading && videos.length === 0 && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none">
-                  <RefreshCw className="w-10 h-10 text-indigo-500 animate-spin" />
-              </div>
           )}
         </div>
     </div>

@@ -49,6 +49,7 @@ export interface EmbyItem {
     Primary?: string;
     Logo?: string;
     Thumb?: string;
+    Backdrop?: string;
   };
   UserData?: {
     IsFavorite: boolean;

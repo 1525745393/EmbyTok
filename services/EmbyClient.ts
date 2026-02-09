@@ -34,6 +34,21 @@ export class EmbyClient extends MediaClient {
         return data.Items || [];
     }
 
+    // 仅为 TV 首页增加此接口，不干扰原有逻辑
+    async getResumeItems(): Promise<EmbyItem[]> {
+        const params = new URLSearchParams({
+            Recursive: 'true',
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,ProductionYear,UserData',
+            ImageTypeLimit: '1',
+            EnableImageTypes: 'Primary,Backdrop,Thumb',
+            MediaTypes: 'Video',
+            Limit: '12'
+        });
+        const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items/Resume?${params.toString()}`, { headers: this.getHeaders() });
+        const data = await response.json();
+        return (data.Items || []).map((i: any) => ({ ...i, Name: this.formatItemName(i) }));
+    }
+
     private formatItemName(item: any): string {
         if (item.Type === 'Episode') {
             const index = item.IndexNumber !== undefined ? String(item.IndexNumber).padStart(2, '0') : '--';
@@ -48,11 +63,9 @@ export class EmbyClient extends MediaClient {
         return items.filter(item => {
             const isNavFolder = ['Series', 'Season', 'Folder', 'CollectionFolder', 'BoxSet'].includes(item.Type);
             if (isNavFolder) return true;
-            
             const w = item.Width || 0;
             const h = item.Height || 0;
             if (w === 0 || h === 0) return true; 
-
             if (mode === 'vertical') return h >= w * 0.8;
             if (mode === 'horizontal') return w > h;
             return true;
@@ -65,11 +78,13 @@ export class EmbyClient extends MediaClient {
         feedType: FeedType, 
         skip: number, 
         limit: number, 
-        orientationMode: OrientationMode
+        orientationMode: OrientationMode,
+        includeIds?: string
     ): Promise<VideoResponse> {
         
         const libraryName = library ? library.Name : "收藏";
 
+        // 严格遵循 backup 中的 Playlist 逻辑
         if (feedType === 'favorites') {
             const playlistItems = await this.getTokPlaylistItemsInternal(libraryName);
             const filtered = this.applyOrientationFilter(playlistItems, orientationMode);
@@ -85,26 +100,24 @@ export class EmbyClient extends MediaClient {
             _t: Date.now().toString()
         });
 
+        if (includeIds && !navParentId && !library) {
+            params.append('ParentIds', includeIds);
+        }
+
         if (navParentId) {
-            // 当进入特定文件夹时，显示其下的所有内容（包括子文件夹）
             params.append('ParentId', navParentId);
             params.append('Recursive', 'false');
             params.append('SortBy', 'SortName');
             params.append('IncludeItemTypes', 'Movie,Video,Episode,Folder,BoxSet,Series,Season');
         } else {
-            // 当在媒体库根目录时
             if (library) {
                 params.append('ParentId', library.Id);
                 const collectionType = (library.CollectionType || '').toLowerCase();
-                
                 if (collectionType === 'tvshows' || collectionType === 'show') {
-                    // 电视剧库：仅显示系列
                     params.append('IncludeItemTypes', 'Series');
                 } else if (collectionType === 'folders') {
-                    // 文件夹库：保留原始结构
                     params.append('IncludeItemTypes', 'Movie,Video,Episode,Folder,BoxSet');
                 } else {
-                    // 电影或其他媒体库：仅显示视频内容，不显示目录
                     params.append('IncludeItemTypes', 'Movie,Video,Episode');
                 }
             } else {
@@ -117,7 +130,6 @@ export class EmbyClient extends MediaClient {
 
         const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items?${params.toString()}`, { headers: this.getHeaders() });
         const data = await response.json();
-        
         const rawItems = data.Items || [];
         const filteredItems = this.applyOrientationFilter(rawItems, orientationMode);
         
@@ -145,9 +157,11 @@ export class EmbyClient extends MediaClient {
 
     getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {
         if (!tag) return '';
-        return `${this.getCleanUrl()}/Items/${itemId}/Images/${type}?maxWidth=800&tag=${tag}&quality=90`;
+        // 补全 api_key 确保 TV 端加载正常
+        return `${this.getCleanUrl()}/Items/${itemId}/Images/${type}?maxWidth=800&tag=${tag}&quality=90&api_key=${this.config.token}`;
     }
 
+    // --- 恢复 Playlist 原始实现 ---
     private async getTokPlaylistId(libraryName: string): Promise<string> {
         const playlistName = `Tok-${libraryName}`;
         const searchRes = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items?IncludeItemTypes=Playlist&Recursive=true`, { headers: this.getHeaders() });
