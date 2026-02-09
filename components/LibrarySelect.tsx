@@ -41,7 +41,7 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: '当前账户', logout: '退出当前登录', visibility: '媒体库可见性',
           language: '界面语言', langName: '简体中文',
           tvMode: '切换到电视模式', tvDesc: '体验专为遥控器设计的布局',
-          version: '版本 1.2.0'
+          version: '版本 1.2.1'
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -49,7 +49,7 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: 'Account', logout: 'Logout', visibility: 'Library Visibility',
           language: 'Language', langName: 'English',
           tvMode: 'Switch to TV Mode', tvDesc: 'Layout optimized for remote control',
-          version: 'V 1.2.0'
+          version: 'V 1.2.1'
       }
   }[language];
 
@@ -153,6 +153,59 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                           <div className="text-sm font-bold text-white truncate">{username}</div>
                           <button onClick={onLogout} className="w-full py-2 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold">{t.logout}</button>
                       </div>
+                  </div>
+              </div>
+          )}
+
+          {mode === 'about' && (
+              <div className="space-y-6 p-4">
+                  <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-6 rounded-2xl border border-white/5">
+                      <div className="text-xl font-black text-white mb-2 tracking-tighter">EmbyTok</div>
+                      <div className="text-sm font-bold text-indigo-400 mb-4">{t.version}</div>
+                      <p className="text-xs text-white/70 leading-relaxed mb-6">为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。</p>
+                      <div className="flex gap-2 flex-wrap mb-6">
+                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">React 18</div>
+                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">TypeScript</div>
+                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">Vite</div>
+                      </div>
+                      <a href="https://gitee.com/miguyomi/embytok" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
+                          <ExternalLink className="w-4 h-4" />
+                          <span>项目地址</span>
+                      </a>
+                  </div>
+                  
+                  <div className="space-y-4">
+                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">特色功能</h3>
+                      <div className="space-y-2">
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">TikTok 式竖屏视频浏览体验</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">多视图切换（流视图/网格视图）</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">无限连播 + 纯净模式</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">智能方向适配（垂直/水平）</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">增强手势控制与 2 倍速播放</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">电视模式，专为遥控器设计的布局</div>
+                           </div>
+                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
+                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
+                               <div className="text-sm text-white">电视APK下载（Gitee发行版）</div>
+                           </div>
+                       </div>
                   </div>
               </div>
           )}

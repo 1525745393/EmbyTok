@@ -84,7 +84,7 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                   <h3 className="text-lg sm:text-xl font-black opacity-40 uppercase tracking-widest">{t.lang}</h3>
                   <button tabIndex={0} onClick={onToggleLanguage} className="p-3 sm:p-4 bg-white/5 border border-white/5 rounded-lg sm:rounded-xl text-left transition-all outline-none focus:ring-2 focus:ring-white flex items-center justify-between group">
                       <div className="text-sm font-bold text-white">{language === 'zh' ? '当前：简体中文' : 'Current: English'}</div>
-                      <Globe size={16} sm:size={18} className="text-indigo-400" />
+                      <Globe size={18} className="text-indigo-400 sm:w-4 sm:h-4" />
                   </button>
 
                   <h3 className="text-lg sm:text-xl font-black opacity-40 uppercase tracking-widest pt-3 sm:pt-4">{t.display}</h3>
@@ -95,7 +95,7 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                   </div>
                   <button tabIndex={0} onClick={onToggleMode} className="p-3 sm:p-4 bg-zinc-900 border border-white/5 rounded-lg sm:rounded-xl text-left transition-all outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between group shadow-lg text-white mt-3 sm:mt-4">
                       <div className="text-sm font-bold">{t.switch}</div>
-                      <Monitor size={16} sm:size={18} className="text-indigo-500" />
+                      <Monitor size={18} className="text-indigo-500 sm:w-4 sm:h-4" />
                   </button>
               </div>
           )}
@@ -105,6 +105,13 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                   <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-3xl border border-white/5 text-white">
                       <div className="text-xl sm:text-2xl font-black text-white mb-2 tracking-tighter">EmbyTok <span className="text-indigo-400 font-mono text-xs">TV</span></div>
                       <p className="text-xs text-white/40 leading-relaxed mb-4 sm:mb-6">极致的大屏媒体体验。为智能电视与大尺寸显示器进行深度像素优化。</p>
+                      <div className="space-y-2 mb-4">
+                          <p className="text-xs text-white/40">• 遥控器友好的导航系统</p>
+                          <p className="text-xs text-white/40">• 左侧导航栏上下选择保持展开状态</p>
+                          <p className="text-xs text-white/40">• 电视分辨率适配（960x540及以上）</p>
+                          <p className="text-xs text-white/40">• 设置页面响应式设计，适配不同屏幕尺寸</p>
+                      </div>
+                      <p className="text-xs text-white/40 leading-relaxed mb-4 sm:mb-6">电视APK下载：<span className="text-indigo-400">Gitee发行版</span></p>
                       <div className="flex gap-2 sm:gap-3"><div className="bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">V 1.2.0</div></div>
                   </div>
               </div>
