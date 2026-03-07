@@ -258,14 +258,24 @@ EmbyTok 是一个非官方的 Emby 客户端，与 Emby 官方没有关联。使
 
 如果您喜欢这个项目，可以通过以下方式赞助支持：
 
-<div style="display:flex; flex-direction:row; gap:20px; justify-content:center;">
+<div style="display:flex; flex-direction:row; gap:40px; justify-content:center; align-items:center;">
+<div style="text-align:center;">
 ### 支付宝
 
-![支付宝付款码](tmp/alipay.jpg)  
-
+<img src="tmp/alipay.jpg" alt="支付宝付款码" class="payment-img" />  
+</div>
+<div style="text-align:center;">
 ### 微信支付
 
-![微信付款码](tmp/wechat.jpg)
+<img src="tmp/wechat.jpg" alt="微信付款码" class="payment-img" />
 </div>
+</div>
+
+<style>
+  .payment-img {
+    max-width: 200px;
+    height: auto;
+  }
+</style>
 
 您的支持将帮助我持续改进和维护这个项目，感谢您的关注与支持！
