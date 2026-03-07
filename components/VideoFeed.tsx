@@ -169,7 +169,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
             <div
               key={item.Id}
               data-index={index}
-              className="video-card-container h-[100dvh] w-full snap-center relative"
+              className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
             >
               {Math.abs(activeIndex - index) <= 1 ? (
                 <VideoCard

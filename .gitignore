@@ -33,6 +33,7 @@ android
 # Temporary files and directories
 tmp/
 output/
+EmbyX/
 
 # CDN files
 public/cdn/
