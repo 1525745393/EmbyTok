@@ -204,12 +204,14 @@ EmbyTok 是一个非官方的 Emby 客户端，与 Emby 官方没有关联。使
 
 如果您喜欢这个项目，可以通过以下方式赞助支持：
 
+<div style="display:flex; flex-direction:row; gap:20px; justify-content:center;">
 ### 支付宝
 
-![支付宝付款码](tmp/alipay.jpg)
+![支付宝付款码](tmp/alipay.jpg)  
 
 ### 微信支付
 
 ![微信付款码](tmp/wechat.jpg)
+</div>
 
 您的支持将帮助我持续改进和维护这个项目，感谢您的关注与支持！
