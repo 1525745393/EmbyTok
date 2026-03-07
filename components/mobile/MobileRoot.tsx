@@ -83,7 +83,30 @@ function MobileRoot() {
         {viewMode === 'grid' ? (
             <VideoGrid videos={videos} client={client} isLoading={loading} feedType={feedType} hasMore={hasMore} onSelect={(idx) => { setCurrentIndex(idx); setViewMode('feed'); }} onLoadMore={() => loadVideos(false)} onRefresh={() => loadVideos(true)} />
         ) : (
-            <VideoFeed videos={videos} client={client} onRefresh={() => loadVideos(true)} isLoading={loading} favoriteIds={favoriteIds} onToggleFavorite={() => {}} initialIndex={currentIndex} onIndexChange={setCurrentIndex} isMuted={isMuted} onToggleMute={() => setIsMuted(!isMuted)} feedType={feedType} hasMore={hasMore} onLoadMore={() => loadVideos(false)} />
+            <VideoFeed 
+                videos={videos} 
+                client={client} 
+                onRefresh={() => loadVideos(true)} 
+                isLoading={loading} 
+                favoriteIds={favoriteIds} 
+                onToggleFavorite={() => {}} 
+                onDelete={async (itemId) => {
+                    try {
+                        await client.deleteItem(itemId);
+                        setVideos(prev => prev.filter(video => video.Id !== itemId));
+                    } catch (error) {
+                        console.error('删除视频失败:', error);
+                        alert('删除失败，请检查权限');
+                    }
+                }}
+                initialIndex={currentIndex} 
+                onIndexChange={setCurrentIndex} 
+                isMuted={isMuted} 
+                onToggleMute={() => setIsMuted(!isMuted)} 
+                feedType={feedType} 
+                hasMore={hasMore} 
+                onLoadMore={() => loadVideos(false)} 
+            />
         )}
       </div>
 

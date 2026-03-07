@@ -199,4 +199,15 @@ export class EmbyClient extends MediaClient {
             }
         }
     }
+
+    async deleteItem(itemId: string): Promise<void> {
+        const response = await fetch(`${this.getCleanUrl()}/Items/${itemId}?api_key=${this.config.token}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to delete item: ${response.status}`);
+        }
+    }
 }

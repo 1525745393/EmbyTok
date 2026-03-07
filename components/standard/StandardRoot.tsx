@@ -133,7 +133,39 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         {viewMode === 'grid' ? (
             <VideoGrid videos={videos} client={client} isLoading={loading} feedType={feedType} hasMore={hasMore} onSelect={(idx) => { setCurrentIndex(idx); setViewMode('feed'); }} onLoadMore={() => loadVideos(false)} onRefresh={() => loadVideos(true)} currentIndex={currentIndex} onNavigate={(id, title) => { setNavStack(prev => [...prev, { id, title }]); setViewMode('grid'); }} />
         ) : (
-            <VideoFeed videos={videos} client={client} onRefresh={() => loadVideos(true)} isLoading={loading} favoriteIds={favoriteIds} onToggleFavorite={async (id, fav) => { await client.toggleFavorite(id, fav, selectedLib?.Name || "收藏"); setFavoriteIds(prev => { const n = new Set(prev); if (fav) n.delete(id); else n.add(id); return n; }); }} initialIndex={currentIndex} onIndexChange={setCurrentIndex} isMuted={isMuted} onToggleMute={() => setIsMuted(!isMuted)} feedType={feedType} hasMore={hasMore} onLoadMore={() => loadVideos(false)} isAutoPlay={isAutoPlay} onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} />
+            <VideoFeed 
+                videos={videos} 
+                client={client} 
+                onRefresh={() => loadVideos(true)} 
+                isLoading={loading} 
+                favoriteIds={favoriteIds} 
+                onToggleFavorite={async (id, fav) => { 
+                    await client.toggleFavorite(id, fav, selectedLib?.Name || "收藏"); 
+                    setFavoriteIds(prev => { 
+                        const n = new Set(prev); 
+                        if (fav) n.delete(id); else n.add(id); 
+                        return n; 
+                    }); 
+                }} 
+                onDelete={async (itemId) => {
+                    try {
+                        await client.deleteItem(itemId);
+                        setVideos(prev => prev.filter(video => video.Id !== itemId));
+                    } catch (error) {
+                        console.error('删除视频失败:', error);
+                        alert('删除失败，请检查权限');
+                    }
+                }}
+                initialIndex={currentIndex} 
+                onIndexChange={setCurrentIndex} 
+                isMuted={isMuted} 
+                onToggleMute={() => setIsMuted(!isMuted)} 
+                feedType={feedType} 
+                hasMore={hasMore} 
+                onLoadMore={() => loadVideos(false)} 
+                isAutoPlay={isAutoPlay} 
+                onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} 
+            />
         )}
       </div>
       <LibrarySelect isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} libraries={libraries} selectedId={selectedLib?.Id || null} onSelect={(lib) => { setSelectedLib(lib); setIsMenuOpen(false); }} hiddenLibIds={hiddenLibIds} onToggleHidden={(id) => {

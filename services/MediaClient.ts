@@ -32,4 +32,7 @@ export abstract class MediaClient {
     // 严格保留原有的播放列表收藏逻辑
     abstract getFavorites(libraryName: string): Promise<Set<string>>;
     abstract toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void>;
+    
+    // 删除视频方法
+    abstract deleteItem(itemId: string): Promise<void>;
 }

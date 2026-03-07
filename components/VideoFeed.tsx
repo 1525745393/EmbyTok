@@ -12,6 +12,7 @@ interface VideoFeedProps {
   isLoading?: boolean;
   favoriteIds: Set<string>;
   onToggleFavorite: (itemId: string, isFavorite: boolean) => void;
+  onDelete?: (itemId: string) => void;
   initialIndex?: number;
   onIndexChange?: (index: number) => void;
   isMuted: boolean;
@@ -30,6 +31,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     isLoading,
     favoriteIds,
     onToggleFavorite,
+    onDelete = () => {},
     initialIndex = 0,
     onIndexChange,
     isMuted,
@@ -176,6 +178,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
                   isActive={activeIndex === index}
                   isFavorite={favoriteIds.has(item.Id)}
                   onToggleFavorite={() => onToggleFavorite(item.Id, favoriteIds.has(item.Id))}
+                  onDelete={() => onDelete(item.Id)}
                   isMuted={isMuted}
                   onToggleMute={onToggleMute}
                   isAutoPlay={isAutoPlay}

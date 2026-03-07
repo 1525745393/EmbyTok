@@ -209,4 +209,9 @@ export class PlexClient extends MediaClient {
             }
         }
     }
+
+    async deleteItem(itemId: string): Promise<void> {
+        // Plex 暂不支持删除功能
+        throw new Error('Plex does not support delete functionality');
+    }
 }
