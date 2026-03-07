@@ -149,16 +149,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">服务器地址</label>
             <input type="text" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} placeholder="https://..." className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
           </div>
-          <div className={`grid gap-4 ${isLandscape ? 'grid-cols-2' : 'grid-cols-1'}`}>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">用户名</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+          {serverType === 'emby' ? (
+              <div className={`grid gap-4 ${isLandscape ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">用户名</label>
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">密码</label>
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+                  </div>
               </div>
+          ) : (
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">密码</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">X-Plex-Token</label>
+                <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Plex Token" className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
               </div>
-          </div>
+          )}
           {error && <div className="text-red-400 text-xs">{error}</div>}
           <button id="login-submit-btn" type="submit" disabled={loading} className="w-full bg-indigo-600 text-white text-sm font-black py-5 rounded-2xl active:scale-95 transition-all">
             {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : '立即连接'}

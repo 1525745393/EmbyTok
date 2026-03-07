@@ -22,7 +22,7 @@ interface LibrarySelectProps {
   onToggleLanguage: () => void;
 }
 
-type MenuMode = 'list' | 'settings' | 'about';
+type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
 
 const LibrarySelect: React.FC<LibrarySelectProps> = ({ 
     libraries, onSelect, selectedId, onClose, isOpen,
@@ -41,7 +41,12 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: '当前账户', logout: '退出当前登录', visibility: '媒体库可见性',
           language: '界面语言', langName: '简体中文',
           tvMode: '切换到电视模式', tvDesc: '体验专为遥控器设计的布局',
-          version: '版本 1.2.1'
+          version: '版本 1.2.1',
+          sponsor: '欢迎赞助',
+          sponsorPage: '赞助支持',
+          sponsorText: '如果你觉得这个项目对你有帮助，不妨请开发者喝杯咖啡吧！你的支持将帮助项目持续改进和维护，让更多人享受到更好的 Emby 浏览体验。',
+          sponsorThanks: '感谢你的支持！每一分钱都将用于项目的发展和维护。',
+          back: '返回'
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -49,7 +54,12 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: 'Account', logout: 'Logout', visibility: 'Library Visibility',
           language: 'Language', langName: 'English',
           tvMode: 'Switch to TV Mode', tvDesc: 'Layout optimized for remote control',
-          version: 'V 1.2.1'
+          version: 'V 1.2.1',
+          sponsor: 'Support Us',
+          sponsorPage: 'Sponsorship',
+          sponsorText: 'If you find this project helpful, consider buying the developer a coffee! Your support will help the project continue to improve and maintain, allowing more people to enjoy a better Emby browsing experience.',
+          sponsorThanks: 'Thank you for your support! Every contribution will be used for the development and maintenance of the project.',
+          back: 'Back'
       }
   }[language];
 
@@ -64,8 +74,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
               <h2 className="text-white font-bold text-xl">{t.title}</h2>
           ) : (
               <div className="flex items-center gap-2">
-                  <button onClick={() => setMode('list')} className="p-1 -ml-2 text-zinc-400 hover:text-white"><ChevronLeft className="w-6 h-6" /></button>
-                  <h2 className="text-white font-bold text-xl">{mode === 'settings' ? t.settings : t.about}</h2>
+                  <button onClick={() => setMode(mode === 'sponsor' ? 'about' : 'list')} className="p-1 -ml-2 text-zinc-400 hover:text-white"><ChevronLeft className="w-6 h-6" /></button>
+                  <h2 className="text-white font-bold text-xl">{mode === 'settings' ? t.settings : mode === 'sponsor' ? t.sponsorPage : t.about}</h2>
               </div>
           )}
           <button onClick={onClose} className="text-white/70 hover:text-white p-1"><X className="w-6 h-6" /></button>
@@ -172,6 +182,10 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                           <ExternalLink className="w-4 h-4" />
                           <span>项目地址</span>
                       </a>
+                      <button onClick={() => setMode('sponsor')} className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors mt-4">
+                          <ExternalLink className="w-4 h-4" />
+                          <span>{t.sponsor}</span>
+                      </button>
                   </div>
                   
                   <div className="space-y-4">
@@ -207,6 +221,45 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                            </div>
                        </div>
                   </div>
+              </div>
+          )}
+
+          {mode === 'sponsor' && (
+              <div className="space-y-6 p-4">
+                  <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-6 rounded-2xl border border-white/5">
+                      <div className="text-xl font-black text-white mb-2 tracking-tighter">{t.sponsorPage}</div>
+                      <p className="text-xs text-white/70 leading-relaxed mb-6">{t.sponsorText}</p>
+                      <div className="text-xs text-white/70 leading-relaxed mb-6">
+                          <p>💰 一杯咖啡 = 开发者的动力</p>
+                          <p>🚀 你的支持 = 项目的未来</p>
+                          <p>🎉 每一分钱都值得感谢</p>
+                      </div>
+                      <p className="text-xs text-indigo-400 leading-relaxed mb-6">{t.sponsorThanks}</p>
+                  </div>
+                  
+                  <div className="space-y-6">
+                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">选择你的赞助方式</h3>
+                      
+                      <div className="bg-zinc-800/50 rounded-xl p-4 border border-white/5">
+                          <h4 className="text-sm font-bold text-white mb-3">支付宝</h4>
+                          <div className="flex justify-center mb-3">
+                              <img src="tmp/alipay.jpg" alt="支付宝付款码" className="max-w-full h-auto rounded-lg" />
+                          </div>
+                          <p className="text-xs text-white/70 text-center">扫描二维码进行赞助</p>
+                      </div>
+                      
+                      <div className="bg-zinc-800/50 rounded-xl p-4 border border-white/5">
+                          <h4 className="text-sm font-bold text-white mb-3">微信支付</h4>
+                          <div className="flex justify-center mb-3">
+                              <img src="tmp/wechat.jpg" alt="微信付款码" className="max-w-full h-auto rounded-lg" />
+                          </div>
+                          <p className="text-xs text-white/70 text-center">扫描二维码进行赞助</p>
+                      </div>
+                  </div>
+                  
+                  <button onClick={() => setMode('about')} className="w-full py-3 bg-indigo-600/10 text-indigo-400 rounded-xl font-bold text-sm transition-colors hover:bg-indigo-600/20">
+                      {t.back}
+                  </button>
               </div>
           )}
         </div>
