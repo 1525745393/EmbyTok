@@ -54,7 +54,7 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
   - 支持电视APK下载（Gitee发行版）
   - 支持电脑HTPC模式，全屏下键盘控制
 - 🗑️ **删除视频功能**：支持删除不需要的视频
-- ⚡ **快速滑动切换**：解决快速滑动切换多个视频问题
+- ⚡ **上下滑动切换**：解决快速滑动切换多个视频问题
 - 📱 **多架构支持**：支持X86+ARM镜像，适配不同硬件平台
 
 ## 技术栈
@@ -139,20 +139,33 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 
 ### 镜像信息
 
+#### Docker Hub 镜像（推荐）
+- **镜像名称**：aidedaijiayang/embytok
+- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **标签**：latest, 1.2.2
+
 #### 阿里云镜像
 - **镜像名称**：crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
 - **支持架构**：仅支持 AMD64 (x86_64)
 - **标签**：latest, 1.0.2
 
-#### Docker Hub 镜像
-- **镜像名称**：aidedaijiayang/embytok
-- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
-- **标签**：latest, 1.2.2
-
 ### 直接使用 Docker 命令
+
+#### 使用 Docker Hub 镜像（推荐）
 
 ```bash
 # 拉取并运行镜像（Docker 会自动选择适合您硬件架构的版本）
+docker run -d \
+  --name embytok-web \
+  --restart unless-stopped \
+  -p 8080:80 \
+  aidedaijiayang/embytok:latest
+```
+
+#### 使用阿里云镜像
+
+```bash
+# 拉取并运行镜像（仅支持 x86 架构）
 docker run -d \
   --name embytok-web \
   --restart unless-stopped \
