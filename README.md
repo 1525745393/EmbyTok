@@ -54,7 +54,7 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
   - 支持电视APK下载（Gitee发行版）
   - 支持电脑HTPC模式，全屏下键盘控制
 - 🗑️ **删除视频功能**：支持删除不需要的视频
-- ⚡ **快速滑动切换**：快速滑动即可切换到下一个视频
+- ⚡ **快速滑动切换**：解决快速滑动切换多个视频问题
 - 📱 **多架构支持**：支持X86+ARM镜像，适配不同硬件平台
 
 ## 技术栈
@@ -139,9 +139,15 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 
 ### 镜像信息
 
+#### 阿里云镜像
 - **镜像名称**：crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
-- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **支持架构**：仅支持 AMD64 (x86_64)
 - **标签**：latest, 1.0.2
+
+#### Docker Hub 镜像
+- **镜像名称**：aidedaijiayang/embytok
+- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **标签**：latest, 1.2.2
 
 ### 直接使用 Docker 命令
 
@@ -195,7 +201,7 @@ version: '3.8'
 services:
   # EmbyTok 前端应用 - Docker Hub 镜像版本
   embytok:
-    image: <your-dockerhub-username>/embytok:1.2.2
+    image: aidedaijiayang/embytok:latest
     container_name: embytok-web
     restart: unless-stopped
     ports:
@@ -207,12 +213,11 @@ networks: {}
 ```
 
 **使用说明**：
-1. 将 `<your-dockerhub-username>` 替换为您的 Docker Hub 用户名
-2. 运行配置：
+1. 运行配置：
    ```bash
    docker-compose up -d
    ```
-3. 默认情况下，应用将在端口 5175 上可用
+2. 默认情况下，应用将在端口 5175 上可用
 
 **镜像信息**：
 - 支持架构：X86 (amd64) 和 ARM (arm64)
