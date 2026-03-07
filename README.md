@@ -53,6 +53,9 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
   - 遥控器友好的导航系统
   - 支持电视APK下载（Gitee发行版）
   - 支持电脑HTPC模式，全屏下键盘控制
+- 🗑️ **删除视频功能**：支持删除不需要的视频
+- ⚡ **快速滑动切换**：快速滑动即可切换到下一个视频
+- 📱 **多架构支持**：支持X86+ARM镜像，适配不同硬件平台
 
 ## 技术栈
 
@@ -182,6 +185,39 @@ docker-compose -f docker-compose.simple.yml up -d
 
 默认情况下，应用将在端口 5175 上可用。
 
+#### 使用 Docker Hub 镜像
+
+使用 Docker Hub 上的官方镜像进行部署：
+
+```yaml
+version: '3.8'
+
+services:
+  # EmbyTok 前端应用 - Docker Hub 镜像版本
+  embytok:
+    image: <your-dockerhub-username>/embytok:1.2.2
+    container_name: embytok-web
+    restart: unless-stopped
+    ports:
+      - "5175:80"  # Web界面端口
+    environment:
+      - NODE_ENV=production
+    network_mode: bridge
+networks: {}
+```
+
+**使用说明**：
+1. 将 `<your-dockerhub-username>` 替换为您的 Docker Hub 用户名
+2. 运行配置：
+   ```bash
+   docker-compose up -d
+   ```
+3. 默认情况下，应用将在端口 5175 上可用
+
+**镜像信息**：
+- 支持架构：X86 (amd64) 和 ARM (arm64)
+- 版本标签：1.2.2, latest
+
 ## 配置
 
 应用使用 localStorage 存储以下用户配置：
@@ -204,12 +240,14 @@ EmbyTok 是一个非官方的 Emby 客户端，与 Emby 官方没有关联。使
 
 如果您喜欢这个项目，可以通过以下方式赞助支持：
 
+<div style="display:flex; flex-direction:row; gap:20px; justify-content:center;">
 ### 支付宝
 
-![支付宝付款码](tmp/alipay.jpg)
+![支付宝付款码](tmp/alipay.jpg)  
 
 ### 微信支付
 
 ![微信付款码](tmp/wechat.jpg)
+</div>
 
 您的支持将帮助我持续改进和维护这个项目，感谢您的关注与支持！
