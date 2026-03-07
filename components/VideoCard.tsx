@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { EmbyItem } from '../types';
 import { MediaClient } from '../services/MediaClient';
-import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity } from 'lucide-react';
+import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2 } from 'lucide-react';
 
 interface VideoCardProps {
   item: EmbyItem;
@@ -10,6 +10,7 @@ interface VideoCardProps {
   isActive: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  onDelete?: () => void;
   isMuted: boolean;
   onToggleMute: () => void;
   isAutoPlay?: boolean;
@@ -23,6 +24,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
     isActive, 
     isFavorite, 
     onToggleFavorite,
+    onDelete = () => {},
     isMuted,
     onToggleMute,
     isAutoPlay = false,
@@ -35,6 +37,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [hasStarted, setHasStarted] = useState(false); 
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Progress State
   const [currentTime, setCurrentTime] = useState(0);
@@ -393,7 +396,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
       {/* RIGHT SIDEBAR ACTION BAR (Conditional) */}
       {renderUI && (
-          <div className="absolute right-2 bottom-24 flex flex-col items-center gap-6 z-30 pointer-events-auto">
+          <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 z-30 pointer-events-auto">
               <div className="relative w-12 h-12 mb-2">
                   <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-zinc-800">
                       {posterSrc ? (
@@ -418,9 +421,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                         strokeWidth={isFavorite ? 0 : 2}
                       />
                   </button>
-                  <span className="text-white text-xs font-bold shadow-black drop-shadow-md">
-                    {isFavorite ? '已赞' : '点赞'}
-                  </span>
+
               </div>
 
               <div className="flex flex-col items-center gap-1">
@@ -434,7 +435,25 @@ const VideoCard: React.FC<VideoCardProps> = ({
                   >
                       <Info className="w-7 h-7 text-white drop-shadow-md" />
                   </button>
-                  <span className="text-white text-xs font-bold shadow-black drop-shadow-md">信息</span>
+
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                  <button 
+                    tabIndex={0}
+                    onTouchStart={stopProp}
+                    onMouseDown={stopProp}
+                    onTouchEnd={(e) => handleButtonAction(e, () => {
+                      setShowDeleteConfirm(true);
+                    })}
+                    onClick={(e) => handleButtonAction(e, () => {
+                      setShowDeleteConfirm(true);
+                    })}
+                    className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 focus:ring-2 focus:ring-red-500 outline-none"
+                  >
+                      <Trash2 className="w-7 h-7 text-red-500 drop-shadow-md" />
+                  </button>
+
               </div>
 
               <div 
@@ -502,6 +521,40 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     style={{ left: `${(currentTime / duration) * 100}%` }}
                />
           </div>
+      )}
+
+      {/* 删除确认对话框 */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md z-50">
+          <div className="bg-zinc-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
+              <Trash2 className="w-6 h-6 text-red-500" />
+              删除视频
+            </h3>
+            <p className="text-zinc-300 mb-6">
+              ⚠️ 警告：这将删除媒体库中的原文件！
+              <br /><br />
+              确定要删除此视频吗？
+            </p>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  onDelete();
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                确定删除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

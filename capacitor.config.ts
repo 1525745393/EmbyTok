@@ -5,11 +5,12 @@ const config: CapacitorConfig = {
   appName: 'EmbyTok',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'http', // 关键：在电视端尝试使用 http 方案以匹配大多数内网服务器
+    allowNavigation: ['*'] // 允许访问所有域名
   },
   plugins: {
     CapacitorHttp: {
-      enabled: true,
+      enabled: false, // 暂时禁用，改用原生 Web Fetch 以提高视频流兼容性
     },
   },
 };

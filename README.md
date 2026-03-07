@@ -3,10 +3,17 @@
 EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。
 
 <div style="display:flex; flex-direction:row;">
-<img src="https://gitee.com/miguyomi/embytok/raw/master/tmp/1.jpg" width="24%" />
-<img src="https://gitee.com/miguyomi/embytok/raw/master/tmp/2.jpg" width="24%" />
-<img src="https://gitee.com/miguyomi/embytok/raw/master/tmp/3.jpg" width="24%" />
-<img src="https://gitee.com/miguyomi/embytok/raw/master/tmp/4.jpg" width="24%" />
+<img src="tmp/1.jpg" width="19%" />
+<img src="tmp/2.jpg" width="19%" />
+<img src="tmp/3.jpg" width="19%" />
+<img src="tmp/4.jpg" width="19%" />
+<img src="tmp/5.jpg" width="19%" />
+</div>
+~
+<div style="display:flex; flex-direction:row;">
+<img src="tmp/6.jpg" width="32%" />
+<img src="tmp/7.jpg" width="32%" />
+<img src="tmp/8.jpg" width="32%" />
 </div>
 
 ## 功能特性
@@ -25,10 +32,27 @@ EmbyTok 是一个为 Emby 媒体服务器设计的竖屏视频浏览客户端，
 - 📱 **视图切换**：支持视频流视图和网格视图的一键切换
 - 📐 **方向过滤**：可选择只显示垂直、水平或两者都显示的视频
 - 🖥️ **全屏模式**：支持进入/退出全屏播放
-- 🎯 **自动布局**：根据屏幕方向自动调整最佳显示方式
+- 🎯 **自动布局**：根据屏幕方向和视频内容方向自动调整最佳显示方式
 - 📱 **竖屏优化**：专为手机竖屏体验优化的界面设计
-- ♾️ **无限连播模式**：支持视频自动连续播放，无需手动操作
+- ♾️ **无限连播模式**：无限连播+纯净模式，自动连续播放视频
 - 📱 **平板模式**：支持平板模式
+- ⚡ **2倍速播放**：长按视频可开启2倍速播放，再次长按恢复正常速度
+- 🎨 **纯净模式**：连播模式下隐藏所有UI元素，提供沉浸式观看体验
+- 📺 **电视剧库适配**：支持电视剧库浏览，完美适配短剧刷剧体验
+- 📑 **多级导航**：支持电视剧集、季度、单集的深度浏览与逐级返回
+- 📍 **断点续播**：同步播放进度，在网格视图中高亮提示上次观看位置
+- ✋ **增强手势控制**：
+  - 点击播放/暂停
+  - 左右滑动调整播放进度
+  - 长按开启2倍速播放
+- 📢 **自动播放提示**：开启连播模式时显示直观的提示通知
+- 📐 **智能适配**：根据视频内容方向自动调整显示方式（垂直/水平）
+- 🎯 **精准进度控制**：仅对长视频显示进度条，优化界面简洁性
+- 📺 **电视模式**：专为智能电视和大屏幕设备优化的界面
+  - 全新UI，专为大屏电视设计
+  - 遥控器友好的导航系统
+  - 支持电视APK下载（Gitee发行版）
+  - 支持电脑HTPC模式，全屏下键盘控制
 
 ## 技术栈
 
@@ -175,3 +199,17 @@ docker-compose -f docker-compose.simple.yml up -d
 ## 免责声明
 
 EmbyTok 是一个非官方的 Emby 客户端，与 Emby 官方没有关联。使用时请确保遵守您所在地区的相关法律法规。
+
+## 赞助支持
+
+如果您喜欢这个项目，可以通过以下方式赞助支持：
+
+### 支付宝
+
+![支付宝付款码](tmp/alipay.jpg)
+
+### 微信支付
+
+![微信付款码](tmp/wechat.jpg)
+
+您的支持将帮助我持续改进和维护这个项目，感谢您的关注与支持！

@@ -18,3 +18,55 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* --- TV 模式局部比例补偿 --- */
+
+/* 仅对内容区和排序栏进行缩放，侧边栏保持精致不放大 */
+@media (min-width: 1281px) {
+  .tv-main-canvas {
+    zoom: 2;
+    /* 缩放后由于占据空间加倍，我们需要调整宽度为 50% 来抵消 flex-1 的拉伸 */
+    width: 50% !important;
+  }
+  .tv-right-rail {
+    zoom: 2;
+  }
+}
+
+/* --- 精致 TV 级交互动效 --- */
+:root {
+  --tv-bezier: cubic-bezier(0.2, 1.0, 0.3, 1.0);
+}
+
+[tabindex="0"], button {
+  transition: all 0.4s var(--tv-bezier) !important;
+  outline: none !important;
+}
+
+.tv-focus-container:focus-within .tv-focusable-card:not(:focus) {
+  opacity: 1;
+  transform: scale(1);
+  filter: none;
+}
+
+.tv-focusable-card:focus {
+  z-index: 50;
+  transform: scale(1.1) translateY(-8px);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.9),
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.tv-focusable-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.4s var(--tv-bezier);
+  pointer-events: none;
+}
+.tv-focusable-card:focus::after {
+  opacity: 1;
+}

@@ -12,20 +12,27 @@ export abstract class MediaClient {
     
     abstract getLibraries(): Promise<EmbyLibrary[]>;
     
+    // 仅新增此方法供 TV 首页使用，不改动原有收藏接口
+    abstract getResumeItems(): Promise<EmbyItem[]>;
+
     abstract getVideos(
         parentId: string | undefined, 
-        libraryName: string, 
+        library: EmbyLibrary | null, 
         feedType: FeedType, 
         skip: number, 
         limit: number,
-        orientationMode: OrientationMode
+        orientationMode: OrientationMode,
+        includeIds?: string 
     ): Promise<VideoResponse>;
 
     abstract getVideoUrl(item: EmbyItem): string;
     
     abstract getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string;
 
-    // Favorite Logic (Playlist based)
+    // 严格保留原有的播放列表收藏逻辑
     abstract getFavorites(libraryName: string): Promise<Set<string>>;
     abstract toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void>;
+    
+    // 删除视频方法
+    abstract deleteItem(itemId: string): Promise<void>;
 }

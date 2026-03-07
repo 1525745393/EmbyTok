@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#000000" rx="120"/>
+  <defs>
+    <!-- 萌系 M 兔耳路径：宽阔、圆润、流线型 -->
+    <path id="m-rabbit-cute" d="
+      M 110 512 
+      C 110 380, 120 60, 200 60 
+      C 230 60, 240 160, 256 160 
+      C 272 160, 282 60, 312 60 
+      C 392 60, 402 380, 402 512
+    " fill="none" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+  </defs>
+
+  <!-- 青色霓虹 (左偏) -->
+  <g transform="translate(-8, -2)" stroke="#25F4EE" opacity="0.6">
+    <use href="#m-rabbit-cute" />
+  </g>
+
+  <!-- 红色霓虹 (右偏) -->
+  <g transform="translate(8, 2)" stroke="#FE2C55" opacity="0.6">
+    <use href="#m-rabbit-cute" />
+  </g>
+
+  <!-- 白色核心 -->
+  <g stroke="#FFFFFF">
+    <use href="#m-rabbit-cute" />
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  # EmbyTok 前端应用 - 简单版配置
+  embytok:
+    image: crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok:latest
+    container_name: embytok-web
+    restart: unless-stopped
+    ports:
+      - "5175:80"  # Web界面端口
+    environment:
+      - NODE_ENV=production
+    network_mode: bridge
+networks: {}
