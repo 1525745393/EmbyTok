@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import Login from '../Login';
 import VideoFeed from '../VideoFeed';
 import VideoGrid from '../VideoGrid';
@@ -86,6 +86,21 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
 
   useEffect(() => { if (client) loadVideos(true); }, [navStack, client, feedType, selectedLib, orientationMode, hiddenLibIds]);
 
+  // 处理iOS Safari安全区域
+  useLayoutEffect(() => {
+    // 检测是否为iOS Safari
+    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream && /Safari/.test(navigator.userAgent);
+    
+    if (isIOSSafari) {
+      // 为iOS Safari添加特殊样式
+      document.documentElement.classList.add('ios-safari');
+    }
+    
+    return () => {
+      document.documentElement.classList.remove('ios-safari');
+    };
+  }, []);
+
   const toggleLanguage = () => {
       const next = language === 'zh' ? 'en' : 'zh';
       setLanguage(next);
@@ -101,7 +116,12 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
 
   return (
     <div className="relative h-[100dvh] w-full bg-black overflow-hidden font-sans text-white">
-      <div className={`absolute top-0 left-0 right-0 z-50 h-16 bg-gradient-to-b from-black/95 to-transparent backdrop-blur-sm flex items-center justify-between px-3 pt-2 transition-all duration-500 ${(viewMode === 'feed' && isAutoPlay) ? 'opacity-0 pointer-events-none -translate-y-full' : 'opacity-100 translate-y-0'}`}>
+      <div className={`absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/95 to-transparent backdrop-blur-sm flex items-center justify-between px-3 transition-all duration-500 ${(viewMode === 'feed' && isAutoPlay) ? 'opacity-0 pointer-events-none -translate-y-full' : 'opacity-100 translate-y-0'}`}
+        style={{
+          paddingTop: 'calc(0.5rem + env(safe-area-inset-top))',
+          height: 'calc(4rem + env(safe-area-inset-top))'
+        }}
+      >
         <div className="min-w-[44px] flex items-center">
           {navStack.length > 0 ? (
             <button onClick={() => setNavStack(prev => prev.slice(0, -1))} className="p-2"><ChevronLeft size={24} /></button>
