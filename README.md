@@ -172,7 +172,7 @@ docker run -d \
   --name embytok-web \
   --restart unless-stopped \
   -p 8080:80 \
-  migumigu/embytok:latest
+  aidedaijiayang/embytok:latest
 ```
 
 ### Using Docker Compose
@@ -187,7 +187,7 @@ version: '3.8'
 services:
   # EmbyTok front-end application - simple configuration
   embytok:
-    image: migumigu/embytok:latest
+    image: aidedaijiayang/embytok:latest
     container_name: embytok-web
     restart: unless-stopped
     ports:
