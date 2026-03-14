@@ -91,7 +91,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   // 处理iOS Safari安全区域
   useLayoutEffect(() => {
     // 检测是否为iOS Safari
-    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream && /Safari/.test(navigator.userAgent);
+    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream && /Safari/.test(navigator.userAgent);
     
     if (isIOSSafari) {
       // 为iOS Safari添加特殊样式
