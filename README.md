@@ -51,6 +51,7 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 - 📍 **Resume playback**: Sync playback progress, highlight last viewing position in grid view
 - ✋ **Enhanced gesture control**:
   - Tap to play/pause
+  - Double tap to like with heart animation
   - Swipe left/right to adjust playback progress
   - Long press to enable 2x speed playback
 - 📢 **Auto play notification**: Display intuitive notification when enabling playback mode

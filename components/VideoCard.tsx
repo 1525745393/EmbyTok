@@ -1,5 +1,6 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { EmbyItem } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2 } from 'lucide-react';
@@ -90,6 +91,23 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const isDragging = useRef(false);
   const isLongPress = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // 双击检测
+  const lastTapTime = useRef<number>(0);
+  
+  // 红心动效状态管理
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number }[]>([]);
+  
+  const addHeart = useCallback((x: number, y: number) => {
+      const id = Date.now();
+      const rotate = (Math.random() - 0.5) * 40; // 随机旋转 -20 到 20 度，增加灵动感
+      setHearts(prev => [...prev, { id, x, y, rotate }]);
+      
+      // 1秒后自动移除，配合动画周期
+      setTimeout(() => {
+          setHearts(prev => prev.filter(h => h.id !== id));
+      }, 1000);
+  }, []);
 
   const videoSrc = client.getVideoUrl(item);
   const posterSrc = item.ImageTags?.Primary 
@@ -303,7 +321,33 @@ const VideoCard: React.FC<VideoCardProps> = ({
           setSeekOffset(null);
       } else {
           if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-              togglePlay();
+              // 检测双击
+              const currentTime = Date.now();
+              const tapInterval = currentTime - lastTapTime.current;
+              
+              if (tapInterval < 300 && tapInterval > 0) {
+                  // 双击，获取触摸坐标并显示红心动效
+                  const touchX = e.changedTouches[0].clientX;
+                  const touchY = e.changedTouches[0].clientY;
+                  addHeart(touchX, touchY);
+                  
+                  // 只有在无红心的情况下才触发红心
+                  if (!isFavorite) {
+                      onToggleFavorite();
+                  }
+              } else {
+                  // 单击，延迟判断，避免与双击冲突
+                  setTimeout(() => {
+                      const newTapTime = Date.now();
+                      const newTapInterval = newTapTime - lastTapTime.current;
+                      // 如果在300ms内没有新的点击，则认为是单击
+                      if (newTapInterval >= 300) {
+                          togglePlay();
+                      }
+                  }, 310);
+              }
+              
+              lastTapTime.current = currentTime;
           }
       }
   };
@@ -379,6 +423,32 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <Play className="w-16 h-16 text-white/50 fill-white/50" />
         </div>
       )}
+
+      {/* 红心动效 */}
+      <AnimatePresence>
+          {hearts.map(heart => (
+              <motion.div
+                  key={heart.id}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{
+                      scale: [0, 1.2, 1], // 关键帧：弹出效果
+                      opacity: [0, 1, 1],
+                      y: -100             // 向上漂移
+                  }}
+                  exit={{ scale: 1.5, opacity: 0 }} // 退出时放大并消失
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  style={{
+                      position: 'fixed',
+                      left: heart.x - 40, // 居中显示
+                      top: heart.y - 40,
+                      zIndex: 100,
+                      rotate: heart.rotate // 应用随机旋转
+                  }}
+              >
+                  <Heart className="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" />
+              </motion.div>
+          ))}
+      </AnimatePresence>
 
       {/* 2x Speed Overlay */}
       {playbackRate > 1.0 && (

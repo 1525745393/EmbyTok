@@ -34,6 +34,7 @@ android
 tmp/
 output/
 EmbyX/
+学习/
 
 # CDN files
 public/cdn/
