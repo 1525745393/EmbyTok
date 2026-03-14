@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ServerConfig, ServerType } from '../types';
 import { ClientFactory } from '../services/clientFactory';
-import { Server, User, Key, Loader2, Info, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Server, User, Key, Loader2, Info, Smartphone, CheckCircle2, Globe } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (config: ServerConfig) => void;
@@ -46,10 +46,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
   const [isTV, setIsTV] = useState(false);
+  const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   
   // 扫码登录相关状态
   const [deviceId] = useState(() => Math.random().toString(36).substring(2, 8).toUpperCase());
   const [syncStatus, setSyncStatus] = useState<'idle' | 'waiting' | 'success'>('idle');
+
+  const toggleLanguage = () => {
+    const next = language === 'zh' ? 'en' : 'zh';
+    setLanguage(next);
+    localStorage.setItem('embyLanguage', next);
+  };
 
   useEffect(() => {
     const ua = window.navigator.userAgent.toLowerCase();
@@ -115,13 +122,42 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
+  const t = {
+    zh: {
+      serverAddress: '服务器地址',
+      username: '用户名',
+      password: '密码',
+      plexToken: 'X-Plex-Token',
+      plexTokenPlaceholder: 'Plex Token',
+      submit: '立即连接',
+      embyError: '连接失败，请检查账号密码',
+      plexError: 'Plex 登录失败',
+      language: '语言',
+      chinese: '中文',
+      english: 'English'
+    },
+    en: {
+      serverAddress: 'Server Address',
+      username: 'Username',
+      password: 'Password',
+      plexToken: 'X-Plex-Token',
+      plexTokenPlaceholder: 'Plex Token',
+      submit: 'Connect Now',
+      embyError: 'Connection failed, please check username and password',
+      plexError: 'Plex login failed',
+      language: 'Language',
+      chinese: '中文',
+      english: 'English'
+    }
+  }[language];
+
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://embytok.vercel.app/setup?id=${deviceId}`)}`;
 
   return (
-    <div className={`h-[100dvh] w-full ${serverType === 'emby' ? 'bg-[#080810]' : 'bg-[#0a0908]'} flex items-center justify-center p-4 text-white overflow-hidden relative transition-colors duration-700`}>
+    <div className={`h-[100dvh] w-full ${serverType === 'emby' ? 'bg-[#080810]' : 'bg-[#0a0908]'} flex flex-col items-center justify-center p-4 text-white overflow-hidden relative transition-colors duration-700`}>
       <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] ${serverType === 'emby' ? 'bg-indigo-600/20' : 'bg-orange-600/20'} blur-[120px] rounded-full`}></div>
       
-      <div className={`w-full max-w-6xl flex ${isLandscape ? 'flex-row items-center gap-16' : 'flex-col items-center'} animate-in fade-in zoom-in duration-700 relative z-10`}>
+      <div className={`w-full max-w-6xl flex ${isLandscape ? 'flex-row items-center gap-16' : 'flex-col items-center'} animate-in fade-in zoom-in duration-700 relative z-10 flex-1`}>
         <div className={`flex flex-col items-center ${isLandscape ? 'w-2/5' : 'mb-8 text-center'}`}>
             <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-[30px] bg-black border border-white/20 shadow-2xl flex items-end justify-center overflow-hidden mb-6">
                 <CyberRabbitIcon type={serverType} />
@@ -146,31 +182,39 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               ))}
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">服务器地址</label>
+            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.serverAddress}</label>
             <input type="text" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} placeholder="https://..." className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
           </div>
           {serverType === 'emby' ? (
               <div className={`grid gap-4 ${isLandscape ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">用户名</label>
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.username}</label>
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">密码</label>
+                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.password}</label>
                     <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
                   </div>
               </div>
           ) : (
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">X-Plex-Token</label>
-                <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Plex Token" className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.plexToken}</label>
+                <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.plexTokenPlaceholder} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
               </div>
           )}
-          {error && <div className="text-red-400 text-xs">{error}</div>}
+          {error && <div className="text-red-400 text-xs">{serverType === 'plex' ? t.plexError : t.embyError}</div>}
           <button id="login-submit-btn" type="submit" disabled={loading} className="w-full bg-indigo-600 text-white text-sm font-black py-5 rounded-2xl active:scale-95 transition-all">
-            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : '立即连接'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t.submit}
           </button>
         </form>
+      </div>
+      
+      {/* 语言切换按钮 */}
+      <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10">
+        <button onClick={toggleLanguage} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold transition-all hover:bg-white/10">
+          <Globe size={16} />
+          <span>{language === 'zh' ? t.english : t.chinese}</span>
+        </button>
       </div>
     </div>
   );

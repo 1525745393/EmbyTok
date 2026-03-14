@@ -16,6 +16,7 @@ interface VideoCardProps {
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
   onVideoEnd?: () => void;
+  language?: 'zh' | 'en';
 }
 
 const VideoCard: React.FC<VideoCardProps> = ({ 
@@ -29,8 +30,35 @@ const VideoCard: React.FC<VideoCardProps> = ({
     onToggleMute,
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
-    onVideoEnd = () => {}
+    onVideoEnd = () => {},
+    language = 'zh'
 }) => {
+  const t = {
+    zh: {
+      deleteVideo: '删除视频',
+      deleteWarning: '⚠️ 警告：这将删除媒体库中的原文件！',
+      deleteConfirm: '确定要删除此视频吗？',
+      cancel: '取消',
+      confirmDelete: '确定删除',
+      mediaType: '视频',
+      noOverview: '暂无简介',
+      autoPlayOn: '自动连播已开启',
+      doubleSpeed: '2倍速中',
+      videoLoadError: '无法加载视频'
+    },
+    en: {
+      deleteVideo: 'Delete Video',
+      deleteWarning: '⚠️ Warning: This will delete the original file from the media library!',
+      deleteConfirm: 'Are you sure you want to delete this video?',
+      cancel: 'Cancel',
+      confirmDelete: 'Delete',
+      mediaType: 'Video',
+      noOverview: 'No overview',
+      autoPlayOn: 'Auto-play enabled',
+      doubleSpeed: '2x Speed',
+      videoLoadError: 'Failed to load video'
+    }
+  }[language];
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -326,7 +354,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleVideoEnded}
-        onError={() => setError("无法加载视频")}
+        onError={() => setError(t.videoLoadError)}
       />
 
       {/* Manual Poster Overlay */}
@@ -350,7 +378,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <div className="absolute top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
                 <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-white font-bold text-sm">2倍速中</span>
+                <span className="text-white font-bold text-sm">{t.doubleSpeed}</span>
                 <ChevronsRight className="w-4 h-4 text-white" />
             </div>
           </div>
@@ -484,7 +512,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                 <div className="flex items-center gap-3 text-xs text-white/90 mb-2 font-medium drop-shadow-md">
                   {item.ProductionYear && <span className="bg-white/20 px-1.5 py-0.5 rounded">{item.ProductionYear}</span>}
                   <span>{formatTimeText(item.RunTimeTicks)}</span>
-                  <span className="uppercase border border-white/30 px-1 rounded text-[10px]">{item.MediaType || '视频'}</span>
+                  <span className="uppercase border border-white/30 px-1 rounded text-[10px]">{item.MediaType || t.mediaType}</span>
                 </div>
 
                 <div 
@@ -495,7 +523,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     onClick={(e) => handleButtonAction(e, () => setShowInfo(!showInfo))}
                     className={`text-white/80 text-sm drop-shadow-md transition-all duration-300 cursor-pointer focus:ring-1 focus:ring-white/50 rounded ${showInfo ? 'line-clamp-none overflow-y-auto max-h-[40vh]' : 'line-clamp-2'}`}
                 >
-                    {item.Overview || '暂无简介'}
+                    {item.Overview || t.noOverview}
                 </div>
             </div>
           </div>
@@ -529,19 +557,19 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
               <Trash2 className="w-6 h-6 text-red-500" />
-              删除视频
+              {t.deleteVideo}
             </h3>
             <p className="text-zinc-300 mb-6">
-              ⚠️ 警告：这将删除媒体库中的原文件！
+              {t.deleteWarning}
               <br /><br />
-              确定要删除此视频吗？
+              {t.deleteConfirm}
             </p>
             <div className="flex gap-4 justify-end">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors"
               >
-                取消
+                {t.cancel}
               </button>
               <button
                 onClick={() => {
@@ -550,7 +578,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
-                确定删除
+                {t.confirmDelete}
               </button>
             </div>
           </div>

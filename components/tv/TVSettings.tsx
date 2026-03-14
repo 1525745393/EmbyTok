@@ -16,12 +16,13 @@ interface TVSettingsProps {
   onLogout: () => void;
   activeTab: string;
   onTabChange: (tab: any) => void;
+  version: string;
 }
 
 const TVSettings: React.FC<TVSettingsProps> = ({
   config, libraries, hiddenLibIds, onToggleHidden, orientationMode, 
   onOrientationChange, language, onToggleLanguage, onToggleMode, onLogout,
-  activeTab, onTabChange
+  activeTab, onTabChange, version
 }) => {
   
   const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,7 +106,7 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                   <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-3xl border border-white/5 text-white">
                       <div className="text-xl sm:text-2xl font-black text-white mb-2 tracking-tighter">EmbyTok <span className="text-indigo-400 font-mono text-xs">TV</span></div>
                       <p className="text-xs text-white/40 leading-relaxed mb-4 sm:mb-6">极致的大屏媒体体验。为智能电视与大尺寸显示器进行深度像素优化。</p>
-                      <div className="flex gap-2 sm:gap-3"><div className="bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">V 1.2.1</div></div>
+                      <div className="flex gap-2 sm:gap-3"><div className="bg-white/5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">V {version}</div></div>
                   </div>
               </div>
           )}

@@ -20,6 +20,8 @@ interface LibrarySelectProps {
   // 新增：语言支持
   language: 'zh' | 'en';
   onToggleLanguage: () => void;
+  // 新增：版本号
+  version: string;
 }
 
 type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
@@ -28,7 +30,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
     libraries, onSelect, selectedId, onClose, isOpen,
     hiddenLibIds, onToggleHidden, onLogout, serverUrl, username,
     orientationMode, onOrientationChange, onToggleMode,
-    language, onToggleLanguage
+    language, onToggleLanguage,
+    version
 }) => {
   const [mode, setMode] = useState<MenuMode>('list');
 
@@ -41,12 +44,23 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: '当前账户', logout: '退出当前登录', visibility: '媒体库可见性',
           language: '界面语言', langName: '简体中文',
           tvMode: '切换到电视模式', tvDesc: '体验专为遥控器设计的布局',
-          version: '版本 1.2.1',
+          version: `版本 ${version}`,
           sponsor: '欢迎赞助',
           sponsorPage: '赞助支持',
           sponsorText: '如果你觉得这个项目对你有帮助，不妨请开发者喝杯咖啡吧！你的支持将帮助项目持续改进和维护，让更多人享受到更好的 Emby 浏览体验。',
           sponsorThanks: '感谢你的支持！每一分钱都将用于项目的发展和维护。',
-          back: '返回'
+          back: '返回',
+          aboutDesc: '为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。',
+          feature1: 'TikTok 式竖屏视频浏览体验',
+          feature2: '多视图切换（流视图/网格视图）',
+          feature3: '无限连播 + 纯净模式',
+          feature4: '智能方向适配（垂直/水平）',
+          feature5: '增强手势控制与 2 倍速播放',
+          feature6: '电视模式，专为遥控器设计的布局',
+          feature7: '电视APK下载（Gitee发行版）',
+          sponsorPoint1: '💰 一杯咖啡 = 开发者的动力',
+          sponsorPoint2: '🚀 你的支持 = 项目的未来',
+          sponsorPoint3: '🎉 每一分钱都值得感谢'
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -54,12 +68,23 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           account: 'Account', logout: 'Logout', visibility: 'Library Visibility',
           language: 'Language', langName: 'English',
           tvMode: 'Switch to TV Mode', tvDesc: 'Layout optimized for remote control',
-          version: 'V 1.2.1',
+          version: `V ${version}`,
           sponsor: 'Support Us',
           sponsorPage: 'Sponsorship',
           sponsorText: 'If you find this project helpful, consider buying the developer a coffee! Your support will help the project continue to improve and maintain, allowing more people to enjoy a better Emby browsing experience.',
           sponsorThanks: 'Thank you for your support! Every contribution will be used for the development and maintenance of the project.',
-          back: 'Back'
+          back: 'Back',
+          aboutDesc: 'A vertical video browsing client designed for Emby media server, providing a TikTok-like experience that allows users to browse their personal media library in a more modern and convenient way.',
+          feature1: 'TikTok-style vertical video browsing experience',
+          feature2: 'Multi-view switching (feed view/grid view)',
+          feature3: 'Infinite playback + pure mode',
+          feature4: 'Smart orientation adaptation (vertical/horizontal)',
+          feature5: 'Enhanced gesture control and 2x speed playback',
+          feature6: 'TV mode, layout designed for remote control',
+          feature7: 'TV APK download (Gitee release)',
+          sponsorPoint1: '💰 A cup of coffee = Developer motivation',
+          sponsorPoint2: '🚀 Your support = Project future',
+          sponsorPoint3: '🎉 Every contribution is appreciated'
       }
   }[language];
 
@@ -172,7 +197,7 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                   <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-6 rounded-2xl border border-white/5">
                       <div className="text-xl font-black text-white mb-2 tracking-tighter">EmbyTok</div>
                       <div className="text-sm font-bold text-indigo-400 mb-4">{t.version}</div>
-                      <p className="text-xs text-white/70 leading-relaxed mb-6">为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验，让用户能够以更现代、便捷的方式浏览个人媒体库。</p>
+                      <p className="text-xs text-white/70 leading-relaxed mb-6">{t.aboutDesc}</p>
                       <div className="flex gap-2 flex-wrap mb-6">
                           <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">React 18</div>
                           <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">TypeScript</div>
@@ -193,31 +218,31 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                       <div className="space-y-2">
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">TikTok 式竖屏视频浏览体验</div>
+                               <div className="text-sm text-white">{t.feature1}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">多视图切换（流视图/网格视图）</div>
+                               <div className="text-sm text-white">{t.feature2}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">无限连播 + 纯净模式</div>
+                               <div className="text-sm text-white">{t.feature3}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">智能方向适配（垂直/水平）</div>
+                               <div className="text-sm text-white">{t.feature4}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">增强手势控制与 2 倍速播放</div>
+                               <div className="text-sm text-white">{t.feature5}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">电视模式，专为遥控器设计的布局</div>
+                               <div className="text-sm text-white">{t.feature6}</div>
                            </div>
                            <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
                                <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">电视APK下载（Gitee发行版）</div>
+                               <div className="text-sm text-white">{t.feature7}</div>
                            </div>
                        </div>
                   </div>
@@ -230,9 +255,9 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                       <div className="text-xl font-black text-white mb-2 tracking-tighter">{t.sponsorPage}</div>
                       <p className="text-xs text-white/70 leading-relaxed mb-6">{t.sponsorText}</p>
                       <div className="text-xs text-white/70 leading-relaxed mb-6">
-                          <p>💰 一杯咖啡 = 开发者的动力</p>
-                          <p>🚀 你的支持 = 项目的未来</p>
-                          <p>🎉 每一分钱都值得感谢</p>
+                          <p>{t.sponsorPoint1}</p>
+                          <p>{t.sponsorPoint2}</p>
+                          <p>{t.sponsorPoint3}</p>
                       </div>
                       <p className="text-xs text-indigo-400 leading-relaxed mb-6">{t.sponsorThanks}</p>
                   </div>

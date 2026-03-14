@@ -1,14 +1,14 @@
 <div align="center">
   <h1>EmbyTok</h1>
   <div style="display: flex; gap: 10px; justify-content: center; margin: 10px 0;">
-    <a href="README_CN.md" style="padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">中文</a>
+    <a href="README.md" style="padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">中文</a>
     <a href="#embytoku" style="padding: 5px 10px; background-color: #f0f0f0; border-radius: 4px; text-decoration: none; color: #333;">English</a>
   </div>
 </div>
 
 ## EmbyTok
 
-EmbyTok is a vertical video browsing client designed for both Emby and Plex media servers, providing a TikTok-like experience that allows users to browse their personal media library in a more modern and convenient way.
+EmbyTok is a vertical video browsing client designed for Emby media server, providing a TikTok-like experience that allows users to browse their personal media library in a more modern and convenient way.
 
 <div style="display:flex; flex-direction:row;">
 <img src="tmp/1.jpg" width="19%" />
@@ -73,7 +73,6 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 - Multi-architecture Docker support (AMD64/ARM64)
 - Nginx production deployment
 - PWA support
-- Emby and Plex API integration
 
 ## Installation and Setup
 
@@ -107,16 +106,10 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 
 ## Usage
 
-1. After starting the application, select your media server type (Emby or Plex) on the login screen, then enter the server information:
-   
-   **For Emby server:**
+1. After starting the application, enter your Emby server information on the login screen:
    - Server address (e.g.: http://192.168.1.100:8096)
    - Username
    - Password (if required)
-   
-   **For Plex server:**
-   - Server address (e.g.: http://192.168.1.100:32400)
-   - X-Plex-Token
 
 2. After successful login, you can:
    - Swipe up/down to browse videos
@@ -155,13 +148,13 @@ The project includes Docker support and can be easily deployed as a web applicat
 
 - **Image name**: migumigu/embytok
 - **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
-- **Tags**: latest
+- **Tags**: latest, 1.0.2
 
 #### Alibaba Cloud Image (Updates may be delayed)
 
 - **Image name**: crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
 - **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
-- **Tags**: latest
+- **Tags**: latest, 1.0.2
 
 ### Using Docker Command Directly
 

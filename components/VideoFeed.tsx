@@ -22,6 +22,7 @@ interface VideoFeedProps {
   onLoadMore: () => void;
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
+  language?: 'zh' | 'en';
 }
 
 const VideoFeed: React.FC<VideoFeedProps> = ({ 
@@ -40,7 +41,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     hasMore,
     onLoadMore,
     isAutoPlay = false,
-    onToggleAutoPlay = () => {}
+    onToggleAutoPlay = () => {},
+    language = 'zh'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -184,6 +186,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
                   isAutoPlay={isAutoPlay}
                   onToggleAutoPlay={onToggleAutoPlay}
                   onVideoEnd={handleNextVideo}
+                  language={language}
                 />
               ) : (
                 <div className="w-full h-full bg-black" />

@@ -33,6 +33,8 @@ function MobileRoot() {
   
   // 语言状态补全
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
+  // 版本号
+  const [appVersion, setAppVersion] = useState<string>('1.2.3');
 
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(() => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'vertical');
   const [hiddenLibIds, setHiddenLibIds] = useState<Set<string>>(() => {
@@ -96,7 +98,7 @@ function MobileRoot() {
                         setVideos(prev => prev.filter(video => video.Id !== itemId));
                     } catch (error) {
                         console.error('删除视频失败:', error);
-                        alert('删除失败，请检查权限');
+                        alert(language === 'zh' ? '删除失败，请检查权限' : 'Deletion failed, please check permissions');
                     }
                 }}
                 initialIndex={currentIndex} 
@@ -106,6 +108,7 @@ function MobileRoot() {
                 feedType={feedType} 
                 hasMore={hasMore} 
                 onLoadMore={() => loadVideos(false)} 
+                language={language}
             />
         )}
       </div>
@@ -121,6 +124,7 @@ function MobileRoot() {
         onLogout={() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }} 
         serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode}
         language={language} onToggleLanguage={toggleLanguage}
+        version={appVersion}
       />
     </div>
   );

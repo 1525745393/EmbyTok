@@ -45,6 +45,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
       try { const s = localStorage.getItem('embyHiddenLibs'); return s ? new Set(JSON.parse(s)) : new Set(); } catch(e) { return new Set(); }
   });
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(() => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'horizontal');
+  const [appVersion, setAppVersion] = useState<string>('1.2.3');
 
   const visibleLibraries = useMemo(() => libraries.filter(l => !hiddenLibIds.has(l.Id)), [libraries, hiddenLibIds]);
   const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -332,6 +333,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
                 orientationMode={orientationMode} onOrientationChange={(m) => { setOrientationMode(m); localStorage.setItem('embyOrientationMode', m); }}
                 language={language} onToggleLanguage={toggleLanguage} onToggleMode={onToggleMode!} onLogout={handleLogout}
                 activeTab={activeTab} onTabChange={setActiveTab}
+                version={appVersion}
             />
         ) : (
             <div className="h-full flex flex-col min-h-0">

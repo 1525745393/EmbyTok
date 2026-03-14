@@ -24,6 +24,10 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      - name: Extract version from package.json
+        id: extract-version
+        run: echo "VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -32,7 +36,7 @@ jobs:
           push: ${{ github.event_name == 'push' }}
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:1.2.2
+            ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:${{ steps.extract-version.outputs.VERSION }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
