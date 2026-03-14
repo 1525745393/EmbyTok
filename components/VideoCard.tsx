@@ -76,6 +76,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
   
+  // 用户暂停状态
+  const [isUserPaused, setIsUserPaused] = useState(false);
+  
   // Screen Orientation State
   const [isScreenLandscape, setIsScreenLandscape] = useState(() => 
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
@@ -113,6 +116,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       setError(null);
       video.playbackRate = 1.0;
       setPlaybackRate(1.0);
+      setIsUserPaused(false); // 重置用户暂停状态
       
       const playPromise = video.play();
       if (playPromise !== undefined) {
@@ -133,7 +137,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       video.pause();
       video.currentTime = 0;
       setIsPlaying(false);
-      setHasStarted(false); 
+      setHasStarted(false);
+      setIsUserPaused(false); // 重置用户暂停状态
     }
   }, [isActive, isMuted]);
 
@@ -144,9 +149,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
     if (video.paused) {
       video.play();
       setIsPlaying(true);
+      setIsUserPaused(false);
     } else {
       video.pause();
       setIsPlaying(false);
+      setIsUserPaused(true);
     }
   };
 
@@ -367,7 +374,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       )}
 
       {/* Play/Pause Overlay Icon */}
-      {!isPlaying && !error && !seekOffset && !isLongPress.current && (
+      {!isPlaying && !error && !seekOffset && !isLongPress.current && isUserPaused && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20 z-20">
           <Play className="w-16 h-16 text-white/50 fill-white/50" />
         </div>

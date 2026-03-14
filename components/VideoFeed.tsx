@@ -67,6 +67,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         setShowToast(true);
         const timer = setTimeout(() => setShowToast(false), 2000);
         return () => clearTimeout(timer);
+    } else {
+        // 当自动连播关闭时，立即隐藏提示
+        setShowToast(false);
     }
   }, [isAutoPlay]);
 
