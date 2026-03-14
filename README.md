@@ -153,14 +153,14 @@ The project includes Docker support and can be easily deployed as a web applicat
 
 #### DockerHub Image
 
-- **Image name**: migumigu/embytok
+- **Image name**: aidedaijiayang/embytok
 - **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
 - **Tags**: latest
 
 #### Alibaba Cloud Image (Updates may be delayed)
 
 - **Image name**: crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
-- **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
+- **Supported architectures**: AMD64 (x86_64) only
 - **Tags**: latest
 
 ### Using Docker Command Directly

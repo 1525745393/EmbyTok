@@ -153,14 +153,14 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 
 #### DockerHub 镜像
 
-- **镜像名称**：migumigu/embytok
+- **镜像名称**：aidedaijiayang/embytok
 - **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
 - **标签**：latest
 
 #### 阿里云镜像（更新可能不及时）
 
 - **镜像名称**：crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
-- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **支持架构**：仅支持 AMD64 (x86_64)
 - **标签**：latest
 
 ### 直接使用 Docker 命令

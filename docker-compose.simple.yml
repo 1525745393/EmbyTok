@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # EmbyTok 前端应用 - 简单版配置
   embytok:
-    image: migumigu/embytok:latest
+    image: aidedaijiayang/embytok:latest
     container_name: embytok-web
     restart: unless-stopped
     ports:
