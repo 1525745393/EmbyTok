@@ -227,14 +227,10 @@ EmbyTok is an unofficial Emby client and is not affiliated with Emby official. P
 
 If you like this project, you can support it through the following methods:
 
-<div style="display:flex; flex-direction:row; gap:20px; justify-content:center;">
-### Alipay
-
-![Alipay QR Code](tmp/alipay.jpg)  
-
-### WeChat Pay
-
-![WeChat Pay QR Code](tmp/wechat.jpg)
+</div>
+<div style="display:flex; flex-direction:row;">
+<img src="tmp/alipay.jpg" width="45%" />
+<img src="tmp/wechat.jpg" width="45%" />
 </div>
 
 Your support will help me continue to improve and maintain this project, thank you for your attention and support!
