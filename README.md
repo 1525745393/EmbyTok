@@ -206,6 +206,12 @@ docker-compose -f docker-compose.simple.yml up -d
 
 By default, the application will be available on port 5175.
 
+## Changelog
+
+### v1.2.4 (2026-05-30)
+- 🚀 Optimization: Standard mode now fetches up to 200 videos at once in random mode, with orientation filtering applied
+- 🔧 Improvement: Removed pagination for random mode to provide a more seamless browsing experience
+
 ## Configuration
 
 The application uses localStorage to store the following user configurations:
