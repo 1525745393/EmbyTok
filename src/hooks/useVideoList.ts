@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { EmbyItem, FeedType, OrientationMode } from '../../types';
+import { EmbyItem, FeedType, OrientationMode, EmbyLibrary } from '../../types';
+import { MediaClient } from '../../services/MediaClient';
 import { isFolderType } from '../../utils';
 
 const PAGE_SIZE = 200;
@@ -10,12 +11,12 @@ interface NavItem {
 }
 
 interface UseVideoListOptions {
-  client: any;
-  selectedLib: any;
+  client: MediaClient | null;
+  selectedLib: EmbyLibrary | null;
   feedType: FeedType;
   orientationMode: OrientationMode;
   hiddenLibIds: Set<string>;
-  libraries: any[];
+  libraries: EmbyLibrary[];
 }
 
 export function useVideoList({

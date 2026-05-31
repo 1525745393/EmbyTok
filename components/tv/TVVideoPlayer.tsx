@@ -192,7 +192,7 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
   );
 };
 
-function ActionButton({ id, icon, label, onClick, primary = false }: { id?: string, icon: any, label: string, onClick: () => void, primary?: boolean }) {
+function ActionButton({ id, icon, label, onClick, primary = false }: { id?: string, icon: React.ReactNode, label: string, onClick: () => void, primary?: boolean }) {
     return (
         <button id={id} tabIndex={0} onClick={onClick} className={`player-action-btn flex items-center gap-2 px-5 py-2.5 rounded-[14px] transition-all outline-none focus:ring-2 focus:ring-white focus:scale-105 focus:-translate-y-1 active:scale-95 ${primary ? 'bg-white text-black font-black shadow-lg' : 'bg-white/5 text-white/40 border border-white/5 hover:bg-white/10 font-black'}`}>
             {icon}<span className="text-[9px] font-black tracking-widest">{label}</span>

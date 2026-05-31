@@ -3,7 +3,9 @@ import Login from '../Login';
 import VideoFeed from '../VideoFeed';
 import VideoGrid from '../VideoGrid';
 import LibrarySelect from '../LibrarySelect';
-import { FeedType } from '../../types';
+import { FeedType, EmbyItem } from '../../types';
+import { MediaClient } from '../../services/MediaClient';
+import { Translations } from '../../src/locales';
 import {
   Menu,
   LayoutGrid,
@@ -26,6 +28,29 @@ import { isFolderType } from '../../utils';
 
 interface StandardRootProps {
   onToggleMode?: () => void;
+}
+
+interface StandardContentViewProps {
+  viewMode: 'feed' | 'grid';
+  videos: EmbyItem[];
+  client: MediaClient;
+  loading: boolean;
+  feedType: FeedType;
+  hasMore: boolean;
+  currentIndex: number;
+  favoriteIds: Set<string>;
+  isMuted: boolean;
+  isAutoPlay: boolean;
+  setIsMuted: (muted: boolean) => void;
+  setIsAutoPlay: (autoPlay: boolean) => void;
+  onSelect: (index: number) => void;
+  onNavigate: (id: string, title: string) => void;
+  onLoadMore: () => void;
+  onRefresh: () => void;
+  onToggleFavorite: (id: string, isFavorite: boolean) => Promise<void>;
+  onDelete: (itemId: string) => Promise<void>;
+  onIndexChange: (index: number) => void;
+  t: Translations;
 }
 
 const APP_VERSION = '1.2.3';
@@ -58,7 +83,7 @@ const StandardTopBar = React.memo(
     onOpenMenu: () => void;
     onToggleMute: () => void;
     onToggleFullscreen: () => void;
-    t: any;
+    t: Translations;
   }) => {
     return (
       <div
@@ -160,7 +185,7 @@ const StandardContentView = React.memo(
     onDelete,
     onIndexChange,
     t,
-  }: any) => {
+  }: StandardContentViewProps) => {
     return (
       <div className="w-full h-full bg-black relative z-10">
         {viewMode === 'grid' ? (

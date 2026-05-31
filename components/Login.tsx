@@ -110,7 +110,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     try {
       const config = await ClientFactory.authenticate(serverType, formattedUrl, username, password);
       onLogin(config);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(serverType === 'plex' ? t.login.plexError : t.login.embyError);
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { EmbyAuthResponse, EmbyItem, EmbyLibrary, FeedType } from '../types';
+import { EmbyAuthResponse, EmbyItem, EmbyLibrary, FeedType, EmbyItemsResponse } from '../types';
 
 const CLIENT_NAME = "EmbyTok Web";
 const CLIENT_VERSION = "1.0.0";
@@ -59,8 +59,8 @@ const getTokPlaylistId = async (serverUrl: string, userId: string, token: string
     );
     
     if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const existing = searchData.Items?.find((i: any) => i.Name === playlistName);
+        const searchData: EmbyItemsResponse = await searchRes.json();
+        const existing = searchData.Items?.find((i: EmbyItem) => i.Name === playlistName);
         if (existing) return existing.Id;
     }
 
@@ -112,8 +112,8 @@ export const removeFromTokPlaylist = async (serverUrl: string, userId: string, t
     const itemsRes = await fetch(`${cleanUrl}/Playlists/${pid}/Items?Fields=Id,PlaylistItemId&UserId=${userId}`, { headers: getHeaders(token) });
     if (!itemsRes.ok) return;
     
-    const itemsData = await itemsRes.json();
-    const entry = itemsData.Items.find((i: any) => i.Id === itemId);
+    const itemsData: EmbyItemsResponse = await itemsRes.json();
+    const entry = itemsData.Items?.find((i: EmbyItem) => i.Id === itemId);
 
     if (entry && entry.PlaylistItemId) {
          await fetch(`${cleanUrl}/Playlists/${pid}/Items?EntryIds=${entry.PlaylistItemId}`, {

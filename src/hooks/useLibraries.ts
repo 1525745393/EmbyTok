@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { EmbyLibrary } from '../../types';
+import { MediaClient } from '../../services/MediaClient';
 import { useLocalStorageState } from './useLocalStorageState';
 
-export function useLibraries(client: any) {
+export function useLibraries(client: MediaClient | null) {
   const [libraries, setLibraries] = useState<EmbyLibrary[]>([]);
   const [selectedLib, setSelectedLib] = useState<EmbyLibrary | null>(null);
   const [hiddenLibIds, setHiddenLibIds] = useLocalStorageState<string[]>(
