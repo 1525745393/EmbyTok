@@ -1,6 +1,17 @@
 
 import { MediaClient } from './MediaClient';
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import { 
+  EmbyItem, 
+  EmbyLibrary, 
+  FeedType, 
+  ServerConfig, 
+  VideoResponse, 
+  OrientationMode,
+  PlexResponse,
+  PlexLibraryDirectory,
+  PlexMetadata,
+  PlexPlaylist
+} from '../types';
 
 export class PlexClient extends MediaClient {
     
@@ -20,7 +31,7 @@ export class PlexClient extends MediaClient {
         try {
             const response = await fetch(`${this.getCleanUrl()}/identity`, { headers: this.getHeaders() });
             if (response.ok) {
-                const data = await response.json();
+                const data: PlexResponse = await response.json();
                 return data.MediaContainer.machineIdentifier || data.MediaContainer.MachineIdentifier || '1';
             }
         } catch (e) {}
@@ -33,15 +44,15 @@ export class PlexClient extends MediaClient {
             headers: { 'Accept': 'application/json', 'X-Plex-Token': token }
         });
         if (!response.ok) throw new Error('Plex Connection Failed');
-        const data = await response.json();
+        const data: PlexResponse = await response.json();
         const machineIdentifier = data.MediaContainer.machineIdentifier || data.MediaContainer.MachineIdentifier;
         return { url: this.config.url, username: username || 'Plex User', userId: machineIdentifier || '1', token: token, serverType: 'plex' };
     }
 
     async getLibraries(): Promise<EmbyLibrary[]> {
         const response = await fetch(`${this.getCleanUrl()}/library/sections`, { headers: this.getHeaders() });
-        const data = await response.json();
-        return data.MediaContainer.Directory.map((d: any) => ({ 
+        const data: PlexResponse = await response.json();
+        return (data.MediaContainer.Directory || []).map((d: PlexLibraryDirectory) => ({ 
             Id: d.key, 
             Name: d.title, 
             CollectionType: d.type 
@@ -52,7 +63,7 @@ export class PlexClient extends MediaClient {
     async getResumeItems(): Promise<EmbyItem[]> {
         try {
             const response = await fetch(`${this.getCleanUrl()}/library/onDeck`, { headers: this.getHeaders() });
-            const data = await response.json();
+            const data: PlexResponse = await response.json();
             return this.mapPlexItems(data.MediaContainer.Metadata || []).slice(0, 12);
         } catch (e) {
             return [];
@@ -89,7 +100,7 @@ export class PlexClient extends MediaClient {
             const playlist = await this.findPlaylist(libraryName);
             if (!playlist) return { items: [], nextStartIndex: 0, totalCount: 0 };
             const response = await fetch(`${this.getCleanUrl()}/playlists/${playlist.ratingKey}/items?X-Plex-Container-Start=0&X-Plex-Container-Size=2000`, { headers: this.getHeaders() });
-            const data = await response.json();
+            const data: PlexResponse = await response.json();
             const mappedItems = this.mapPlexItems(data.MediaContainer.Metadata || []);
             const filtered = this.filterItems(mappedItems, orientationMode);
             const reversed = filtered.reverse();
@@ -115,7 +126,7 @@ export class PlexClient extends MediaClient {
         }
 
         const response = await fetch(url, { headers: this.getHeaders() });
-        const data = await response.json();
+        const data: PlexResponse = await response.json();
         const items = data.MediaContainer.Metadata || [];
         const mappedItems = this.mapPlexItems(items);
         const filtered = this.filterItems(mappedItems, orientationMode);
@@ -127,8 +138,8 @@ export class PlexClient extends MediaClient {
         };
     }
 
-    private mapPlexItems(items: any[]): EmbyItem[] {
-        return items.map((p: any) => {
+    private mapPlexItems(items: PlexMetadata[]): EmbyItem[] {
+        return items.map((p: PlexMetadata) => {
              const media = p.Media?.[0];
              let formattedName = p.title;
              
@@ -162,21 +173,20 @@ export class PlexClient extends MediaClient {
     }
 
     getVideoUrl(item: EmbyItem): string {
-        const plexItem = item as any;
-        if (plexItem._PlexKey) return `${this.getCleanUrl()}${plexItem._PlexKey}?X-Plex-Token=${this.config.token}`;
+        if (item._PlexKey) return `${this.getCleanUrl()}${item._PlexKey}?X-Plex-Token=${this.config.token}`;
         return `${this.getCleanUrl()}/video/:/transcode/universal/start?path=${encodeURIComponent('/library/metadata/' + item.Id)}&mediaIndex=0&partIndex=0&protocol=hls&offset=0&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&X-Plex-Token=${this.config.token}`;
     }
 
     getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string {
-        return `${this.getCleanUrl()}/photo/:/transcode?url=${encodeURIComponent(`/library/metadata/${itemId}/thumb`)}&width=800&height=1200&X-Plex-Token=${this.config.token}`;
+        return `${this.getCleanUrl()}/photo/:/transcode?url=${encodeURIComponent('/library/metadata/' + itemId + '/thumb')}&width=800&height=1200&X-Plex-Token=${this.config.token}`;
     }
 
-    private async findPlaylist(libraryName: string): Promise<any | null> {
+    private async findPlaylist(libraryName: string): Promise<PlexPlaylist | null> {
         const title = `Tok-${libraryName}`;
         try {
             const response = await fetch(`${this.getCleanUrl()}/playlists?title=${encodeURIComponent(title)}`, { headers: this.getHeaders() });
-            const data = await response.json();
-            return data.MediaContainer.Metadata?.find((p: any) => p.title === title) || null;
+            const data: PlexResponse = await response.json();
+            return (data.MediaContainer.Metadata as PlexPlaylist[])?.find((p: PlexPlaylist) => p.title === title) || null;
         } catch (e) { return null; }
     }
 
@@ -185,8 +195,8 @@ export class PlexClient extends MediaClient {
         if (!playlist) return new Set();
         try {
             const response = await fetch(`${this.getCleanUrl()}/playlists/${playlist.ratingKey}/items?X-Plex-Container-Size=2000`, { headers: this.getHeaders() });
-            const data = await response.json();
-            return new Set((data.MediaContainer.Metadata || []).map((i: any) => i.ratingKey));
+            const data: PlexResponse = await response.json();
+            return new Set((data.MediaContainer.Metadata || []).map((i: PlexMetadata) => i.ratingKey));
         } catch (e) { return new Set(); }
     }
 
@@ -197,7 +207,8 @@ export class PlexClient extends MediaClient {
         if (isFavorite) {
             if (!playlist) return;
             const itemsRes = await fetch(`${this.getCleanUrl()}/playlists/${playlist.ratingKey}/items?X-Plex-Container-Size=2000`, { headers: this.getHeaders() });
-            const entry = (await itemsRes.json()).MediaContainer.Metadata?.find((i: any) => i.ratingKey === itemId);
+            const data: PlexResponse = await itemsRes.json();
+            const entry = data.MediaContainer.Metadata?.find((i: PlexMetadata) => i.ratingKey === itemId);
             if (entry?.playlistItemID) {
                 await fetch(`${this.getCleanUrl()}/playlists/${playlist.ratingKey}/items/${entry.playlistItemID}?X-Plex-Token=${this.config.token}`, { method: 'DELETE', headers: this.getHeaders() });
             }

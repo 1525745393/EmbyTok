@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { EmbyItem } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
 import { Play, Pause, ChevronLeft, Heart, Volume2, VolumeX, Infinity, Rewind, FastForward } from 'lucide-react';
+import useTranslation from '../../src/hooks/useTranslation';
 
 interface TVVideoPlayerProps {
   videos: EmbyItem[];
@@ -10,10 +11,9 @@ interface TVVideoPlayerProps {
   onBack: () => void;
   client: MediaClient;
   libraryName: string;
-  language: 'zh' | 'en'; // 补全：新增语言支持
 }
 
-const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onBack, client, libraryName, language }) => {
+const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onBack, client, libraryName }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(false); 
   const [isBuffering, setIsBuffering] = useState(true);
@@ -22,6 +22,7 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [showInfoOverlay, setShowInfoOverlay] = useState(true);
   
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentItem = videos[currentIndex];
   const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,32 +134,6 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
       }
   }, [showInfoOverlay]);
 
-  // 语言字典
-  const t = {
-      zh: {
-          loading: '加载中',
-          resume: '继续播放',
-          favorite: '收藏',
-          favorited: '已收藏',
-          sound: '声音',
-          muted: '静音',
-          infinity: '连播: 开',
-          single: '连播: 关',
-          desc: '为您准备精彩内容...'
-      },
-      en: {
-          loading: 'LOADING',
-          resume: 'RESUME',
-          favorite: 'FAVORITE',
-          favorited: 'FAVORITED',
-          sound: 'SOUND',
-          muted: 'MUTED',
-          infinity: 'INFINITY: ON',
-          single: 'INFINITY: OFF',
-          desc: 'Dive into this cinematic experience...'
-      }
-  }[language];
-
   return (
     <div className="h-full w-full bg-black relative flex items-center justify-center overflow-hidden font-sans">
       <video
@@ -200,13 +175,13 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
                   </div>
               </div>
               <div className="mt-6 animate-in slide-in-from-right-6 duration-700 delay-100 w-full max-w-[500px]">
-                  <p className="text-sm text-white/80 leading-relaxed line-clamp-6 font-medium tracking-wide italic drop-shadow-md">{currentItem.Overview || t.desc}</p>
+                  <p className="text-sm text-white/80 leading-relaxed line-clamp-6 font-medium tracking-wide italic drop-shadow-md">{currentItem.Overview || t.tvVideoPlayer.desc}</p>
               </div>
               <div className="mt-10 flex gap-3 animate-in slide-in-from-right-4 duration-700 delay-200">
-                  <ActionButton id="tv-player-play-btn" icon={<Play fill="currentColor" size={14} />} label={isBuffering ? t.loading : t.resume} onClick={() => { if (!isBuffering) setShowInfoOverlay(false); }} primary />
-                  <ActionButton icon={<Heart className={favoriteIds.has(currentItem.Id) ? 'fill-red-500 text-red-500' : ''} size={14} />} label={favoriteIds.has(currentItem.Id) ? t.favorited : t.favorite} onClick={toggleFavorite} />
-                  <ActionButton icon={isMuted ? <VolumeX className="text-red-500" size={14} /> : <Volume2 size={14} />} label={isMuted ? t.muted : t.sound} onClick={() => setIsMuted(!isMuted)} />
-                  <ActionButton icon={<Infinity size={14} />} label={isAutoPlay ? t.infinity : t.single} onClick={() => setIsAutoPlay(!isAutoPlay)} />
+                  <ActionButton id="tv-player-play-btn" icon={<Play fill="currentColor" size={14} />} label={isBuffering ? t.tvVideoPlayer.loading : t.tvVideoPlayer.resume} onClick={() => { if (!isBuffering) setShowInfoOverlay(false); }} primary />
+                  <ActionButton icon={<Heart className={favoriteIds.has(currentItem.Id) ? 'fill-red-500 text-red-500' : ''} size={14} />} label={favoriteIds.has(currentItem.Id) ? t.tvVideoPlayer.favorited : t.tvVideoPlayer.favorite} onClick={toggleFavorite} />
+                  <ActionButton icon={isMuted ? <VolumeX className="text-red-500" size={14} /> : <Volume2 size={14} />} label={isMuted ? t.tvVideoPlayer.muted : t.tvVideoPlayer.sound} onClick={() => setIsMuted(!isMuted)} />
+                  <ActionButton icon={<Infinity size={14} />} label={isAutoPlay ? t.tvVideoPlayer.infinity : t.tvVideoPlayer.single} onClick={() => setIsAutoPlay(!isAutoPlay)} />
               </div>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5 overflow-hidden">

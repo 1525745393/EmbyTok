@@ -6,9 +6,10 @@ import TVVideoGrid from './TVVideoGrid';
 import TVVideoPlayer from './TVVideoPlayer';
 import TVDashboard from './TVDashboard';
 import TVSettings from './TVSettings';
-import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
+import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, IconComponent } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { LayoutGrid, Library, Settings, LogOut, Clock, Star, RefreshCcw, Monitor, Eye, EyeOff, User, Info, CheckCircle2, Smartphone, Square, Search, Globe } from 'lucide-react';
+import useTranslation from '../../src/hooks/useTranslation';
 
 interface TVRootProps {
     onToggleMode?: () => void;
@@ -40,7 +41,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
 
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('account');
-  const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
+  const { t, language, toggleLanguage } = useTranslation();
   const [hiddenLibIds, setHiddenLibIds] = useState<Set<string>>(() => {
       try { const s = localStorage.getItem('embyHiddenLibs'); return s ? new Set(JSON.parse(s)) : new Set(); } catch(e) { return new Set(); }
   });
@@ -73,14 +74,6 @@ function TVRoot({ onToggleMode }: TVRootProps) {
   }, [!!config]);
 
   const handleLogout = useCallback(() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }, []);
-
-  const toggleLanguage = useCallback(() => {
-    setLanguage(prev => {
-      const next = prev === 'zh' ? 'en' : 'zh';
-      localStorage.setItem('embyLanguage', next);
-      return next;
-    });
-  }, []);
 
   const handleToggleHidden = useCallback((libId: string) => {
     setHiddenLibIds(prev => {
@@ -268,11 +261,6 @@ function TVRoot({ onToggleMode }: TVRootProps) {
 
   if (!config || !client) return <Login onLogin={setConfig} />;
 
-  const t = {
-      zh: { discover: '首页', settings: '设置', logout: '退出', latest: '最新', favorites: '收藏', random: '随机' },
-      en: { discover: 'Home', settings: 'Settings', logout: 'Logout', latest: 'Latest', favorites: 'Favorites', random: 'Random' }
-  }[language];
-
   const shouldSidebarExpand = isSidebarFocused;
 
   return (
@@ -295,7 +283,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
                 <NavItem 
                     id="nav-item-discover" 
                     icon={<LayoutGrid size={16} />} 
-                    label={t.discover} 
+                    label={t.tvRoot.discover} 
                     active={!showSettings && !previewLib} 
                     onFocus={() => handlePreviewSwitch(null)} 
                     onClick={() => enterLibrary(null)} 
@@ -318,27 +306,27 @@ function TVRoot({ onToggleMode }: TVRootProps) {
                 </div>
             </div>
             <div className="space-y-1 w-full pt-2 border-t border-white/5 shrink-0">
-                <NavItem id="nav-item-settings" icon={<Settings size={16} />} label={t.settings} active={showSettings} onFocus={() => { if (switchTimer.current) clearTimeout(switchTimer.current); }} onClick={() => setShowSettings(!showSettings)} showLabel={shouldSidebarExpand} />
-                <NavItem icon={<LogOut size={16} />} label={t.logout} active={false} onClick={handleLogout} showLabel={shouldSidebarExpand} />
+                <NavItem id="nav-item-settings" icon={<Settings size={16} />} label={t.tvRoot.settings} active={showSettings} onFocus={() => { if (switchTimer.current) clearTimeout(switchTimer.current); }} onClick={() => setShowSettings(!showSettings)} showLabel={shouldSidebarExpand} />
+                <NavItem icon={<LogOut size={16} />} label={t.tvRoot.logout} active={false} onClick={handleLogout} showLabel={shouldSidebarExpand} />
             </div>
         </nav>
       )}
 
       <main className="flex-1 relative bg-black h-full tv-main-canvas overflow-hidden">
         {selectedVideoIndex !== null ? (
-            <TVVideoPlayer videos={videos} initialIndex={selectedVideoIndex} onBack={() => setSelectedVideoIndex(null)} client={client} libraryName={previewLib?.Name || "收藏"} language={language} />
+            <TVVideoPlayer videos={videos} initialIndex={selectedVideoIndex} onBack={() => setSelectedVideoIndex(null)} client={client} libraryName={previewLib?.Name || "收藏"} />
         ) : showSettings ? (
             <TVSettings 
                 config={config} libraries={libraries} hiddenLibIds={hiddenLibIds} onToggleHidden={handleToggleHidden}
                 orientationMode={orientationMode} onOrientationChange={(m) => { setOrientationMode(m); localStorage.setItem('embyOrientationMode', m); }}
-                language={language} onToggleLanguage={toggleLanguage} onToggleMode={onToggleMode!} onLogout={handleLogout}
+                t={t} toggleLanguage={toggleLanguage} language={language} onToggleMode={onToggleMode!} onLogout={handleLogout}
                 activeTab={activeTab} onTabChange={setActiveTab}
                 version={appVersion}
             />
         ) : (
             <div className="h-full flex flex-col min-h-0">
                 {!previewLib ? (
-                    <TVDashboard client={client} libraries={visibleLibraries} onSelectVideo={(item) => { setVideos([item]); setSelectedVideoIndex(0); }} onSelectLibrary={enterLibrary} language={language} />
+                    <TVDashboard client={client} libraries={visibleLibraries} onSelectVideo={(item) => { setVideos([item]); setSelectedVideoIndex(0); }} onSelectLibrary={enterLibrary} t={t} />
                 ) : (
                     <>
                         <header className="absolute top-0 left-0 right-0 h-6 px-4 pt-1 z-30 pointer-events-none flex items-center justify-between">
@@ -356,19 +344,19 @@ function TVRoot({ onToggleMode }: TVRootProps) {
 
       {!showSettings && previewLib && selectedVideoIndex === null && (
           <div className="tv-right-rail right-action-bar w-10 bg-black/40 border-l border-white/5 flex flex-col items-center justify-center gap-4 z-50 backdrop-blur-md h-full shrink-0">
-              <SideTabPill label={t.latest} icon={<Clock size={14} />} active={feedType === 'latest'} onClick={() => setFeedType('latest')} />
-              <SideTabPill label={t.favorites} icon={<Star size={14} />} active={feedType === 'favorites'} onClick={() => setFeedType('favorites')} />
-              <SideTabPill label={t.random} icon={<RefreshCcw size={14} />} active={feedType === 'random'} onClick={() => setFeedType('random')} />
+              <SideTabPill label={t.tvRoot.latest} icon={<Clock size={14} />} active={feedType === 'latest'} onClick={() => setFeedType('latest')} />
+              <SideTabPill label={t.tvRoot.favorites} icon={<Star size={14} />} active={feedType === 'favorites'} onClick={() => setFeedType('favorites')} />
+              <SideTabPill label={t.tvRoot.random} icon={<RefreshCcw size={14} />} active={feedType === 'random'} onClick={() => setFeedType('random')} />
           </div>
       )}
     </div>
   );
 }
 
-function SideTabPill({ label, icon, active, onClick }: { label: string, icon: any, active: boolean, onClick: () => void }) {
-    return <button tabIndex={0} onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all outline-none focus:ring-2 focus:ring-white focus:scale-110 ${active ? 'text-indigo-400' : 'text-white/20 hover:text-white/40'}`}><div className={`p-2 rounded-lg ${active ? 'bg-indigo-500/20' : 'bg-white/5'}`}>{icon}</div><span className="text-[8px] font-black uppercase text-white">{label}</span></button>;
+function SideTabPill({ label, icon: Icon, active, onClick }: { label: string, icon: React.ElementType, active: boolean, onClick: () => void }) {
+    return <button tabIndex={0} onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all outline-none focus:ring-2 focus:ring-white focus:scale-110 ${active ? 'text-indigo-400' : 'text-white/20 hover:text-white/40'}`}><div className={`p-2 rounded-lg ${active ? 'bg-indigo-500/20' : 'bg-white/5'}`}><Icon size={14} /></div><span className="text-[8px] font-black uppercase text-white">{label}</span></button>;
 }
-function NavItem({ id, icon, label, active, onFocus, onClick, showLabel }: { id?: string, icon: any, label: string, active: boolean, onFocus?: () => void, onClick: () => void, showLabel?: boolean }) {
+function NavItem({ id, icon: Icon, label, active, onFocus, onClick, showLabel }: { id?: string, icon: React.ElementType, label: string, active: boolean, onFocus?: () => void, onClick: () => void, showLabel?: boolean }) {
     return (
         <button id={id} tabIndex={0} onFocus={onFocus} onClick={onClick} className={`
             w-full flex items-center p-0 rounded-lg outline-none relative group/item 
@@ -381,7 +369,7 @@ function NavItem({ id, icon, label, active, onFocus, onClick, showLabel }: { id?
                 group-focus/item:text-black group-focus/item:scale-110
                 ${active ? 'text-white' : 'text-zinc-500'}
             `}>
-                {icon}
+                <Icon size={16} />
             </div>
             <span className={`
                 text-sm font-black whitespace-nowrap transition-all duration-300 drop-shadow-md ml-2 overflow-hidden
