@@ -152,27 +152,41 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 
 ### 镜像信息
 
-#### DockerHub 镜像
-
-- **镜像名称**：aidedaijiayang/embytok
+#### GitHub Container Registry（推荐）
+- **镜像名称**：ghcr.io/1525745393/embytok
 - **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
-- **标签**：latest
+- **标签**：latest, 1.3.0
+
+#### DockerHub 镜像
+- **镜像名称**：&lt;your-dockerhub-username&gt;/embytok（请替换为您的 Docker Hub 用户名）
+- **支持架构**：AMD64 (x86_64), ARM64 (aarch64)
+- **标签**：latest, 1.3.0
 
 #### 阿里云镜像（更新可能不及时）
-
 - **镜像名称**：crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
 - **支持架构**：仅支持 AMD64 (x86_64)
 - **标签**：latest
 
 ### 直接使用 Docker 命令
 
+#### GitHub Container Registry（推荐）
 ```bash
 # 拉取并运行镜像（Docker 会自动选择适合您硬件架构的版本）
 docker run -d \
   --name embytok-web \
   --restart unless-stopped \
   -p 8080:80 \
-  aidedaijiayang/embytok:latest
+  ghcr.io/1525745393/embytok:latest
+```
+
+#### DockerHub
+```bash
+# 拉取并运行镜像（请将 &lt;your-dockerhub-username&gt; 替换为您的实际 Docker Hub 用户名）
+docker run -d \
+  --name embytok-web \
+  --restart unless-stopped \
+  -p 8080:80 \
+  &lt;your-dockerhub-username&gt;/embytok:latest
 ```
 
 ### 使用 Docker Compose
@@ -207,6 +221,16 @@ docker-compose -f docker-compose.simple.yml up -d
 默认情况下，应用将在端口 5175 上可用。
 
 ## 更新日志
+
+### v1.3.0 (2026-06-01)
+- 🏗️ **架构**：完整的代码重构和重组
+- 📦 **组件**：将大型组件拆分为更小、更易维护的模块
+- 🔧 **Hooks**：添加了 9 个自定义钩子，用于更好的状态管理
+- 📝 **i18n**：实现统一的翻译系统（中文/英文）
+- 🧪 **测试**：添加了 Vitest 框架，包含 46 个测试用例
+- ⚡ **性能**：应用了 React.memo、useMemo、useCallback 优化
+- 🛠️ **工具函数**：创建了可重用的工具函数库
+- 📖 **文档**：添加了 Code Wiki 和 Release Notes
 
 ### v1.2.4 (2026-05-30)
 - 🚀 优化：标准模式下随机模式现在一次性请求最多 200 个视频，并应用方向筛选

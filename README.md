@@ -152,27 +152,41 @@ The project includes Docker support and can be easily deployed as a web applicat
 
 ### Image Information
 
-#### DockerHub Image
-
-- **Image name**: aidedaijiayang/embytok
+#### GitHub Container Registry (Recommended)
+- **Image name**: ghcr.io/1525745393/embytok
 - **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
-- **Tags**: latest
+- **Tags**: latest, 1.3.0
+
+#### DockerHub Image
+- **Image name**: &lt;your-dockerhub-username&gt;/embytok (replace with your Docker Hub username)
+- **Supported architectures**: AMD64 (x86_64), ARM64 (aarch64)
+- **Tags**: latest, 1.3.0
 
 #### Alibaba Cloud Image (Updates may be delayed)
-
 - **Image name**: crpi-90mw3693mrc3nsxp.cn-shanghai.personal.cr.aliyuncs.com/migumigu/embytok
 - **Supported architectures**: AMD64 (x86_64) only
 - **Tags**: latest
 
 ### Using Docker Command Directly
 
+#### GitHub Container Registry (Recommended)
 ```bash
 # Pull and run the image (Docker will automatically select the version suitable for your hardware architecture)
 docker run -d \
   --name embytok-web \
   --restart unless-stopped \
   -p 8080:80 \
-  aidedaijiayang/embytok:latest
+  ghcr.io/1525745393/embytok:latest
+```
+
+#### DockerHub
+```bash
+# Pull and run the image (replace &lt;your-dockerhub-username&gt; with your actual Docker Hub username)
+docker run -d \
+  --name embytok-web \
+  --restart unless-stopped \
+  -p 8080:80 \
+  &lt;your-dockerhub-username&gt;/embytok:latest
 ```
 
 ### Using Docker Compose
