@@ -407,12 +407,12 @@ npm run build
 ### 9.3 Docker 部署
 
 支持 Docker 镜像：
-- 官方镜像：`aidedaijiayang/embytok`
-- 阿里云镜像（更新可能延迟）
+- GitHub Container Registry (推荐)：`ghcr.io/1525745393/embytok`
+- Docker Hub：`<your-dockerhub-username>/embytok`
 - 支持 AMD64 和 ARM64 架构
 
 ```bash
-docker run -d --name embytok-web --restart unless-stopped -p 8080:80 aidedaijiayang/embytok:latest
+docker run -d --name embytok-web --restart unless-stopped -p 8080:80 ghcr.io/1525745393/embytok:latest
 ```
 
 ### 9.4 Android 应用构建

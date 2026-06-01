@@ -201,11 +201,11 @@ version: '3.8'
 services:
   # EmbyTok front-end application - simple configuration
   embytok:
-    image: aidedaijiayang/embytok:latest
+    image: ghcr.io/1525745393/embytok:latest
     container_name: embytok-web
     restart: unless-stopped
     ports:
-      - "5175:80"  # Web interface port
+      - "8080:80"  # Web interface port
     environment:
       - NODE_ENV=production
     network_mode: bridge
