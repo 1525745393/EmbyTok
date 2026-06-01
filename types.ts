@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 
 export type ServerType = 'emby' | 'plex';
@@ -148,6 +147,6 @@ export interface PlexPlaylist extends PlexMetadata {
 }
 
 /**
- * Icon component type
+ * Icon component type - can be a Lucide icon component or a React element
  */
-export type IconComponent = LucideIcon;
+export type IconComponent = LucideIcon | React.ReactElement;

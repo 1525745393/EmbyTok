@@ -1,8 +1,7 @@
-
 import React, { useRef } from 'react';
 import { ServerConfig, EmbyLibrary, OrientationMode } from '../../types';
 import { Translations } from '../../src/locales';
-import { User, Library, Monitor, Info, Globe, Smartphone, Square, LogOut, EyeOff, Eye, CheckCircle2 } from 'lucide-react';
+import { User, Library, Monitor, Info, Globe, Smartphone, Square, EyeOff, Eye } from 'lucide-react';
 
 interface TVSettingsProps {
   config: ServerConfig;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import Login from '../Login';
@@ -8,7 +7,7 @@ import TVDashboard from './TVDashboard';
 import TVSettings from './TVSettings';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, IconComponent } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
-import { LayoutGrid, Library, Settings, LogOut, Clock, Star, RefreshCcw, Monitor, Eye, EyeOff, User, Info, CheckCircle2, Smartphone, Square, Search, Globe } from 'lucide-react';
+import { LayoutGrid, Settings, LogOut, Clock, Star, RefreshCcw } from 'lucide-react';
 import useTranslation from '../../src/hooks/useTranslation';
 
 interface TVRootProps {
@@ -353,10 +352,12 @@ function TVRoot({ onToggleMode }: TVRootProps) {
   );
 }
 
-function SideTabPill({ label, icon: Icon, active, onClick }: { label: string, icon: React.ElementType, active: boolean, onClick: () => void }) {
-    return <button tabIndex={0} onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all outline-none focus:ring-2 focus:ring-white focus:scale-110 ${active ? 'text-indigo-400' : 'text-white/20 hover:text-white/40'}`}><div className={`p-2 rounded-lg ${active ? 'bg-indigo-500/20' : 'bg-white/5'}`}><Icon size={14} /></div><span className="text-[8px] font-black uppercase text-white">{label}</span></button>;
+function SideTabPill({ label, icon, active, onClick }: { label: string, icon: IconComponent, active: boolean, onClick: () => void }) {
+    const iconElement = React.isValidElement(icon) ? icon : React.createElement(icon as React.ComponentType<{size?: number}>, { size: 14 });
+    return <button tabIndex={0} onClick={onClick} className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all outline-none focus:ring-2 focus:ring-white focus:scale-110 ${active ? 'text-indigo-400' : 'text-white/20 hover:text-white/40'}`}><div className={`p-2 rounded-lg ${active ? 'bg-indigo-500/20' : 'bg-white/5'}`}>{iconElement}</div><span className="text-[8px] font-black uppercase text-white">{label}</span></button>;
 }
-function NavItem({ id, icon: Icon, label, active, onFocus, onClick, showLabel }: { id?: string, icon: React.ElementType, label: string, active: boolean, onFocus?: () => void, onClick: () => void, showLabel?: boolean }) {
+function NavItem({ id, icon, label, active, onFocus, onClick, showLabel }: { id?: string, icon: IconComponent, label: string, active: boolean, onFocus?: () => void, onClick: () => void, showLabel?: boolean }) {
+    const iconElement = React.isValidElement(icon) ? icon : React.createElement(icon as React.ComponentType<{size?: number}>, { size: 16 });
     return (
         <button id={id} tabIndex={0} onFocus={onFocus} onClick={onClick} className={`
             w-full flex items-center p-0 rounded-lg outline-none relative group/item 
@@ -369,7 +370,7 @@ function NavItem({ id, icon: Icon, label, active, onFocus, onClick, showLabel }:
                 group-focus/item:text-black group-focus/item:scale-110
                 ${active ? 'text-white' : 'text-zinc-500'}
             `}>
-                <Icon size={16} />
+                {iconElement}
             </div>
             <span className={`
                 text-sm font-black whitespace-nowrap transition-all duration-300 drop-shadow-md ml-2 overflow-hidden

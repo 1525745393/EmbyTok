@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { ServerConfig, ServerType } from '../types';
 import { ClientFactory } from '../services/clientFactory';
-import { Server, User, Key, Loader2, Info, Smartphone, CheckCircle2, Globe } from 'lucide-react';
+import { Loader2, CheckCircle2, Globe } from 'lucide-react';
 import useTranslation from '../src/hooks/useTranslation';
 
 interface LoginProps {

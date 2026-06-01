@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { EmbyItem, EmbyLibrary } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
 import { Translations } from '../../src/locales';
-import { Play, PlayCircle, Folder, LayoutGrid, ChevronRight } from 'lucide-react';
+import { Folder, ChevronRight } from 'lucide-react';
 
 interface TVDashboardProps {
   client: MediaClient;

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { EmbyLibrary, OrientationMode } from '../types';
 import { Translations } from '../src/locales';
-import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe } from 'lucide-react';
+import { X, Folder, Settings, Eye, EyeOff, ChevronLeft, Info, ExternalLink, Monitor, Globe } from 'lucide-react';
 
 interface LibrarySelectProps {
   libraries: EmbyLibrary[];

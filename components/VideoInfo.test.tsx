@@ -5,8 +5,16 @@ import VideoInfo from './VideoInfo';
 import type { EmbyItem } from '../types';
 
 const mockT = {
+  deleteVideo: 'Delete Video',
+  deleteWarning: 'Warning: This will delete the original file!',
+  deleteConfirm: 'Are you sure you want to delete this video?',
+  cancel: 'Cancel',
+  confirmDelete: 'Confirm Delete',
   mediaType: 'Video',
   noOverview: 'No overview available',
+  autoPlayOn: 'Auto Play On',
+  doubleSpeed: '2x Speed',
+  videoLoadError: 'Video Load Error',
 };
 
 const testItem: EmbyItem = {
