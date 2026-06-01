@@ -242,6 +242,11 @@ The application uses localStorage to store the following user configurations:
 - Server configuration (URL, user ID, access token)
 - Hidden media library list
 
+## Acknowledgments
+
+- Thanks to the original project author for creating this great EmbyTok project!
+- Thanks to Trae AI assistant for assisting with code refactoring, documentation, and project release.
+
 ## Contribution
 
 Welcome to submit Issues and Pull Requests to improve this project.

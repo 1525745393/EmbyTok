@@ -242,6 +242,11 @@ docker-compose -f docker-compose.simple.yml up -d
 - 服务器配置（URL、用户ID、访问令牌）
 - 隐藏的媒体库列表
 
+## 致谢
+
+- 感谢原项目作者创建了这么棒的 EmbyTok 项目！
+- 感谢 Trae AI 助手协助进行代码重构、文档编写和项目发布。
+
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request 来改进这个项目。
