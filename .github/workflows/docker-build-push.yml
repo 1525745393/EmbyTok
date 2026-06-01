@@ -29,12 +29,9 @@ jobs:
       - name: Extract version from package.json
         id: extract-version
         run: |
-          VERSION=$(node -e "import('./package.json', {assert: {type: 'json'}}).then(p => console.log(p.default.version))")
-          # 备选方案：使用 grep 提取
-          if [ -z "$VERSION" ]; then
-            VERSION=$(grep -o '"version":\s*"[^"]*"' package.json | cut -d'"' -f4)
-          fi
+          VERSION=$(grep -o '"version":\s*"[^"]*"' package.json | head -1 | sed 's/.*"version":\s*"\([^"]*\)".*/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
