@@ -86,17 +86,20 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 ### 安装步骤
 
 1. 克隆仓库：
+
    ```bash
    git clone <repository-url>
    cd embytok
    ```
 
 2. 安装依赖：
+
    ```bash
    npm install
    ```
 
 3. 启动开发服务器：
+
    ```bash
    npm run dev
    ```
@@ -109,12 +112,12 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 ## 使用方法
 
 1. 启动应用后，在登录界面选择您的媒体服务器类型（Emby 或 Plex），然后输入服务器信息：
-   
+
    **对于 Emby 服务器：**
    - 服务器地址（例如：http://192.168.1.100:8096）
    - 用户名
    - 密码（如果需要）
-   
+
    **对于 Plex 服务器：**
    - 服务器地址（例如：http://192.168.1.100:32400）
    - X-Plex-Token
@@ -132,11 +135,13 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 1. 确保您已安装 Android Studio 和 Android SDK
 
 2. 添加 Android 平台：
+
    ```bash
    npm run cap:add
    ```
 
 3. 同步项目：
+
    ```bash
    npm run cap:sync
    ```
@@ -191,7 +196,7 @@ services:
     container_name: embytok-web
     restart: unless-stopped
     ports:
-      - "5175:80"  # Web界面端口
+      - '5175:80' # Web界面端口
     environment:
       - NODE_ENV=production
     network_mode: bridge
@@ -209,12 +214,14 @@ docker-compose -f docker-compose.simple.yml up -d
 ## 更新日志
 
 ### v1.2.4 (2026-05-30)
+
 - 🚀 优化：标准模式下随机模式现在一次性请求最多 200 个视频，并应用方向筛选
 - 🔧 改进：移除随机模式的分页，提供更流畅的浏览体验
 
 ## 配置
 
 应用使用 localStorage 存储以下用户配置：
+
 - 服务器配置（URL、用户ID、访问令牌）
 - 隐藏的媒体库列表
 

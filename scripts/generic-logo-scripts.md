@@ -27,23 +27,23 @@ import path from 'path';
 async function generateMultipleSizes(inputPath, outputDir, sizes, format = 'png') {
   // 确保输出目录存在
   await fs.mkdir(outputDir, { recursive: true });
-  
+
   console.log(`Generating ${format} icons from ${inputPath}...`);
-  
+
   for (const size of sizes) {
     const outputPath = path.join(outputDir, `icon-${size}x${size}.${format}`);
-    
+
     await sharp(inputPath)
       .resize(size, size, {
         fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 } // 透明背景
+        background: { r: 0, g: 0, b: 0, alpha: 0 }, // 透明背景
       })
       [format]()
       .toFile(outputPath);
-    
+
     console.log(`Generated ${outputPath}`);
   }
-  
+
   console.log('All icons generated successfully!');
 }
 
@@ -61,6 +61,7 @@ generateMultipleSizes(inputFile, outputDir, sizes).catch(console.error);
 ```
 
 **使用方法**：
+
 ```bash
 node scripts/generate-multiple-sizes.mjs input.svg output/icons
 ```
@@ -83,51 +84,45 @@ import path from 'path';
 async function generateFavicon(inputPath, outputDir) {
   // 确保输出目录存在
   await fs.mkdir(outputDir, { recursive: true });
-  
+
   console.log(`Generating favicon from ${inputPath}...`);
-  
+
   // Favicon尺寸列表
   const faviconSizes = [16, 32, 48, 64, 128, 256];
-  
+
   // 生成不同尺寸的PNG图标
   for (const size of faviconSizes) {
     const outputPath = path.join(outputDir, `favicon-${size}x${size}.png`);
-    await sharp(inputPath)
-      .resize(size, size)
-      .png()
-      .toFile(outputPath);
+    await sharp(inputPath).resize(size, size).png().toFile(outputPath);
     console.log(`Generated ${outputPath}`);
   }
-  
+
   // 生成ICO格式（需要先生成临时PNG文件）
   const icoSizes = [16, 32, 48];
   const icoInputFiles = [];
-  
+
   for (const size of icoSizes) {
     const tempPath = path.join(outputDir, `temp-${size}x${size}.png`);
-    await sharp(inputPath)
-      .resize(size, size)
-      .png()
-      .toFile(tempPath);
+    await sharp(inputPath).resize(size, size).png().toFile(tempPath);
     icoInputFiles.push(tempPath);
   }
-  
+
   // 使用sharp生成ICO
   // 注意：sharp需要libvips支持ICO格式
   try {
-    await sharp(icoInputFiles[0])
-      .png()
-      .toFile(path.join(outputDir, 'favicon.ico'));
+    await sharp(icoInputFiles[0]).png().toFile(path.join(outputDir, 'favicon.ico'));
     console.log('Generated favicon.ico');
   } catch (error) {
-    console.warn('Failed to generate ICO format. You may need to use an online converter for ICO files.');
+    console.warn(
+      'Failed to generate ICO format. You may need to use an online converter for ICO files.'
+    );
   }
-  
+
   // 清理临时文件
   for (const file of icoInputFiles) {
     await fs.unlink(file).catch(() => {});
   }
-  
+
   console.log('Favicon generation completed!');
 }
 
@@ -139,6 +134,7 @@ generateFavicon(inputFile, outputDir).catch(console.error);
 ```
 
 **使用方法**：
+
 ```bash
 node scripts/generate-favicon.mjs input.svg output/favicon
 ```
@@ -161,34 +157,34 @@ import path from 'path';
 async function generateSocialMediaImages(inputPath, outputDir) {
   // 确保输出目录存在
   await fs.mkdir(outputDir, { recursive: true });
-  
+
   console.log(`Generating social media images from ${inputPath}...`);
-  
+
   // 社交媒体推荐尺寸
   const socialMediaSizes = {
-    'facebook': { width: 1200, height: 630 }, // Facebook分享
-    'twitter': { width: 1200, height: 675 }, // Twitter分享
-    'linkedin': { width: 1200, height: 627 }, // LinkedIn分享
+    facebook: { width: 1200, height: 630 }, // Facebook分享
+    twitter: { width: 1200, height: 675 }, // Twitter分享
+    linkedin: { width: 1200, height: 627 }, // LinkedIn分享
     'instagram-square': { width: 1080, height: 1080 }, // Instagram方形
     'instagram-portrait': { width: 1080, height: 1350 }, // Instagram竖屏
-    'pinterest': { width: 1000, height: 1500 }, // Pinterest
-    'youtube-thumbnail': { width: 1280, height: 720 } // YouTube缩略图
+    pinterest: { width: 1000, height: 1500 }, // Pinterest
+    'youtube-thumbnail': { width: 1280, height: 720 }, // YouTube缩略图
   };
-  
+
   for (const [platform, { width, height }] of Object.entries(socialMediaSizes)) {
     const outputPath = path.join(outputDir, `social-${platform}.png`);
-    
+
     await sharp(inputPath)
       .resize(width, height, {
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 } // 白色背景
+        background: { r: 255, g: 255, b: 255, alpha: 1 }, // 白色背景
       })
       .png()
       .toFile(outputPath);
-    
+
     console.log(`Generated ${outputPath}`);
   }
-  
+
   console.log('Social media images generated successfully!');
 }
 
@@ -200,6 +196,7 @@ generateSocialMediaImages(inputFile, outputDir).catch(console.error);
 ```
 
 **使用方法**：
+
 ```bash
 node scripts/generate-social-media.mjs input.svg output/social
 ```
@@ -221,18 +218,18 @@ import path from 'path';
  */
 async function convertFormat(inputPath, outputPath) {
   console.log(`Converting ${inputPath} to ${outputPath}...`);
-  
+
   // 确保输出目录存在
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  
+
   // 获取输出格式
   const outputFormat = path.extname(outputPath).slice(1).toLowerCase();
-  
+
   try {
     await sharp(inputPath)
       [outputFormat]()
       .toFile(outputPath);
-    
+
     console.log(`Successfully converted to ${outputPath}`);
   } catch (error) {
     console.error(`Failed to convert: ${error.message}`);
@@ -242,3 +239,4 @@ async function convertFormat(inputPath, outputPath) {
 
 // 使用示例
 const inputFile =
+```

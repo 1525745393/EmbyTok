@@ -86,17 +86,20 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 ### Installation Steps
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd embytok
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -109,12 +112,12 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 ## Usage
 
 1. After starting the application, select your media server type (Emby or Plex) on the login screen, then enter the server information:
-   
+
    **For Emby server:**
    - Server address (e.g.: http://192.168.1.100:8096)
    - Username
    - Password (if required)
-   
+
    **For Plex server:**
    - Server address (e.g.: http://192.168.1.100:32400)
    - X-Plex-Token
@@ -132,11 +135,13 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 1. Make sure you have Android Studio and Android SDK installed
 
 2. Add Android platform:
+
    ```bash
    npm run cap:add
    ```
 
 3. Sync project:
+
    ```bash
    npm run cap:sync
    ```
@@ -191,7 +196,7 @@ services:
     container_name: embytok-web
     restart: unless-stopped
     ports:
-      - "5175:80"  # Web interface port
+      - '5175:80' # Web interface port
     environment:
       - NODE_ENV=production
     network_mode: bridge
@@ -209,12 +214,14 @@ By default, the application will be available on port 5175.
 ## Changelog
 
 ### v1.2.4 (2026-05-30)
+
 - 🚀 Optimization: Standard mode now fetches up to 200 videos at once in random mode, with orientation filtering applied
 - 🔧 Improvement: Removed pagination for random mode to provide a more seamless browsing experience
 
 ## Configuration
 
 The application uses localStorage to store the following user configurations:
+
 - Server configuration (URL, user ID, access token)
 - Hidden media library list
 

@@ -11,7 +11,7 @@ export function useDeviceDetection(): DeviceDetectionState {
   const [state, setState] = useState<DeviceDetectionState>({
     isIOSSafari: false,
     isMobile: false,
-    isLandscape: false
+    isLandscape: false,
   });
 
   useEffect(() => {
@@ -19,13 +19,13 @@ export function useDeviceDetection(): DeviceDetectionState {
       setState({
         isIOSSafari: isIOSSafari(),
         isMobile: isMobile(),
-        isLandscape: isLandscape()
+        isLandscape: isLandscape(),
       });
     };
 
     updateState();
     window.addEventListener('resize', updateState);
-    
+
     return () => window.removeEventListener('resize', updateState);
   }, []);
 

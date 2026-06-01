@@ -27,213 +27,218 @@ interface VideoCardProps {
   language?: 'zh' | 'en';
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ 
-    item, 
-    client, 
-    isActive, 
-    isFavorite, 
-    onToggleFavorite,
-    onDelete = () => {},
-    isMuted,
-    onToggleMute,
-    isAutoPlay = false,
-    onToggleAutoPlay = () => {},
-    onVideoEnd = () => {},
-    t,
-    language = 'zh'
+const VideoCard: React.FC<VideoCardProps> = ({
+  item,
+  client,
+  isActive,
+  isFavorite,
+  onToggleFavorite,
+  onDelete = () => {},
+  isMuted,
+  onToggleMute,
+  isAutoPlay = false,
+  onToggleAutoPlay = () => {},
+  onVideoEnd = () => {},
+  t,
+  language = 'zh',
 }) => {
-    const { isLandscape: isScreenLandscape } = useDeviceDetection();
-    
-    const {
-      isPlaying,
-      hasStarted,
-      currentTime,
-      duration,
-      isUserPaused,
-      error,
-      videoRef,
-      containerRef,
-      togglePlay,
-      handlePlaying,
-      handleTimeUpdate,
-      handleLoadedMetadata,
-      handleVideoEnded,
-      handleSeekStart,
-      handleSeekMove,
-      handleSeekEnd,
-      setError
-    } = useVideoControls({ isActive, isMuted, isAutoPlay, onVideoEnd });
+  const { isLandscape: isScreenLandscape } = useDeviceDetection();
 
-    const {
-      playbackRate,
-      seekOffset,
-      hearts,
-      handleTouchStart,
-      handleTouchMove,
-      handleTouchEnd
-    } = useGestureControls({ 
-      togglePlay, 
+  const {
+    isPlaying,
+    hasStarted,
+    currentTime,
+    duration,
+    isUserPaused,
+    error,
+    videoRef,
+    containerRef,
+    togglePlay,
+    handlePlaying,
+    handleTimeUpdate,
+    handleLoadedMetadata,
+    handleVideoEnded,
+    handleSeekStart,
+    handleSeekMove,
+    handleSeekEnd,
+    setError,
+  } = useVideoControls({ isActive, isMuted, isAutoPlay, onVideoEnd });
+
+  const { playbackRate, seekOffset, hearts, handleTouchStart, handleTouchMove, handleTouchEnd } =
+    useGestureControls({
+      togglePlay,
       onDoubleTap: useCallback(() => {
         if (!isFavorite) {
           onToggleFavorite();
         }
-      }, [isFavorite, onToggleFavorite]), 
-      videoRef 
+      }, [isFavorite, onToggleFavorite]),
+      videoRef,
     });
 
-    const [showInfo, setShowInfo] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
-    const posterSrc = useMemo(() => item.ImageTags?.Primary 
-      ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
-      : undefined, [client, item]);
-    
-    const isContentLandscape = useMemo(() => (item.Width || 0) > (item.Height || 0), [item]);
+  const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
+  const posterSrc = useMemo(
+    () =>
+      item.ImageTags?.Primary
+        ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary')
+        : undefined,
+    [client, item]
+  );
 
-    const showBlurBackground = useMemo(() => isScreenLandscape && !isContentLandscape, [isScreenLandscape, isContentLandscape]);
-    
-    const videoObjectFitClass = useMemo(() => (isScreenLandscape || isContentLandscape) 
-      ? 'object-contain' 
-      : 'object-cover', [isScreenLandscape, isContentLandscape]);
+  const isContentLandscape = useMemo(() => (item.Width || 0) > (item.Height || 0), [item]);
 
-    const showProgressBar = useMemo(() => duration > 180 && !isAutoPlay, [duration, isAutoPlay]);
-    const renderUI = useMemo(() => !isAutoPlay, [isAutoPlay]);
+  const showBlurBackground = useMemo(
+    () => isScreenLandscape && !isContentLandscape,
+    [isScreenLandscape, isContentLandscape]
+  );
 
-    const handleContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault();
-    }, []);
+  const videoObjectFitClass = useMemo(
+    () => (isScreenLandscape || isContentLandscape ? 'object-contain' : 'object-cover'),
+    [isScreenLandscape, isContentLandscape]
+  );
 
-    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-        switch(e.key) {
-            case 'Enter':
-            case ' ':
-                togglePlay();
-                break;
-            case 'ArrowLeft':
-                if (videoRef.current) videoRef.current.currentTime -= 10;
-                break;
-            case 'ArrowRight':
-                if (videoRef.current) videoRef.current.currentTime += 10;
-                break;
-            case 'm':
-                onToggleMute();
-                break;
-            case 'f':
-                onToggleFavorite();
-                break;
-        }
-    }, [togglePlay, onToggleMute, onToggleFavorite, videoRef]);
+  const showProgressBar = useMemo(() => duration > 180 && !isAutoPlay, [duration, isAutoPlay]);
+  const renderUI = useMemo(() => !isAutoPlay, [isAutoPlay]);
 
-    const handleDeleteClick = useCallback(() => setShowDeleteConfirm(true), []);
-    const handleDeleteCancel = useCallback(() => setShowDeleteConfirm(false), []);
-    const handleDeleteConfirm = useCallback(() => {
-        onDelete();
-        setShowDeleteConfirm(false);
-    }, [onDelete]);
-    const toggleInfo = useCallback(() => setShowInfo(prev => !prev), []);
-    
-    const handleVideoError = useCallback(() => {
-        setError(t.videoLoadError);
-    }, [setError, t.videoLoadError]);
+  const handleContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+  }, []);
 
-    return (
-      <div 
-          ref={containerRef}
-          tabIndex={isActive ? 0 : -1}
-          className="relative w-full h-full bg-black snap-start shrink-0 flex items-center justify-center overflow-hidden touch-pan-y select-none focus:outline-none"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onContextMenu={handleContextMenu}
-          onKeyDown={handleKeyDown}
-      >
-        {showBlurBackground && posterSrc && (
-            <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
-                 <img 
-                    src={posterSrc} 
-                    alt="" 
-                    className="w-full h-full object-cover blur-2xl opacity-40 scale-110" 
-                    loading="lazy"
-                />
-                 <div className="absolute inset-0 bg-black/30"></div>
-            </div>
-        )}
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'Enter':
+        case ' ':
+          togglePlay();
+          break;
+        case 'ArrowLeft':
+          if (videoRef.current) videoRef.current.currentTime -= 10;
+          break;
+        case 'ArrowRight':
+          if (videoRef.current) videoRef.current.currentTime += 10;
+          break;
+        case 'm':
+          onToggleMute();
+          break;
+        case 'f':
+          onToggleFavorite();
+          break;
+      }
+    },
+    [togglePlay, onToggleMute, onToggleFavorite, videoRef]
+  );
 
-        <VideoPlayer
-          videoRef={videoRef}
-          videoSrc={videoSrc}
-          posterSrc={posterSrc}
-          isMuted={isMuted}
-          isPlaying={isPlaying}
-          hasStarted={hasStarted}
-          isUserPaused={isUserPaused}
-          error={error}
-          playbackRate={playbackRate}
-          seekOffset={seekOffset}
-          isAutoPlay={isAutoPlay}
-          videoObjectFitClass={videoObjectFitClass}
-          onPlaying={handlePlaying}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onVideoEnded={handleVideoEnded}
-          onError={handleVideoError}
-        />
+  const handleDeleteClick = useCallback(() => setShowDeleteConfirm(true), []);
+  const handleDeleteCancel = useCallback(() => setShowDeleteConfirm(false), []);
+  const handleDeleteConfirm = useCallback(() => {
+    onDelete();
+    setShowDeleteConfirm(false);
+  }, [onDelete]);
+  const toggleInfo = useCallback(() => setShowInfo((prev) => !prev), []);
 
-        <HeartAnimation hearts={hearts} />
+  const handleVideoError = useCallback(() => {
+    setError(t.videoLoadError);
+  }, [setError, t.videoLoadError]);
 
-        <VideoControls
-          posterSrc={posterSrc}
-          isFavorite={isFavorite}
-          isMuted={isMuted}
-          isPlaying={isPlaying}
-          isAutoPlay={isAutoPlay}
-          renderUI={renderUI}
-          t={t}
-          onToggleFavorite={onToggleFavorite}
-          onToggleInfo={toggleInfo}
-          onDeleteClick={handleDeleteClick}
-          onToggleMute={onToggleMute}
-          onToggleAutoPlay={onToggleAutoPlay}
-        />
+  return (
+    <div
+      ref={containerRef}
+      tabIndex={isActive ? 0 : -1}
+      className="relative w-full h-full bg-black snap-start shrink-0 flex items-center justify-center overflow-hidden touch-pan-y select-none focus:outline-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onContextMenu={handleContextMenu}
+      onKeyDown={handleKeyDown}
+    >
+      {showBlurBackground && posterSrc && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
+          <img
+            src={posterSrc}
+            alt=""
+            className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black/30"></div>
+        </div>
+      )}
 
-        <VideoInfo
-          item={item}
-          showInfo={showInfo}
-          renderUI={renderUI}
-          t={t}
-          onToggleInfo={toggleInfo}
-        />
+      <VideoPlayer
+        videoRef={videoRef}
+        videoSrc={videoSrc}
+        posterSrc={posterSrc}
+        isMuted={isMuted}
+        isPlaying={isPlaying}
+        hasStarted={hasStarted}
+        isUserPaused={isUserPaused}
+        error={error}
+        playbackRate={playbackRate}
+        seekOffset={seekOffset}
+        isAutoPlay={isAutoPlay}
+        videoObjectFitClass={videoObjectFitClass}
+        onPlaying={handlePlaying}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onVideoEnded={handleVideoEnded}
+        onError={handleVideoError}
+      />
 
-        {showProgressBar && duration > 0 && (
-            <div 
-              className="absolute bottom-8 left-4 right-4 h-8 flex items-center z-50 pointer-events-auto touch-none"
-              onTouchStart={handleSeekStart}
-              onTouchMove={handleSeekMove}
-              onTouchEnd={handleSeekEnd}
-              onClick={(e) => e.stopPropagation()} 
-            >
-                <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
-                    <div 
-                        className="h-full bg-indigo-500 transition-all duration-75"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
-                    />
-                </div>
-                 <div 
-                    className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-2"
-                    style={{ left: `${(currentTime / duration) * 100}%` }}
-                />
-            </div>
-        )}
+      <HeartAnimation hearts={hearts} />
 
-        <DeleteConfirmDialog
-          show={showDeleteConfirm}
-          onCancel={handleDeleteCancel}
-          onConfirm={handleDeleteConfirm}
-          t={t}
-        />
-      </div>
-    );
+      <VideoControls
+        posterSrc={posterSrc}
+        isFavorite={isFavorite}
+        isMuted={isMuted}
+        isPlaying={isPlaying}
+        isAutoPlay={isAutoPlay}
+        renderUI={renderUI}
+        t={t}
+        onToggleFavorite={onToggleFavorite}
+        onToggleInfo={toggleInfo}
+        onDeleteClick={handleDeleteClick}
+        onToggleMute={onToggleMute}
+        onToggleAutoPlay={onToggleAutoPlay}
+      />
+
+      <VideoInfo
+        item={item}
+        showInfo={showInfo}
+        renderUI={renderUI}
+        t={t}
+        onToggleInfo={toggleInfo}
+      />
+
+      {showProgressBar && duration > 0 && (
+        <div
+          className="absolute bottom-8 left-4 right-4 h-8 flex items-center z-50 pointer-events-auto touch-none"
+          onTouchStart={handleSeekStart}
+          onTouchMove={handleSeekMove}
+          onTouchEnd={handleSeekEnd}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-75"
+              style={{ width: `${(currentTime / duration) * 100}%` }}
+            />
+          </div>
+          <div
+            className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-2"
+            style={{ left: `${(currentTime / duration) * 100}%` }}
+          />
+        </div>
+      )}
+
+      <DeleteConfirmDialog
+        show={showDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        t={t}
+      />
+    </div>
+  );
 };
 
 export default React.memo(VideoCard);

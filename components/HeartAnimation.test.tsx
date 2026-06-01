@@ -16,7 +16,7 @@ describe('HeartAnimation', () => {
     ];
 
     const { container } = render(<HeartAnimation hearts={testHearts} />);
-    
+
     const svgs = container.querySelectorAll('svg');
     expect(svgs).toHaveLength(2);
   });
@@ -29,7 +29,7 @@ describe('HeartAnimation', () => {
     ];
 
     const { container } = render(<HeartAnimation hearts={testHearts} />);
-    
+
     const svgs = container.querySelectorAll('svg');
     expect(svgs).toHaveLength(3);
   });

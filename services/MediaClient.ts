@@ -1,37 +1,44 @@
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import {
+  EmbyItem,
+  EmbyLibrary,
+  FeedType,
+  ServerConfig,
+  VideoResponse,
+  OrientationMode,
+} from '../types';
 
 export abstract class MediaClient {
-    config: ServerConfig;
+  config: ServerConfig;
 
-    constructor(config: ServerConfig) {
-        this.config = config;
-    }
+  constructor(config: ServerConfig) {
+    this.config = config;
+  }
 
-    abstract authenticate(username: string, password: string): Promise<ServerConfig>;
-    
-    abstract getLibraries(): Promise<EmbyLibrary[]>;
-    
-    // 仅新增此方法供 TV 首页使用，不改动原有收藏接口
-    abstract getResumeItems(): Promise<EmbyItem[]>;
+  abstract authenticate(username: string, password: string): Promise<ServerConfig>;
 
-    abstract getVideos(
-        parentId: string | undefined, 
-        library: EmbyLibrary | null, 
-        feedType: FeedType, 
-        skip: number, 
-        limit: number,
-        orientationMode: OrientationMode,
-        includeIds?: string 
-    ): Promise<VideoResponse>;
+  abstract getLibraries(): Promise<EmbyLibrary[]>;
 
-    abstract getVideoUrl(item: EmbyItem): string;
-    
-    abstract getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string;
+  // 仅新增此方法供 TV 首页使用，不改动原有收藏接口
+  abstract getResumeItems(): Promise<EmbyItem[]>;
 
-    // 严格保留原有的播放列表收藏逻辑
-    abstract getFavorites(libraryName: string): Promise<Set<string>>;
-    abstract toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void>;
-    
-    // 删除视频方法
-    abstract deleteItem(itemId: string): Promise<void>;
+  abstract getVideos(
+    parentId: string | undefined,
+    library: EmbyLibrary | null,
+    feedType: FeedType,
+    skip: number,
+    limit: number,
+    orientationMode: OrientationMode,
+    includeIds?: string
+  ): Promise<VideoResponse>;
+
+  abstract getVideoUrl(item: EmbyItem): string;
+
+  abstract getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string;
+
+  // 严格保留原有的播放列表收藏逻辑
+  abstract getFavorites(libraryName: string): Promise<Set<string>>;
+  abstract toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void>;
+
+  // 删除视频方法
+  abstract deleteItem(itemId: string): Promise<void>;
 }

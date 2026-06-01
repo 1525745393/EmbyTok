@@ -149,7 +149,8 @@ describe('media utils', () => {
 
     it('should return true for iPhone Safari', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        value:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
         configurable: true,
       });
       (window as any).MSStream = undefined;
@@ -158,7 +159,8 @@ describe('media utils', () => {
 
     it('should return true for iPad Safari', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        value:
+          'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
         configurable: true,
       });
       (window as any).MSStream = undefined;
@@ -167,7 +169,8 @@ describe('media utils', () => {
 
     it('should return false for Chrome on iOS', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) CriOS/120.0.6099.83 Mobile/15E148',
+        value:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) CriOS/120.0.6099.83 Mobile/15E148',
         configurable: true,
       });
       (window as any).MSStream = undefined;

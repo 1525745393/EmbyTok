@@ -6,7 +6,7 @@ export type Translations = typeof zh;
 
 export const translations: Record<Language, Translations> = {
   zh,
-  en
+  en,
 };
 
 export default translations;

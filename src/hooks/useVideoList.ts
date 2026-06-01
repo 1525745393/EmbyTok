@@ -44,8 +44,8 @@ export function useVideoList({
         overrideParentId !== undefined
           ? overrideParentId
           : navStack.length > 0
-          ? navStack[navStack.length - 1].id
-          : undefined;
+            ? navStack[navStack.length - 1].id
+            : undefined;
 
       if (reset) {
         setVideos([]);
@@ -53,10 +53,10 @@ export function useVideoList({
         setCurrentIndex(0);
       }
 
-      let includeIds = !selectedLib
+      const includeIds = !selectedLib
         ? libraries
-            .filter(l => !hiddenLibIds.has(l.Id))
-            .map(l => l.Id)
+            .filter((l) => !hiddenLibIds.has(l.Id))
+            .map((l) => l.Id)
             .join(',')
         : undefined;
 
@@ -107,7 +107,7 @@ export function useVideoList({
     async (id: string, isFavorite: boolean) => {
       if (!client) return;
       await client.toggleFavorite(id, isFavorite, selectedLib?.Name || '收藏');
-      setFavoriteIds(prev => {
+      setFavoriteIds((prev) => {
         const newSet = new Set(prev);
         if (isFavorite) {
           newSet.delete(id);
@@ -124,18 +124,18 @@ export function useVideoList({
     async (itemId: string) => {
       if (!client) return;
       await client.deleteItem(itemId);
-      setVideos(prev => prev.filter(video => video.Id !== itemId));
+      setVideos((prev) => prev.filter((video) => video.Id !== itemId));
     },
     [client]
   );
 
   const navigateTo = useCallback((id: string, title: string) => {
-    setNavStack(prev => [...prev, { id, title }]);
+    setNavStack((prev) => [...prev, { id, title }]);
     setViewMode('grid');
   }, []);
 
   const navigateBack = useCallback(() => {
-    setNavStack(prev => prev.slice(0, -1));
+    setNavStack((prev) => prev.slice(0, -1));
   }, []);
 
   const selectVideo = useCallback((index: number) => {

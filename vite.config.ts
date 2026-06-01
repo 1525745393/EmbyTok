@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   server: {
-    host: '0.0.0.0'
+    host: '0.0.0.0',
   },
   plugins: [
     react(),
@@ -26,28 +26,28 @@ export default defineConfig({
             src: 'icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
+            purpose: 'any maskable',
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
-            {
-                urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/i,
-                handler: 'CacheFirst',
-                options: {
-                    cacheName: 'image-cache',
-                    expiration: {
-                        maxEntries: 100,
-                        maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-                    }
-                }
-            }
-        ]
-      }
-    })
+          {
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+            },
+          },
+        ],
+      },
+    }),
   ],
   build: {
     outDir: 'dist',

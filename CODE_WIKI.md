@@ -87,10 +87,12 @@
 ### 3.1 应用入口 ([App.tsx](file:///workspace/App.tsx)
 
 **职责**:
+
 - 检测设备类型并选择对应的根组件
 - 支持在标准模式和电视模式间切换
 
 **关键功能**:
+
 - 自动检测设备模式（通过 localStorage 或 user-agent）
 - 保存设备模式切换功能
 - 应用根组件渲染
@@ -102,7 +104,8 @@ const [deviceMode, setDeviceMode] = useState<'standard' | 'tv'>(() => {
     const forcedMode = localStorage.getItem('embyForceDeviceMode');
     if (forcedMode === 'tv' || forcedMode === 'standard') return forcedMode;
     const userAgent = navigator.userAgent.toLowerCase();
-    const isTV = userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
+    const isTV =
+      userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
     return isTV ? 'tv' : 'standard';
   } catch (e) {
     return 'standard';
@@ -115,10 +118,12 @@ const [deviceMode, setDeviceMode] = useState<'standard' | 'tv'>(() => {
 #### 3.2.1 媒体客户端抽象类 ([MediaClient.ts](file:///workspace/services/MediaClient.ts))
 
 **职责**:
+
 - 定义了所有媒体客户端必须实现的抽象接口
 - 提供统一的媒体服务抽象
 
 **主要抽象方法**:
+
 ```typescript
 abstract authenticate(username: string, password: string): Promise<ServerConfig>;
 abstract getLibraries(): Promise<EmbyLibrary[]>;
@@ -134,6 +139,7 @@ abstract deleteItem(itemId: string): Promise<void>;
 #### 3.2.2 客户端工厂 ([clientFactory.ts](file:///workspace/services/clientFactory.ts))
 
 **职责**:
+
 - 根据服务器类型创建对应的客户端实例
 - 处理认证流程
 
@@ -146,17 +152,24 @@ export class ClientFactory {
     return new EmbyClient(config);
   }
 
-  static async authenticate(type: ServerType, url: string, username: string, password: string): Promise<ServerConfig>;
+  static async authenticate(
+    type: ServerType,
+    url: string,
+    username: string,
+    password: string
+  ): Promise<ServerConfig>;
 }
 ```
 
 #### 3.2.3 Emby 客户端 ([EmbyClient.ts](file:///workspace/services/EmbyClient.ts))
 
 **职责**:
+
 - 实现与 Emby 服务器的通信
 - 提供完整的 Emby API 集成
 
 **核心功能**:
+
 - 用户认证
 - 获取媒体库
 - 获取视频列表
@@ -167,19 +180,23 @@ export class ClientFactory {
 #### 3.2.4 Plex 客户端 ([PlexClient.ts](file:///workspace/services/PlexClient.ts))
 
 **职责**:
+
 - 实现与 Plex 服务器的通信
 - 提供完整的 Plex API 集成
 
 **核心功能**:
+
 - 与 EmbyClient 类似，但适配 Plex 特定接口
 
 ### 3.3 标准模式根组件 ([StandardRoot.tsx](file:///workspace/components/standard/StandardRoot.tsx)
 
 **职责**:
+
 - 标准模式的主要界面管理
 - 处理视频浏览体验
 
 **主要功能**:
+
 - 用户登录状态管理
 - 媒体库选择与管理
 - 视频浏览与网格视图切换
@@ -190,10 +207,12 @@ export class ClientFactory {
 ### 3.4 电视模式根组件 ([TVRoot.tsx](file:///workspace/components/tv/TVRoot.tsx))
 
 **职责**:
+
 - 电视模式的主要界面管理
 - 遥控器导航与大屏优化
 
 **主要功能**:
+
 - 侧边栏导航菜单
 - 首页仪表盘
 - 视频网格展示
@@ -204,10 +223,12 @@ export class ClientFactory {
 ### 3.5 视频流组件 ([VideoFeed.tsx](file:///workspace/components/VideoFeed.tsx))
 
 **职责**:
+
 - 提供垂直视频流体验
 - 处理滚动与视频切换
 
 **核心功能**:
+
 - 全屏垂直滚动
 - 视频卡片渲染与切换
 - 自动加载更多视频
@@ -217,6 +238,7 @@ export class ClientFactory {
 ### 3.6 视频网格组件 ([VideoGrid.tsx](file:///workspace/components/VideoGrid.tsx))
 
 **职责**:
+
 - 以网格形式展示视频列表
 
 ## 4. 核心类型定义 ([types.ts](file:///workspace/types.ts))
@@ -255,8 +277,14 @@ interface EmbyItem {
   Height?: number;
   RunTimeTicks?: number;
   MediaSources?: MediaSource[];
-  ImageTags?: { Primary?: string; Logo?: string; Thumb?: string; Backdrop?: string; };
-  UserData?: { IsFavorite: boolean; PlaybackPositionTicks: number; PlayCount: number; Played: boolean; LastPlayedDate?: string; };
+  ImageTags?: { Primary?: string; Logo?: string; Thumb?: string; Backdrop?: string };
+  UserData?: {
+    IsFavorite: boolean;
+    PlaybackPositionTicks: number;
+    PlayCount: number;
+    Played: boolean;
+    LastPlayedDate?: string;
+  };
   _PlexKey?: string;
 }
 
@@ -272,6 +300,7 @@ type OrientationMode = 'vertical' | 'horizontal' | 'both';
 ### 5.1 EmbyClient 类核心方法
 
 #### getVideos() - 获取视频列表
+
 ```typescript
 async getVideos(
   navParentId: string | undefined,
@@ -283,12 +312,15 @@ async getVideos(
   includeIds?: string
 ): Promise<VideoResponse>
 ```
+
 - 根据不同参数获取过滤和排序视频
 
 #### toggleFavorite() - 切换收藏
+
 ```typescript
 async toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void>
 ```
+
 - 使用 Emby 播放列表管理收藏功能
 
 ### 5.2 StandardRoot 组件主要状态
@@ -320,7 +352,7 @@ TVRoot 实现了自定义的键盘导航处理，支持遥控器操作。
 const handleKeyDown = (e: KeyboardEvent) => {
   // 处理返回键
   if (e.key === 'Backspace' || e.key === 'Escape') { ... }
-  
+
   // 处理方向键
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
     // 计算最近元素并聚焦
@@ -407,6 +439,7 @@ npm run build
 ### 9.3 Docker 部署
 
 支持 Docker 镜像：
+
 - 官方镜像：`aidedaijiayang/embytok`
 - 阿里云镜像（更新可能延迟）
 - 支持 AMD64 和 ARM64 架构

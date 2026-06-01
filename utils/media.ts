@@ -12,7 +12,7 @@ const FOLDER_TYPES = ['Series', 'Season', 'Folder', 'CollectionFolder', 'BoxSet'
  */
 export function isFolderType(item: EmbyItem): boolean {
   const type = (item.Type || '').toLowerCase();
-  return FOLDER_TYPES.some(t => t.toLowerCase() === type);
+  return FOLDER_TYPES.some((t) => t.toLowerCase() === type);
 }
 
 /**

@@ -115,7 +115,7 @@ const StandardTopBar = React.memo(
             </h2>
           ) : (
             <div className="flex items-center font-bold gap-4 sm:gap-8">
-              {(['favorites', 'random', 'latest'] as FeedType[]).map(type => (
+              {(['favorites', 'random', 'latest'] as FeedType[]).map((type) => (
                 <button
                   key={type}
                   onClick={() => setFeedType(type)}
@@ -133,28 +133,17 @@ const StandardTopBar = React.memo(
           )}
         </div>
         <div className="flex items-center gap-0.5 justify-end min-w-[90px]">
-          <button
-            onClick={onToggleFullscreen}
-            className="p-2 text-white/80"
-          >
+          <button onClick={onToggleFullscreen} className="p-2 text-white/80">
             {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
           <button onClick={onToggleMute} className="p-2 text-white/80">
-            {isMuted ? (
-              <VolumeX size={20} className="text-red-500" />
-            ) : (
-              <Volume2 size={20} />
-            )}
+            {isMuted ? <VolumeX size={20} className="text-red-500" /> : <Volume2 size={20} />}
           </button>
           <button
             onClick={() => setViewMode(viewMode === 'feed' ? 'grid' : 'feed')}
             className="p-2 text-white/80"
           >
-            {viewMode === 'feed' ? (
-              <LayoutGrid size={20} />
-            ) : (
-              <Smartphone size={20} />
-            )}
+            {viewMode === 'feed' ? <LayoutGrid size={20} /> : <Smartphone size={20} />}
           </button>
         </div>
       </div>
@@ -232,14 +221,8 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   const { t, language, toggleLanguage } = useTranslation();
   const { config, setConfig, client, logout } = useConfig();
   const { isIOSSafari: isIOSSafariDevice } = useDeviceDetection();
-  const {
-    libraries,
-    selectedLib,
-    setSelectedLib,
-    hiddenLibIds,
-    hiddenLibIdsSet,
-    toggleHiddenLib,
-  } = useLibraries(client);
+  const { libraries, selectedLib, setSelectedLib, hiddenLibIds, hiddenLibIdsSet, toggleHiddenLib } =
+    useLibraries(client);
   const { isMenuOpen, setIsMenuOpen, ...uiState } = useUIState();
   const [feedType, setFeedType] = useState<FeedType>('latest');
 
@@ -343,7 +326,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         onClose={() => setIsMenuOpen(false)}
         libraries={libraries}
         selectedId={selectedLib?.Id || null}
-        onSelect={lib => {
+        onSelect={(lib) => {
           setSelectedLib(lib);
           setIsMenuOpen(false);
         }}
