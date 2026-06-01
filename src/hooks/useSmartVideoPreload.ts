@@ -61,19 +61,19 @@ export function useSmartVideoPreload(
   // 根据网络状况调整预加载策略
   useEffect(() => {
     const network = checkNetworkQuality();
-    const config = { ...DEFAULT_CONFIG, ...config };
+    const adjustedConfig = { ...DEFAULT_CONFIG, ...config };
     
     if (network.quality === 'low' || network.quality === 'unknown') {
-      config.enabled = false;
+      adjustedConfig.enabled = false;
     } else if (network.quality === 'medium') {
-      config.enabled = true;
-      config.maxCachedVideos = 2;
+      adjustedConfig.enabled = true;
+      adjustedConfig.maxCachedVideos = 2;
     } else {
-      config.enabled = true;
-      config.maxCachedVideos = 3;
+      adjustedConfig.enabled = true;
+      adjustedConfig.maxCachedVideos = 3;
     }
     
-    currentConfigRef.current = config;
+    currentConfigRef.current = adjustedConfig;
   }, [checkNetworkQuality, config]);
 
   // 管理缓存

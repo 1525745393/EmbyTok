@@ -9,7 +9,7 @@ interface VideoInfoProps {
   item: EmbyItem;
   showInfo: boolean;
   renderUI: boolean;
-  isPlaying: boolean;
+  isPlaying?: boolean;
   t: VideoInfoTranslations;
   onToggleInfo: () => void;
 }
@@ -18,7 +18,7 @@ const VideoInfo: React.FC<VideoInfoProps> = React.memo(({
   item,
   showInfo,
   renderUI,
-  isPlaying,
+  isPlaying = false,
   t,
   onToggleInfo
 }) => {

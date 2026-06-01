@@ -23,6 +23,8 @@ interface VideoControlsActions {
   videoRef: React.RefObject<HTMLVideoElement>;
   containerRef: React.RefObject<HTMLDivElement>;
   togglePlay: () => void;
+  handleLoadStart: () => void;
+  handleCanPlay: () => void;
   handlePlaying: () => void;
   handleTimeUpdate: () => void;
   handleLoadedMetadata: () => void;
