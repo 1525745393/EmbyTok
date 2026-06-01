@@ -10,7 +10,16 @@ import {
   EmbyPlaylistResponse,
 } from '../types';
 
+/**
+ * Emby/Jellyfin 媒体服务器客户端
+ * 实现与 Emby 或 Jellyfin 服务器的交互
+ */
 export class EmbyClient extends MediaClient {
+  /**
+   * 获取请求头
+   * @returns 请求头对象
+   * @private
+   */
   private getHeaders() {
     return {
       'Content-Type': 'application/json',
@@ -20,10 +29,21 @@ export class EmbyClient extends MediaClient {
     };
   }
 
+  /**
+   * 获取清理后的服务器 URL（去掉结尾的斜杠）
+   * @returns 清理后的 URL
+   * @private
+   */
   private getCleanUrl() {
     return this.config.url.replace(/\/$/, '');
   }
 
+  /**
+   * 认证用户身份
+   * @param username - 用户名
+   * @param password - 密码
+   * @returns Promise<ServerConfig> 包含认证后的服务器配置
+   */
   async authenticate(username: string, password: string): Promise<ServerConfig> {
     const response = await fetch(`${this.getCleanUrl()}/Users/AuthenticateByName`, {
       method: 'POST',
@@ -41,6 +61,10 @@ export class EmbyClient extends MediaClient {
     };
   }
 
+  /**
+   * 获取媒体库列表
+   * @returns Promise<EmbyLibrary[]> 媒体库数组
+   */
   async getLibraries(): Promise<EmbyLibrary[]> {
     const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Views`, {
       headers: this.getHeaders(),
@@ -49,7 +73,10 @@ export class EmbyClient extends MediaClient {
     return data.Items || [];
   }
 
-  // 仅为 TV 首页增加此接口，不干扰原有逻辑
+  /**
+   * 获取继续观看的项目（用于 TV 首页）
+   * @returns Promise<EmbyItem[]> 继续观看的项目数组
+   */
   async getResumeItems(): Promise<EmbyItem[]> {
     const params = new URLSearchParams({
       Recursive: 'true',
@@ -67,6 +94,12 @@ export class EmbyClient extends MediaClient {
     return (data.Items || []).map((i: EmbyItem) => ({ ...i, Name: this.formatItemName(i) }));
   }
 
+  /**
+   * 格式化项目名称
+   * @param item - Emby 项目
+   * @returns 格式化后的名称
+   * @private
+   */
   private formatItemName(item: EmbyItem): string {
     if (item.Type === 'Episode') {
       const index =
@@ -80,6 +113,13 @@ export class EmbyClient extends MediaClient {
     return item.Name || '未命名';
   }
 
+  /**
+   * 根据方向模式过滤项目
+   * @param items - 项目数组
+   * @param mode - 方向模式
+   * @returns 过滤后的项目数组
+   * @private
+   */
   private applyOrientationFilter(items: EmbyItem[], mode: OrientationMode): EmbyItem[] {
     if (mode === 'both') return items;
     return items.filter((item) => {
@@ -96,6 +136,17 @@ export class EmbyClient extends MediaClient {
     });
   }
 
+  /**
+   * 获取视频列表
+   * @param navParentId - 导航父项目 ID
+   * @param library - 媒体库
+   * @param feedType - 类型
+   * @param skip - 跳过数量
+   * @param limit - 获取数量
+   * @param orientationMode - 方向模式
+   * @param includeIds - 包含的项目 ID（可选）
+   * @returns Promise<VideoResponse> 视频响应
+   */
   async getVideos(
     navParentId: string | undefined,
     library: EmbyLibrary | null,
@@ -180,17 +231,33 @@ export class EmbyClient extends MediaClient {
     };
   }
 
+  /**
+   * 获取视频播放链接
+   * @param item - 视频项目
+   * @returns 视频 URL
+   */
   getVideoUrl(item: EmbyItem): string {
     return `${this.getCleanUrl()}/Videos/${item.Id}/stream.mp4?Static=true&api_key=${this.config.token}`;
   }
 
+  /**
+   * 获取图片链接
+   * @param itemId - 项目 ID
+   * @param tag - 图片标签
+   * @param type - 图片类型
+   * @returns 图片 URL
+   */
   getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {
     if (!tag) return '';
-    // 补全 api_key 确保 TV 端加载正常
     return `${this.getCleanUrl()}/Items/${itemId}/Images/${type}?maxWidth=800&tag=${tag}&quality=90&api_key=${this.config.token}`;
   }
 
-  // --- 恢复 Playlist 原始实现 ---
+  /**
+   * 获取 Tok 播放列表 ID（如果不存在则创建）
+   * @param libraryName - 媒体库名称
+   * @returns Promise<string> 播放列表 ID
+   * @private
+   */
   private async getTokPlaylistId(libraryName: string): Promise<string> {
     const playlistName = `Tok-${libraryName}`;
     const searchRes = await fetch(
@@ -208,6 +275,12 @@ export class EmbyClient extends MediaClient {
     return createData.Id;
   }
 
+  /**
+   * 获取 Tok 播放列表项目（内部使用）
+   * @param libraryName - 媒体库名称
+   * @returns Promise<EmbyItem[]> 播放列表项目数组
+   * @private
+   */
   private async getTokPlaylistItemsInternal(libraryName: string): Promise<EmbyItem[]> {
     try {
       const pid = await this.getTokPlaylistId(libraryName);
@@ -223,11 +296,22 @@ export class EmbyClient extends MediaClient {
     }
   }
 
+  /**
+   * 获取收藏的项目 ID 列表
+   * @param libraryName - 媒体库名称
+   * @returns Promise<Set<string>> 收藏的项目 ID 集合
+   */
   async getFavorites(libraryName: string): Promise<Set<string>> {
     const items = await this.getTokPlaylistItemsInternal(libraryName);
     return new Set(items.map((i) => i.Id));
   }
 
+  /**
+   * 切换收藏状态
+   * @param itemId - 项目 ID
+   * @param isFavorite - 是否收藏
+   * @param libraryName - 媒体库名称
+   */
   async toggleFavorite(itemId: string, isFavorite: boolean, libraryName: string): Promise<void> {
     const pid = await this.getTokPlaylistId(libraryName);
     if (!isFavorite) {
@@ -251,6 +335,10 @@ export class EmbyClient extends MediaClient {
     }
   }
 
+  /**
+   * 删除项目
+   * @param itemId - 项目 ID
+   */
   async deleteItem(itemId: string): Promise<void> {
     const response = await fetch(
       `${this.getCleanUrl()}/Items/${itemId}?api_key=${this.config.token}`,
