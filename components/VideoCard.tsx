@@ -23,6 +23,9 @@ interface VideoCardProps {
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
   onVideoEnd?: () => void;
+  onVideoLoadStart?: () => void;
+  onVideoLoadComplete?: () => void;
+  onSwipeDown?: () => void;
   t: VideoCardTranslations;
   language?: 'zh' | 'en';
 }
@@ -31,7 +34,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
     item, 
     client, 
     isActive, 
-    isFavorite, 
+    isFavorite,
     onToggleFavorite,
     onDelete = () => {},
     isMuted,
@@ -39,6 +42,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
     onVideoEnd = () => {},
+    onVideoLoadStart = () => {},
+    onVideoLoadComplete = () => {},
+    onSwipeDown,
     t,
     language = 'zh'
 }) => {
@@ -54,6 +60,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       videoRef,
       containerRef,
       togglePlay,
+      handleLoadStart,
+      handleCanPlay,
       handlePlaying,
       handleTimeUpdate,
       handleLoadedMetadata,
@@ -62,7 +70,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       handleSeekMove,
       handleSeekEnd,
       setError
-    } = useVideoControls({ isActive, isMuted, isAutoPlay, onVideoEnd });
+    } = useVideoControls({ isActive, isMuted, isAutoPlay, onVideoEnd, onVideoLoadStart, onVideoLoadComplete });
 
     const {
       playbackRate,
@@ -78,6 +86,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           onToggleFavorite();
         }
       }, [isFavorite, onToggleFavorite]), 
+      onSwipeDown,
       videoRef 
     });
 
@@ -169,6 +178,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
           seekOffset={seekOffset}
           isAutoPlay={isAutoPlay}
           videoObjectFitClass={videoObjectFitClass}
+          onLoadStart={handleLoadStart}
+          onCanPlay={handleCanPlay}
           onPlaying={handlePlaying}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
@@ -197,6 +208,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           item={item}
           showInfo={showInfo}
           renderUI={renderUI}
+          isPlaying={isPlaying}
           t={t}
           onToggleInfo={toggleInfo}
         />

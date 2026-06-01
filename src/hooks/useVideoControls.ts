@@ -5,6 +5,8 @@ interface VideoControlsOptions {
   isMuted: boolean;
   isAutoPlay?: boolean;
   onVideoEnd?: () => void;
+  onVideoLoadStart?: () => void;
+  onVideoLoadComplete?: () => void;
 }
 
 interface VideoControlsState {
@@ -34,7 +36,7 @@ interface VideoControlsActions {
 export function useVideoControls(
   options: VideoControlsOptions
 ): VideoControlsState & VideoControlsActions {
-  const { isActive, isMuted, isAutoPlay = false, onVideoEnd } = options;
+  const { isActive, isMuted, isAutoPlay = false, onVideoEnd, onVideoLoadStart = () => {}, onVideoLoadComplete = () => {} } = options;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,10 +96,19 @@ export function useVideoControls(
     }
   }, []);
 
+  const handleLoadStart = useCallback(() => {
+    onVideoLoadStart();
+  }, [onVideoLoadStart]);
+
+  const handleCanPlay = useCallback(() => {
+    onVideoLoadComplete();
+  }, [onVideoLoadComplete]);
+
   const handlePlaying = useCallback(() => {
     setIsPlaying(true);
     setHasStarted(true);
-  }, []);
+    onVideoLoadComplete();
+  }, [onVideoLoadComplete]);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && !isSeeking) {
@@ -153,6 +164,8 @@ export function useVideoControls(
     videoRef,
     containerRef,
     togglePlay,
+    handleLoadStart,
+    handleCanPlay,
     handlePlaying,
     handleTimeUpdate,
     handleLoadedMetadata,

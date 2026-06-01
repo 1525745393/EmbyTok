@@ -3,6 +3,7 @@ import { useState, useRef, useCallback } from 'react';
 interface GestureControlsOptions {
   togglePlay: () => void;
   onDoubleTap?: () => void;
+  onSwipeDown?: () => void;
   videoRef: React.RefObject<HTMLVideoElement>;
 }
 
@@ -22,7 +23,7 @@ interface GestureControlsActions {
 export function useGestureControls(
   options: GestureControlsOptions
 ): GestureControlsState & GestureControlsActions {
-  const { togglePlay, onDoubleTap, videoRef } = options;
+  const { togglePlay, onDoubleTap, onSwipeDown, videoRef } = options;
 
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
@@ -30,6 +31,7 @@ export function useGestureControls(
 
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
   const isDragging = useRef(false);
   const isLongPress = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,6 +50,7 @@ export function useGestureControls(
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
     isDragging.current = false;
     isLongPress.current = false;
     setSeekOffset(null);
@@ -70,10 +73,15 @@ export function useGestureControls(
       }
     }
 
-    if (!isLongPress.current && Math.abs(currentX - touchStartX.current) > 20 && Math.abs(currentX - touchStartX.current) > Math.abs(currentY - touchStartY.current)) {
-      isDragging.current = true;
-      const offset = Math.round((currentX - touchStartX.current) / 5);
-      setSeekOffset(offset);
+    if (!isLongPress.current) {
+      const deltaX = currentX - touchStartX.current;
+      const deltaY = currentY - touchStartY.current;
+      
+      if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        isDragging.current = true;
+        const offset = Math.round(deltaX / 5);
+        setSeekOffset(offset);
+      }
     }
   }, []);
 
@@ -85,6 +93,7 @@ export function useGestureControls(
 
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const touchDuration = Date.now() - touchStartTime.current;
 
     if (isLongPress.current) {
       isLongPress.current = false;
@@ -97,8 +106,13 @@ export function useGestureControls(
       }
       isDragging.current = false;
       setSeekOffset(null);
-    } else {
-      if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+    } else if (touchDuration < 300) {
+      if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 50) {
+        // 向下轻扫
+        if (onSwipeDown) {
+          onSwipeDown();
+        }
+      } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
         const currentTime = Date.now();
         const tapInterval = currentTime - lastTapTime.current;
 
@@ -122,7 +136,7 @@ export function useGestureControls(
         lastTapTime.current = currentTime;
       }
     }
-  }, [togglePlay, onDoubleTap, addHeart, seekOffset, videoRef]);
+  }, [togglePlay, onDoubleTap, onSwipeDown, addHeart, seekOffset, videoRef]);
 
   return {
     playbackRate,

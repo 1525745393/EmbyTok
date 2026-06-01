@@ -14,6 +14,8 @@ interface VideoPlayerProps {
   seekOffset: number | null;
   isAutoPlay: boolean;
   videoObjectFitClass: string;
+  onLoadStart: () => void;
+  onCanPlay: () => void;
   onPlaying: () => void;
   onTimeUpdate: () => void;
   onLoadedMetadata: () => void;
@@ -34,6 +36,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
   seekOffset,
   isAutoPlay,
   videoObjectFitClass,
+  onLoadStart,
+  onCanPlay,
   onPlaying,
   onTimeUpdate,
   onLoadedMetadata,
@@ -51,6 +55,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
         playsInline
         muted={isMuted}
         preload="metadata"
+        onLoadStart={onLoadStart}
+        onCanPlay={onCanPlay}
         onPlaying={onPlaying}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}

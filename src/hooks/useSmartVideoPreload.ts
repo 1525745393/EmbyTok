@@ -21,9 +21,8 @@ const DEFAULT_CONFIG: PreloadConfig = {
 
 interface CachedVideo {
   itemId: string;
-  videoElement?: HTMLVideoElement;
   lastUsed: number;
-  status: 'idle' | 'loading' | 'ready' | 'error';
+  status: 'idle' | 'preparing' | 'ready' | 'error';
 }
 
 export function useSmartVideoPreload(
@@ -33,96 +32,107 @@ export function useSmartVideoPreload(
 ) {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const [cachedVideos, setCachedVideos] = useState<Map<string, CachedVideo>>(new Map());
-  const cacheOrderRef = useRef<string[]>([]);
-
-  // 管理缓存
-  const manageCache = useCallback((itemId: string) => {
-    if (!mergedConfig.enabled) return;
-
-    setCachedVideos(prev => {
-      const newCache = new Map(prev);
-      
-      // 更新使用时间
-      if (newCache.has(itemId)) {
-        const existing = newCache.get(itemId)!;
-        newCache.set(itemId, { ...existing, lastUsed: Date.now() });
-      } else {
-        newCache.set(itemId, {
-          itemId,
-          lastUsed: Date.now(),
-          status: 'idle'
-        });
-      }
-      
-      // 移除旧的缓存
-      if (newCache.size > mergedConfig.maxCachedVideos) {
-        const sorted = [...newCache.entries()]
-          .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
-        
-        const toRemove = sorted.slice(0, sorted.length - mergedConfig.maxCachedVideos);
-        toRemove.forEach(([id]) => {
-          const video = newCache.get(id)?.videoElement;
-          if (video) {
-            video.pause();
-            video.src = '';
-            video.load();
-          }
-          newCache.delete(id);
-        });
-      }
-      
-      return newCache;
-    });
-  }, [mergedConfig]);
-
-  // 预加载相邻视频
-  const preloadNeighborVideos = useCallback(() => {
-    if (!mergedConfig.enabled) return;
-
-    const neighbors = [
-      activeIndex - 1,
-      activeIndex,
-      activeIndex + 1
-    ].filter(i => i >= 0 && i < videos.length);
-
-    neighbors.forEach(index => {
-      const item = videos[index];
-      if (item) {
-        manageCache(item.Id);
-      }
-    });
-  }, [videos, activeIndex, mergedConfig.enabled, manageCache]);
+  const [networkQuality, setNetworkQuality] = useState<'high' | 'medium' | 'low' | 'unknown'>('unknown');
+  const currentConfigRef = useRef(mergedConfig);
 
   // 网络状况检测
   const checkNetworkQuality = useCallback(() => {
     if ('connection' in navigator) {
       const connection = (navigator as any).connection;
       if (connection) {
+        const quality: 'high' | 'medium' | 'low' | 'unknown' = 
+          connection.saveData ? 'low' :
+          connection.effectiveType === '4g' ? 'high' :
+          connection.effectiveType === '3g' ? 'medium' : 'low';
+        
+        setNetworkQuality(quality);
         return {
-          effectiveType: connection.effectiveType, // 'slow-2g', '2g', '3g', '4g'
+          effectiveType: connection.effectiveType,
           downlink: connection.downlink,
           rtt: connection.rtt,
-          saveData: connection.saveData
+          saveData: connection.saveData,
+          quality
         };
       }
     }
-    return null;
+    return { quality: 'unknown' };
   }, []);
 
   // 根据网络状况调整预加载策略
   useEffect(() => {
     const network = checkNetworkQuality();
-    if (network) {
-      if (network.saveData || network.effectiveType === '2g' || network.effectiveType === 'slow-2g') {
-        // 节省数据模式，减少预加载
-        mergedConfig.enabled = false;
-      } else if (network.effectiveType === '3g') {
-        // 3G 网络，保守预加载
-        mergedConfig.maxCachedVideos = 2;
-        mergedConfig.nextVideoPreloadSeconds = 3;
-      }
+    const config = { ...DEFAULT_CONFIG, ...config };
+    
+    if (network.quality === 'low' || network.quality === 'unknown') {
+      config.enabled = false;
+    } else if (network.quality === 'medium') {
+      config.enabled = true;
+      config.maxCachedVideos = 2;
+    } else {
+      config.enabled = true;
+      config.maxCachedVideos = 3;
     }
-  }, [checkNetworkQuality]);
+    
+    currentConfigRef.current = config;
+  }, [checkNetworkQuality, config]);
+
+  // 管理缓存
+  const manageCache = useCallback((itemId: string, status: CachedVideo['status'] = 'idle') => {
+    if (!currentConfigRef.current.enabled) return;
+
+    setCachedVideos(prev => {
+      const newCache = new Map(prev);
+      const now = Date.now();
+      
+      // 更新使用时间
+      if (newCache.has(itemId)) {
+        const existing = newCache.get(itemId)!;
+        newCache.set(itemId, { 
+          ...existing, 
+          lastUsed: now,
+          status: status !== 'idle' ? status : existing.status
+        });
+      } else {
+        newCache.set(itemId, {
+          itemId,
+          lastUsed: now,
+          status
+        });
+      }
+      
+      // 移除旧的缓存
+      if (newCache.size > currentConfigRef.current.maxCachedVideos) {
+        const sorted = [...newCache.entries()]
+          .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+        
+        const toRemove = sorted.slice(0, sorted.length - currentConfigRef.current.maxCachedVideos);
+        toRemove.forEach(([id]) => {
+          newCache.delete(id);
+        });
+      }
+      
+      return newCache;
+    });
+  }, []);
+
+  // 预加载相邻视频
+  const preloadNeighborVideos = useCallback(() => {
+    if (!currentConfigRef.current.enabled || videos.length === 0) return;
+
+    const neighbors = [
+      activeIndex,
+      activeIndex + 1,
+      activeIndex - 1
+    ].filter(i => i >= 0 && i < videos.length);
+
+    neighbors.forEach((index, priority) => {
+      const item = videos[index];
+      if (item) {
+        const status: CachedVideo['status'] = priority === 0 ? 'ready' : 'preparing';
+        manageCache(item.Id, status);
+      }
+    });
+  }, [videos, activeIndex, manageCache]);
 
   // 当活跃索引变化时预加载
   useEffect(() => {
@@ -130,8 +140,9 @@ export function useSmartVideoPreload(
   }, [activeIndex, preloadNeighborVideos]);
 
   return {
-    isPreloaded: (itemId: string) => cachedVideos.has(itemId),
+    isPreloaded: (itemId: string) => cachedVideos.has(itemId) && cachedVideos.get(itemId)?.status === 'ready',
     getCacheStatus: (itemId: string) => cachedVideos.get(itemId)?.status || 'idle',
-    config: mergedConfig
+    networkQuality,
+    config: currentConfigRef.current
   };
 }

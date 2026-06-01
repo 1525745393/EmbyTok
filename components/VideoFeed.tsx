@@ -2,9 +2,11 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMe
 import { EmbyItem, FeedType } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
+import VideoSkeleton from './VideoSkeleton';
 import { RefreshCw, Film, Shuffle, Infinity } from 'lucide-react';
 import { Translations } from '../src/locales';
 import { isTVDevice } from '../utils';
+import { useSmartVideoPreload } from '../src/hooks';
 
 interface VideoFeedProps {
   videos: EmbyItem[];
@@ -50,6 +52,13 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
   const [showToast, setShowToast] = useState(false);
   const isTV = useMemo(() => isTVDevice(), []);
   const isFirstRender = useRef(true);
+
+  const { isPreloaded, getCacheStatus, config } = useSmartVideoPreload(videos, activeIndex, {
+    enabled: true,
+    maxCachedVideos: 3,
+    preloadBuffer: 10,
+    nextVideoPreloadSeconds: 5
+  });
 
   useLayoutEffect(() => {
     if (isFirstRender.current && containerRef.current && initialIndex > 0) {
@@ -150,6 +159,20 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
     );
   }
 
+  const [videoLoadingStates, setVideoLoadingStates] = useState<Map<string, boolean>>(new Map());
+
+  const setVideoLoading = useCallback((itemId: string, isLoading: boolean) => {
+    setVideoLoadingStates(prev => {
+      const newStates = new Map(prev);
+      if (isLoading) {
+        newStates.set(itemId, true);
+      } else {
+        newStates.delete(itemId);
+      }
+      return newStates;
+    });
+  }, []);
+
   return (
     <div className="relative h-full w-full bg-black">
       {showToast && (
@@ -167,13 +190,15 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
       >
         {videos.map((item, index) => {
           const shouldRenderCard = useMemo(() => Math.abs(activeIndex - index) <= 1, [activeIndex, index]);
+          const isLoading = videoLoadingStates.has(item.Id);
           return (
             <div
               key={item.Id}
               data-index={index}
               className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
             >
-              {shouldRenderCard ? (
+              {isLoading && <VideoSkeleton />}
+              {shouldRenderCard && !isLoading && (
                 <VideoCard
                   item={item}
                   client={client}
@@ -186,11 +211,13 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
                   isAutoPlay={isAutoPlay}
                   onToggleAutoPlay={onToggleAutoPlay}
                   onVideoEnd={handleNextVideo}
+                  onVideoLoadStart={useCallback(() => setVideoLoading(item.Id, true), [item.Id, setVideoLoading])}
+                  onVideoLoadComplete={useCallback(() => setVideoLoading(item.Id, false), [item.Id, setVideoLoading])}
+                  onSwipeDown={activeIndex === index && onRefresh ? onRefresh : undefined}
                   t={t.videoCard}
                 />
-              ) : (
-                <div className="w-full h-full bg-black" />
               )}
+              {!shouldRenderCard && !isLoading && <div className="w-full h-full bg-black" />}
             </div>
           );
         })}
