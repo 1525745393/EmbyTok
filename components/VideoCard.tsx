@@ -132,6 +132,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
         setShowDeleteConfirm(false);
     }, [onDelete]);
     const toggleInfo = useCallback(() => setShowInfo(prev => !prev), []);
+    
+    const handleVideoError = useCallback(() => {
+        setError(t.videoLoadError);
+    }, [setError, t.videoLoadError]);
 
     return (
       <div 
@@ -173,7 +177,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onVideoEnded={handleVideoEnded}
-          onError={useCallback(() => setError(t.videoLoadError), [setError, t.videoLoadError])}
+          onError={handleVideoError}
         />
 
         <HeartAnimation hearts={hearts} />

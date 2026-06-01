@@ -187,7 +187,10 @@ export class EmbyClient extends MediaClient {
             const response = await fetch(`${this.getCleanUrl()}/Playlists/${pid}/Items?UserId=${this.config.userId}&Fields=MediaSources,Width,Height,Overview,UserData`, { headers: this.getHeaders() });
             const data: EmbyItemsResponse = await response.json();
             return data.Items || [];
-        } catch (e) { return []; }
+        } catch (e) {
+            console.error('[EmbyClient] Failed to get playlist items:', e);
+            return [];
+        }
     }
 
     async getFavorites(libraryName: string): Promise<Set<string>> {

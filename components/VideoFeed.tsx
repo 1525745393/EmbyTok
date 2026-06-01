@@ -26,6 +26,71 @@ interface VideoFeedProps {
   t: Translations;
 }
 
+interface VideoCardItemProps {
+  item: EmbyItem;
+  index: number;
+  activeIndex: number;
+  client: MediaClient;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (itemId: string, isFavorite: boolean) => void;
+  onDelete?: (itemId: string) => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
+  isAutoPlay?: boolean;
+  onToggleAutoPlay?: () => void;
+  onVideoEnd?: () => void;
+  t: Translations['videoCard'];
+}
+
+const VideoCardItem = React.memo(({ 
+  item, 
+  index, 
+  activeIndex, 
+  client, 
+  favoriteIds, 
+  onToggleFavorite, 
+  onDelete,
+  isMuted,
+  onToggleMute,
+  isAutoPlay,
+  onToggleAutoPlay,
+  onVideoEnd,
+  t
+}: VideoCardItemProps) => {
+  const shouldRenderCard = Math.abs(activeIndex - index) <= 1;
+  
+  const handleToggleFavorite = useCallback(() => {
+    onToggleFavorite(item.Id, favoriteIds.has(item.Id));
+  }, [item.Id, onToggleFavorite, favoriteIds]);
+  
+  const handleDelete = useCallback(() => {
+    onDelete?.(item.Id);
+  }, [item.Id, onDelete]);
+
+  if (!shouldRenderCard) {
+    return <div className="w-full h-full bg-black" />;
+  }
+
+  return (
+    <VideoCard
+      item={item}
+      client={client}
+      isActive={activeIndex === index}
+      isFavorite={favoriteIds.has(item.Id)}
+      onToggleFavorite={handleToggleFavorite}
+      onDelete={handleDelete}
+      isMuted={isMuted}
+      onToggleMute={onToggleMute}
+      isAutoPlay={isAutoPlay}
+      onToggleAutoPlay={onToggleAutoPlay}
+      onVideoEnd={onVideoEnd}
+      t={t}
+    />
+  );
+});
+
+VideoCardItem.displayName = 'VideoCardItem';
+
 const VideoFeed: React.FC<VideoFeedProps> = React.memo(({ 
     videos, 
     client, 
@@ -165,35 +230,29 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
         ref={containerRef}
         className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black"
       >
-        {videos.map((item, index) => {
-          const shouldRenderCard = useMemo(() => Math.abs(activeIndex - index) <= 1, [activeIndex, index]);
-          return (
-            <div
-              key={item.Id}
-              data-index={index}
-              className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
-            >
-              {shouldRenderCard ? (
-                <VideoCard
-                  item={item}
-                  client={client}
-                  isActive={activeIndex === index}
-                  isFavorite={favoriteIds.has(item.Id)}
-                  onToggleFavorite={useCallback(() => onToggleFavorite(item.Id, favoriteIds.has(item.Id)), [item.Id, onToggleFavorite, favoriteIds])}
-                  onDelete={useCallback(() => onDelete(item.Id), [item.Id, onDelete])}
-                  isMuted={isMuted}
-                  onToggleMute={onToggleMute}
-                  isAutoPlay={isAutoPlay}
-                  onToggleAutoPlay={onToggleAutoPlay}
-                  onVideoEnd={handleNextVideo}
-                  t={t.videoCard}
-                />
-              ) : (
-                <div className="w-full h-full bg-black" />
-              )}
-            </div>
-          );
-        })}
+        {videos.map((item, index) => (
+          <div
+            key={item.Id}
+            data-index={index}
+            className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
+          >
+            <VideoCardItem
+              item={item}
+              index={index}
+              activeIndex={activeIndex}
+              client={client}
+              favoriteIds={favoriteIds}
+              onToggleFavorite={onToggleFavorite}
+              onDelete={onDelete}
+              isMuted={isMuted}
+              onToggleMute={onToggleMute}
+              isAutoPlay={isAutoPlay}
+              onToggleAutoPlay={onToggleAutoPlay}
+              onVideoEnd={handleNextVideo}
+              t={t.videoCard}
+            />
+          </div>
+        ))}
         
         {feedType === 'random' && videos.length > 0 && (
           <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
