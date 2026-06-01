@@ -1,4 +1,3 @@
-
 import React, { useState, useLayoutEffect } from 'react';
 import StandardRoot from './components/standard/StandardRoot';
 import TVRoot from './components/tv/TVRoot';

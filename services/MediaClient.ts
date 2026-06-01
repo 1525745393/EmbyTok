@@ -1,4 +1,3 @@
-
 import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
 
 export abstract class MediaClient {

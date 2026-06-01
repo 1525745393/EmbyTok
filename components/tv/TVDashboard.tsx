@@ -1,33 +1,20 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { EmbyItem, EmbyLibrary } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
-import { Play, PlayCircle, Folder, LayoutGrid, ChevronRight } from 'lucide-react';
+import { Translations } from '../../src/locales';
+import { Folder, ChevronRight } from 'lucide-react';
 
 interface TVDashboardProps {
   client: MediaClient;
   libraries: EmbyLibrary[];
   onSelectVideo: (item: EmbyItem) => void;
   onSelectLibrary: (lib: EmbyLibrary) => void;
-  language: 'zh' | 'en';
+  t: Translations;
 }
 
-const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVideo, onSelectLibrary, language }) => {
+const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVideo, onSelectLibrary, t }) => {
   const [latestItems, setLatestItems] = useState<EmbyItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const t = {
-      zh: {
-          libs: '我的媒体库',
-          added: '最近添加',
-          enter: '进入浏览'
-      },
-      en: {
-          libs: 'My Libraries',
-          added: 'Recently Added',
-          enter: 'Enter'
-      }
-  }[language];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,13 +44,13 @@ const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVi
       <section className="mb-10 animate-in slide-in-from-bottom-4 duration-700">
         <div className="px-8 mb-3">
             <h3 className="text-[10px] font-black opacity-30 uppercase tracking-[0.4em]">
-                {t.libs}
+                {t.tvDashboard.libs}
             </h3>
         </div>
         
         <div className="flex gap-4 overflow-x-auto no-scrollbar px-8 py-2">
           {libraries.map((lib) => {
-            const coverSrc = client.getImageUrl(lib.Id, (lib as any).ImageTags?.Primary, 'Primary');
+            const coverSrc = client.getImageUrl(lib.Id, lib.ImageTags?.Primary, 'Primary');
             return (
                 <button
                     key={lib.Id}
@@ -87,7 +74,7 @@ const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVi
                             {lib.Name}
                         </span>
                         <div className="opacity-0 group-focus:opacity-100 transition-opacity duration-300 flex items-center gap-1">
-                            <span className="text-[8px] font-bold uppercase">{t.enter}</span>
+                            <span className="text-[8px] font-bold uppercase">{t.tvDashboard.enter}</span>
                             <ChevronRight size={12} className="text-white/60" />
                         </div>
                     </div>
@@ -101,7 +88,7 @@ const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVi
       <section className="animate-in slide-in-from-bottom-4 duration-700 delay-100">
         <div className="px-8 mb-3">
             <h3 className="text-[10px] font-black opacity-30 uppercase tracking-[0.4em]">
-                {t.added}
+                {t.tvDashboard.added}
             </h3>
         </div>
         <div className="flex gap-3 overflow-x-auto no-scrollbar px-8 py-2">
@@ -114,7 +101,7 @@ const TVDashboard: React.FC<TVDashboardProps> = ({ client, libraries, onSelectVi
   );
 };
 
-function DashboardCard({ item, client, onClick }: { item: EmbyItem, client: any, onClick: () => void }) {
+function DashboardCard({ item, client, onClick }: { item: EmbyItem, client: MediaClient, onClick: () => void }) {
     const posterSrc = item.ImageTags?.Primary ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') : null;
     return (
         <button

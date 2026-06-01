@@ -208,6 +208,16 @@ By default, the application will be available on port 5175.
 
 ## Changelog
 
+### v1.3.0 (2026-06-01)
+- 🏗️ **Architecture**: Complete code refactoring and restructuring
+- 📦 **Components**: Split large components into smaller, maintainable modules
+- 🔧 **Hooks**: Added 9 custom hooks for better state management
+- 📝 **i18n**: Implemented unified translation system (zh/en)
+- 🧪 **Testing**: Added Vitest framework with 46 test cases
+- ⚡ **Performance**: Applied React.memo, useMemo, useCallback optimizations
+- 🛠️ **Utils**: Created reusable utility functions library
+- 📖 **Documentation**: Added Code Wiki and Release Notes
+
 ### v1.2.4 (2026-05-30)
 - 🚀 Optimization: Standard mode now fetches up to 200 videos at once in random mode, with orientation filtering applied
 - 🔧 Improvement: Removed pagination for random mode to provide a more seamless browsing experience

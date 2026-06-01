@@ -1,6 +1,14 @@
-
 import { MediaClient } from './MediaClient';
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import { 
+  EmbyItem, 
+  EmbyLibrary, 
+  FeedType, 
+  ServerConfig, 
+  VideoResponse, 
+  OrientationMode,
+  EmbyItemsResponse,
+  EmbyPlaylistResponse
+} from '../types';
 
 export class EmbyClient extends MediaClient {
     
@@ -30,7 +38,7 @@ export class EmbyClient extends MediaClient {
 
     async getLibraries(): Promise<EmbyLibrary[]> {
         const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Views`, { headers: this.getHeaders() });
-        const data = await response.json();
+        const data: EmbyItemsResponse = await response.json();
         return data.Items || [];
     }
 
@@ -45,11 +53,11 @@ export class EmbyClient extends MediaClient {
             Limit: '12'
         });
         const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items/Resume?${params.toString()}`, { headers: this.getHeaders() });
-        const data = await response.json();
-        return (data.Items || []).map((i: any) => ({ ...i, Name: this.formatItemName(i) }));
+        const data: EmbyItemsResponse = await response.json();
+        return (data.Items || []).map((i: EmbyItem) => ({ ...i, Name: this.formatItemName(i) }));
     }
 
-    private formatItemName(item: any): string {
+    private formatItemName(item: EmbyItem): string {
         if (item.Type === 'Episode') {
             const index = item.IndexNumber !== undefined ? String(item.IndexNumber).padStart(2, '0') : '--';
             const season = item.ParentIndexNumber !== undefined ? `S${String(item.ParentIndexNumber).padStart(2, '0')}` : '';
@@ -58,7 +66,7 @@ export class EmbyClient extends MediaClient {
         return item.Name || '未命名';
     }
 
-    private applyOrientationFilter(items: any[], mode: OrientationMode): any[] {
+    private applyOrientationFilter(items: EmbyItem[], mode: OrientationMode): EmbyItem[] {
         if (mode === 'both') return items;
         return items.filter(item => {
             const isNavFolder = ['Series', 'Season', 'Folder', 'CollectionFolder', 'BoxSet'].includes(item.Type);
@@ -129,11 +137,11 @@ export class EmbyClient extends MediaClient {
         }
 
         const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items?${params.toString()}`, { headers: this.getHeaders() });
-        const data = await response.json();
+        const data: EmbyItemsResponse = await response.json();
         const rawItems = data.Items || [];
         const filteredItems = this.applyOrientationFilter(rawItems, orientationMode);
         
-        const items = filteredItems.map((item: any) => ({
+        const items = filteredItems.map((item: EmbyItem) => ({
             ...item,
             Name: this.formatItemName(item),
             UserData: item.UserData ? {
@@ -165,11 +173,11 @@ export class EmbyClient extends MediaClient {
     private async getTokPlaylistId(libraryName: string): Promise<string> {
         const playlistName = `Tok-${libraryName}`;
         const searchRes = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items?IncludeItemTypes=Playlist&Recursive=true`, { headers: this.getHeaders() });
-        const searchData = await searchRes.json();
-        const existing = searchData.Items?.find((i: any) => i.Name === playlistName);
+        const searchData: EmbyItemsResponse = await searchRes.json();
+        const existing = searchData.Items?.find((i: EmbyItem) => i.Name === playlistName);
         if (existing) return existing.Id;
         const createRes = await fetch(`${this.getCleanUrl()}/Playlists?Name=${playlistName}&UserId=${this.config.userId}`, { method: 'POST', headers: this.getHeaders() });
-        const createData = await createRes.json();
+        const createData: EmbyPlaylistResponse = await createRes.json();
         return createData.Id;
     }
 
@@ -177,7 +185,7 @@ export class EmbyClient extends MediaClient {
         try {
             const pid = await this.getTokPlaylistId(libraryName);
             const response = await fetch(`${this.getCleanUrl()}/Playlists/${pid}/Items?UserId=${this.config.userId}&Fields=MediaSources,Width,Height,Overview,UserData`, { headers: this.getHeaders() });
-            const data = await response.json();
+            const data: EmbyItemsResponse = await response.json();
             return data.Items || [];
         } catch (e) { return []; }
     }
@@ -193,7 +201,8 @@ export class EmbyClient extends MediaClient {
              await fetch(`${this.getCleanUrl()}/Playlists/${pid}/Items?Ids=${itemId}&UserId=${this.config.userId}`, { method: 'POST', headers: this.getHeaders() });
         } else {
             const itemsRes = await fetch(`${this.getCleanUrl()}/Playlists/${pid}/Items?UserId=${this.config.userId}`, { headers: this.getHeaders() });
-            const entry = (await itemsRes.json()).Items.find((i: any) => i.Id === itemId);
+            const data: EmbyItemsResponse = await itemsRes.json();
+            const entry = data.Items?.find((i: EmbyItem) => i.Id === itemId);
             if (entry?.PlaylistItemId) {
                 await fetch(`${this.getCleanUrl()}/Playlists/${pid}/Items?EntryIds=${entry.PlaylistItemId}`, { method: 'DELETE', headers: this.getHeaders() });
             }

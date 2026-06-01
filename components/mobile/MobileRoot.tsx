@@ -7,6 +7,7 @@ import LibrarySelect from '../LibrarySelect';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft } from 'lucide-react';
+import useTranslation from '../../src/hooks/useTranslation';
 
 type ViewMode = 'feed' | 'grid';
 const PAGE_SIZE = 15;
@@ -31,8 +32,8 @@ function MobileRoot() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   
-  // 语言状态补全
-  const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
+  // 语言和翻译
+  const { t, language, toggleLanguage } = useTranslation();
   // 版本号
   const [appVersion, setAppVersion] = useState<string>('1.2.3');
 
@@ -63,19 +64,13 @@ function MobileRoot() {
 
   useEffect(() => { if (client) loadVideos(true); }, [navStack, client, feedType, selectedLib, orientationMode, hiddenLibIds]);
 
-  const toggleLanguage = () => {
-      const next = language === 'zh' ? 'en' : 'zh';
-      setLanguage(next);
-      localStorage.setItem('embyLanguage', next);
-  };
-
   if (!config || !client) return <Login onLogin={setConfig} />;
 
   return (
     <div className="relative h-screen w-full bg-black overflow-hidden text-white device-mobile-ui">
       <div className="absolute top-0 left-0 right-0 z-40 h-16 bg-gradient-to-b from-black/95 to-transparent flex items-center justify-between px-3">
         <button onClick={() => setIsMenuOpen(true)} className="p-2"><Menu /></button>
-        <div className="font-bold">{currentTitle || (language === 'zh' ? '发现中心' : 'Discover')}</div>
+        <div className="font-bold">{currentTitle || t.standardRoot.discover}</div>
         <button onClick={() => setViewMode(viewMode === 'feed' ? 'grid' : 'feed')} className="p-2">
             {viewMode === 'feed' ? <LayoutGrid /> : <Smartphone />}
         </button>
@@ -98,7 +93,7 @@ function MobileRoot() {
                         setVideos(prev => prev.filter(video => video.Id !== itemId));
                     } catch (error) {
                         console.error('删除视频失败:', error);
-                        alert(language === 'zh' ? '删除失败，请检查权限' : 'Deletion failed, please check permissions');
+                        alert(t.standardRoot.deleteFailed);
                     }
                 }}
                 initialIndex={currentIndex} 
@@ -108,7 +103,7 @@ function MobileRoot() {
                 feedType={feedType} 
                 hasMore={hasMore} 
                 onLoadMore={() => loadVideos(false)} 
-                language={language}
+                t={t}
             />
         )}
       </div>
@@ -123,7 +118,7 @@ function MobileRoot() {
         }}
         onLogout={() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }} 
         serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode}
-        language={language} onToggleLanguage={toggleLanguage}
+        t={t} toggleLanguage={toggleLanguage} language={language}
         version={appVersion}
       />
     </div>
