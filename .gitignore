@@ -51,3 +51,6 @@ log.txt
 
 # Archive files
 *.tar
+
+# Test coverage
+coverage/
