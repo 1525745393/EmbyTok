@@ -45,7 +45,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
       noOverview: '暂无简介',
       autoPlayOn: '自动连播已开启',
       doubleSpeed: '2倍速中',
-      videoLoadError: '无法加载视频'
+      videoLoadError: '无法加载视频',
+      networkError: '网络连接失败，请检查网络后重试',
+      fileNotFound: '视频文件不存在',
+      formatNotSupported: '视频格式不支持',
+      unknownError: '播放出错，请重试'
     },
     en: {
       deleteVideo: 'Delete Video',
@@ -57,7 +61,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
       noOverview: 'No overview',
       autoPlayOn: 'Auto-play enabled',
       doubleSpeed: '2x Speed',
-      videoLoadError: 'Failed to load video'
+      videoLoadError: 'Failed to load video',
+      networkError: 'Network error, please check your connection and try again',
+      fileNotFound: 'Video file not found',
+      formatNotSupported: 'Video format not supported',
+      unknownError: 'Playback error, please try again'
     }
   }[language];
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -68,6 +76,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // 播放失败重试相关
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Progress State
   const [currentTime, setCurrentTime] = useState(0);
@@ -191,6 +203,28 @@ const VideoCard: React.FC<VideoCardProps> = ({
     };
   }, []);
 
+  // 播放进度保存
+  useEffect(() => {
+    if (isActive && isPlaying) {
+      // 每5秒保存一次进度
+      saveProgressIntervalRef.current = setInterval(() => {
+        saveProgress();
+      }, 5000);
+    } else if (saveProgressIntervalRef.current) {
+      // 停止播放时立即保存一次
+      saveProgress();
+      clearInterval(saveProgressIntervalRef.current);
+      saveProgressIntervalRef.current = null;
+    }
+    
+    return () => {
+      if (saveProgressIntervalRef.current) {
+        clearInterval(saveProgressIntervalRef.current);
+      }
+      saveProgress(); // 组件卸载时保存进度
+    };
+  }, [isActive, isPlaying, saveProgress]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -254,6 +288,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   const handleCanPlay = () => {
       setIsLoading(false);
+      setRetryCount(0); // 成功播放，重置重试计数
+      if (retryTimerRef.current) {
+          clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = null;
+      }
   };
 
   const handleTimeUpdate = () => {
@@ -265,10 +304,21 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const handleLoadedMetadata = () => {
       if (videoRef.current) {
           setDuration(videoRef.current.duration);
+          // 恢复播放进度
+          const savedTime = loadProgress();
+          if (savedTime > 0 && savedTime < videoRef.current.duration - 10) {
+              videoRef.current.currentTime = savedTime;
+          }
       }
   };
 
   const handleVideoEnded = () => {
+      // 视频结束时清除保存的进度
+      if (item.Id) {
+          try {
+              localStorage.removeItem(STORAGE_KEY_PREFIX + item.Id);
+          } catch (e) {}
+      }
       if (isAutoPlay) {
           onVideoEnd();
       }
@@ -568,7 +618,28 @@ const VideoCard: React.FC<VideoCardProps> = ({
         onEnded={handleVideoEnded}
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
-        onError={() => setError(t.videoLoadError)}
+        onError={(e) => {
+          const video = e.target as HTMLVideoElement;
+          let errorMsg = t.unknownError;
+          
+          if (video.error) {
+            switch (video.error.code) {
+              case video.error.MEDIA_ERR_ABORTED:
+                errorMsg = t.unknownError;
+                break;
+              case video.error.MEDIA_ERR_NETWORK:
+                errorMsg = t.networkError;
+                break;
+              case video.error.MEDIA_ERR_DECODE:
+                errorMsg = t.formatNotSupported;
+                break;
+              case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMsg = t.fileNotFound;
+                break;
+            }
+          }
+          setError(errorMsg);
+        }}
       />
 
       {/* Manual Poster Overlay */}
@@ -684,7 +755,24 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 z-10">
           <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
-          <p className="text-center">{error}</p>
+          <p className="text-center mb-4">{error}</p>
+          {retryCount < MAX_RETRIES && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                // 重试播放
+                setError(null);
+                setRetryCount(prev => prev + 1);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-bold"
+            >
+              {language === 'zh' ? `重试 (${MAX_RETRIES - retryCount})` : `Retry (${MAX_RETRIES - retryCount})`}
+            </button>
+          )}
         </div>
       )}
       
