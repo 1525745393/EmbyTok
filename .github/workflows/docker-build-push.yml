@@ -78,11 +78,18 @@ jobs:
           api-level: 34
           build-tools: 34.0.0
 
-      - name: Build Debug APK
+      - name: Build Debug APK (with full debug info)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace --info --debug 2>&1 | tee build.log
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          path: android/build.log
 
       - name: Extract version from package.json
         id: extract-version
