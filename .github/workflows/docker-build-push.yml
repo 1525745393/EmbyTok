@@ -54,7 +54,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
           cache: 'npm'
 
       - name: Install dependencies
@@ -72,12 +72,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Debug APK
-        uses: gradle/actions/setup-gradle@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
         with:
-          gradle-version: wrapper
+          api-level: 34
+          build-tools: 34.0.0
 
-      - name: Run Gradle Build
+      - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
