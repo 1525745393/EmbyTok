@@ -13,7 +13,9 @@ export function useLocalStorageState<T>(
     } catch (e) {
       console.error('Error reading from localStorage:', e);
     }
-    return typeof initialValue === 'function' ? (initialValue as () => T)() : initialValue;
+    return typeof initialValue === 'function'
+      ? (initialValue as () => T)()
+      : initialValue;
   });
 
   useEffect(() => {

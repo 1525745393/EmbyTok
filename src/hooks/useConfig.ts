@@ -4,7 +4,10 @@ import { ClientFactory } from '../../services/clientFactory';
 import { useLocalStorageState } from './useLocalStorageState';
 
 export function useConfig() {
-  const [config, setConfig] = useLocalStorageState<ServerConfig | null>('embyConfig', null);
+  const [config, setConfig] = useLocalStorageState<ServerConfig | null>(
+    'embyConfig',
+    null
+  );
 
   const client = useMemo(() => {
     return config ? ClientFactory.create(config) : null;

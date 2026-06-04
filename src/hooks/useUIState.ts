@@ -17,7 +17,8 @@ export function useUIState() {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const toggleFullscreen = () => {
@@ -29,11 +30,11 @@ export function useUIState() {
   };
 
   const toggleMute = () => {
-    setIsMuted((prev) => !prev);
+    setIsMuted(prev => !prev);
   };
 
   const toggleAutoPlay = () => {
-    setIsAutoPlay((prev) => !prev);
+    setIsAutoPlay(prev => !prev);
   };
 
   return {

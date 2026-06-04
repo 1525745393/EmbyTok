@@ -1,6 +1,7 @@
 export { useDeviceDetection } from './useDeviceDetection';
 export { useVideoControls } from './useVideoControls';
 export { useGestureControls } from './useGestureControls';
+export { useSmartVideoPreload } from './useSmartVideoPreload';
 export { default as useTranslation } from './useTranslation';
 export { useLocalStorageState } from './useLocalStorageState';
 export { useConfig } from './useConfig';
