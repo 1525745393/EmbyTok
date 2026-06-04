@@ -44,7 +44,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Job 2: 构建 Android APK
+  # Job 2: 使用 Docker 构建 Android APK
   android:
     runs-on: ubuntu-latest
     steps:
@@ -72,24 +72,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Gradle Build Action
+        uses: gradle/actions/setup-gradle@v3
         with:
-          api-level: 34
-          build-tools: 34.0.0
+          gradle-version: 8.2.1
+          cache-read-only: false
 
-      - name: Build Debug APK (with full debug info)
+      - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --info --debug 2>&1 | tee build.log
-
-      - name: Upload build log
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: build-log
-          path: android/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Extract version from package.json
         id: extract-version
