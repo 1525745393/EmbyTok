@@ -119,7 +119,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   // 自动隐藏进度条
   const resetHideTimer = () => {
-    if (hideProgressTimerRef.current && clearTimeout(hideProgressTimerRef.current));
+    if (hideProgressTimerRef.current) {
+      clearTimeout(hideProgressTimerRef.current);
+    }
     hideProgressTimerRef.current = setTimeout(() => {
       setShowProgress(false);
     }, 5000);
