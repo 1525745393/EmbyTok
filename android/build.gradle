@@ -3,8 +3,10 @@
 buildscript {
     
     repositories {
-        google()
-        mavenCentral()
+        // 阿里云镜像源
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
@@ -19,8 +21,10 @@ apply from: "variables.gradle"
 
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        // 阿里云镜像源
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
     }
 }
 
