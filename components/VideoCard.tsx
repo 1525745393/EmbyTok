@@ -133,6 +133,41 @@ const VideoCard: React.FC<VideoCardProps> = ({
       }, 1000);
   }, []);
 
+  // 记忆播放进度相关
+  const saveProgressIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const STORAGE_KEY_PREFIX = 'embystok_progress_';
+  
+  const saveProgress = useCallback(() => {
+      if (!videoRef.current || !item.Id) return;
+      try {
+          const progress = {
+              time: videoRef.current.currentTime,
+              duration: videoRef.current.duration,
+              timestamp: Date.now()
+          };
+          localStorage.setItem(STORAGE_KEY_PREFIX + item.Id, JSON.stringify(progress));
+      } catch (e) {
+          // 静默失败
+      }
+  }, [item.Id]);
+
+  const loadProgress = useCallback(() => {
+      if (!item.Id) return 0;
+      try {
+          const saved = localStorage.getItem(STORAGE_KEY_PREFIX + item.Id);
+          if (saved) {
+              const progress = JSON.parse(saved);
+              // 只保留最近7天的进度
+              if (Date.now() - progress.timestamp < 7 * 24 * 60 * 60 * 1000) {
+                  return progress.time;
+              }
+          }
+      } catch (e) {
+          // 静默失败
+      }
+      return 0;
+  }, [item.Id]);
+
   const videoSrc = client.getVideoUrl(item);
   const posterSrc = item.ImageTags?.Primary 
     ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
