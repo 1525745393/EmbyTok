@@ -77,6 +77,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   // Gesture State
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   
   // 用户暂停状态
   const [isUserPaused, setIsUserPaused] = useState(false);
@@ -473,14 +474,46 @@ const VideoCard: React.FC<VideoCardProps> = ({
           ))}
       </AnimatePresence>
 
-      {/* 2x Speed Overlay */}
-      {playbackRate > 1.0 && (
-          <div className="absolute top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+      {/* Speed Indicator (Clickable) */}
+      {playbackRate !== 1.0 && (
+          <div 
+            className="absolute top-24 left-0 right-0 flex justify-center z-50 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSpeedMenu(!showSpeedMenu);
+            }}
+          >
             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
                 <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-white font-bold text-sm">{t.doubleSpeed}</span>
-                <ChevronsRight className="w-4 h-4 text-white" />
+                <span className="text-white font-bold text-sm">{playbackRate}x</span>
             </div>
+          </div>
+      )}
+
+      {/* Speed Selection Menu */}
+      {showSpeedMenu && (
+          <div 
+            className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+              <button
+                key={speed}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlaybackRate(speed);
+                  if (videoRef.current) {
+                    videoRef.current.playbackRate = speed;
+                  }
+                  setShowSpeedMenu(false);
+                }}
+                className={`w-full px-4 py-2 rounded-lg text-white text-sm transition-colors ${
+                  playbackRate === speed ? 'bg-indigo-600' : 'hover:bg-white/20'
+                }`}
+              >
+                {speed}x
+              </button>
+            ))}
           </div>
       )}
 
@@ -582,6 +615,19 @@ const VideoCard: React.FC<VideoCardProps> = ({
                       <Trash2 className="w-7 h-7 text-red-500 drop-shadow-md" />
                   </button>
 
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                  <button 
+                    tabIndex={0}
+                    onTouchStart={stopProp}
+                    onMouseDown={stopProp}
+                    onTouchEnd={(e) => handleButtonAction(e, () => setShowSpeedMenu(!showSpeedMenu))}
+                    onClick={(e) => handleButtonAction(e, () => setShowSpeedMenu(!showSpeedMenu))}
+                    className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                      <ChevronsRight className="w-7 h-7 text-white drop-shadow-md" />
+                  </button>
               </div>
 
               <div 
