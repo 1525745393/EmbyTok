@@ -6,6 +6,30 @@
 - DSM 7.2 或更高版本（推荐）
 - 至少 512MB 可用内存
 
+## 配置文件说明
+
+项目提供三个 Docker Compose 配置文件，已优化为 Container Manager 兼容格式：
+
+1. **[docker-compose.synology.yml](file:///workspace/docker-compose.synology.yml)** - 群晖专用配置（推荐）
+   - 版本：3.3（Container Manager 最佳兼容版本）
+   - 包含时区设置
+   - 使用独立网络
+
+2. **[docker-compose.yml](file:///workspace/docker-compose.yml)** - 通用配置
+   - 适用于所有 Docker 环境
+   - 简洁配置
+
+3. **[docker-compose.simple.yml](file:///workspace/docker-compose.simple.yml)** - 最简配置
+   - 使用 `network_mode: bridge`
+   - 最少配置项
+
+### 兼容性调整
+- 已移除 `healthcheck`（健康检查）- Container Manager 可能不支持
+- 已移除 `deploy` 资源限制 - Swarm 模式专用
+- 版本降级为 3.3 - 更好的兼容性
+- 简化端口格式 - 移除引号
+- 简化网络配置
+
 ## 方法一：使用 Container Manager 界面部署（推荐）
 
 ### 步骤 1：打开 Container Manager
