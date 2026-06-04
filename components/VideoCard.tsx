@@ -78,6 +78,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showProgress, setShowProgress] = useState(true);
+  const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
+  const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // 用户暂停状态
   const [isUserPaused, setIsUserPaused] = useState(false);
@@ -87,15 +90,34 @@ const VideoCard: React.FC<VideoCardProps> = ({
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
   );
   
-  // Gesture Refs
+  // --- Gesture Refs
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
   const isLongPress = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speedStartRate = useRef(2.0);
   
   // 双击检测
   const lastTapTime = useRef<number>(0);
+
+  // 进度条区域双击检测
+  const progressTapCount = useRef(0);
+  const progressTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 自动隐藏进度条
+  const resetHideTimer = () => {
+    if (hideProgressTimerRef.current && clearTimeout(hideProgressTimerRef.current));
+    hideProgressTimerRef.current = setTimeout(() => {
+      setShowProgress(false);
+    }, 5000);
+  };
+
+  // 显示进度条并重置隐藏定时器
+  const showProgressAndResetTimer = () => {
+    setShowProgress(true);
+    resetHideTimer();
+  };
   
   // 红心动效状态管理
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number; scale: number }[]>([]);
@@ -124,6 +146,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
       };
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 初始化自动隐藏
+  useEffect(() => {
+    resetHideTimer();
+    return () => {
+      if (hideProgressTimerRef.current) clearTimeout(hideProgressTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -264,6 +294,80 @@ const VideoCard: React.FC<VideoCardProps> = ({
       setCurrentTime(percent * duration);
   };
 
+  // 进度条区域手势处理
+  const handleProgressTouchStart = (e: React.TouchEvent) => {
+      e.stopPropagation();
+      
+      // 显示进度条并重置定时器
+      showProgressAndResetTimer();
+      
+      // 检测双击
+      progressTapCount.current += 1;
+      if (progressTapTimer.current) clearTimeout(progressTapTimer.current);
+      
+      progressTapTimer.current = setTimeout(() => {
+          progressTapCount.current = 0;
+      }, 300);
+      
+      if (progressTapCount.current === 2) {
+          // 双击：切换显示/隐藏
+          setShowProgress(!showProgress);
+          progressTapCount.current = 0;
+          return;
+      }
+      
+      // 长按检测
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      speedStartRate.current = playbackRate;
+      
+      longPressTimer.current = setTimeout(() => {
+          setIsSpeedAdjusting(true);
+          setPlaybackRate(2.0);
+          if (videoRef.current) videoRef.current.playbackRate = 2.0;
+      }, 500);
+  };
+
+  const handleProgressTouchMove = (e: React.TouchEvent) => {
+      e.stopPropagation();
+      
+      // 显示进度条并重置定时器
+      showProgressAndResetTimer();
+      
+      if (longPressTimer.current && Math.abs(e.touches[0].clientY - touchStartY.current) > 20) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+      }
+      
+      if (isSpeedAdjusting) {
+          const deltaY = e.touches[0].clientY - touchStartY.current;
+          // 上下滑动调整速度：向上滑动提高速度，向下滑动降低速度
+          let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
+          // 限制在 0.5 - 5.0 范围内
+          newRate = Math.max(0.5, Math.min(5.0, newRate));
+          setPlaybackRate(newRate);
+          if (videoRef.current) videoRef.current.playbackRate = newRate;
+      } else {
+          // 普通拖动调整进度
+          handleSeekMove(e);
+      }
+  };
+
+  const handleProgressTouchEnd = (e: React.TouchEvent) => {
+      e.stopPropagation();
+      
+      if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+      }
+      
+      if (isSpeedAdjusting) {
+          setIsSpeedAdjusting(false);
+      } else {
+          handleSeekEnd(e);
+      }
+  };
+
   const handleSeekEnd = (e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
       if (!isSeeking) return;
@@ -387,7 +491,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       : 'object-cover';
 
   // Only show progress bar for videos longer than 3 minutes, AND when NOT in AutoPlay mode
-  const showProgressBar = duration > 180 && !isAutoPlay;
+  const showProgressBar = duration > 180 && !isAutoPlay && showProgress;
 
   // Render UI elements only if NOT in AutoPlay (Pure) Mode
   const renderUI = !isAutoPlay;
@@ -682,14 +786,27 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </div>
       )}
 
+      {/* Speed Adjustment Indicator */}
+      {isSpeedAdjusting && (
+          <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-50">
+              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2 animate-in fade-in zoom-in">
+                  <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                  <span className="text-xl font-bold">{playbackRate.toFixed(1)}x</span>
+              </div>
+          </div>
+      )}
+
       {/* Progress Bar (Conditional) */}
       {showProgressBar && duration > 0 && (
           <div 
             className="absolute bottom-8 left-4 right-4 h-12 flex items-center gap-3 z-50"
-            onTouchStart={handleSeekStart}
-            onTouchMove={handleSeekMove}
-            onTouchEnd={handleSeekEnd}
-            onClick={(e) => e.stopPropagation()} 
+            onTouchStart={handleProgressTouchStart}
+            onTouchMove={handleProgressTouchMove}
+            onTouchEnd={handleProgressTouchEnd}
+            onClick={(e) => {
+                e.stopPropagation();
+                showProgressAndResetTimer();
+            }} 
           >
               {/* Current Time */}
               <span className="text-white text-xs font-medium drop-shadow-md w-10 text-right pointer-events-none">
@@ -697,7 +814,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
               </span>
 
               {/* Progress Bar Container */}
-              <div className="flex-1 relative h-12 flex items-center pointer-events-auto touch-none">
+              <div className="flex-1 relative h-12 flex items-center pointer-events-auto">
                   <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
                       <div 
                           className="h-full bg-indigo-500 transition-all duration-75"
