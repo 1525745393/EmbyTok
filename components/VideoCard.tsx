@@ -97,14 +97,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const lastTapTime = useRef<number>(0);
   
   // 红心动效状态管理
-  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number }[]>([]);
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number; scale: number }[]>([]);
   
   const addHeart = useCallback((x: number, y: number) => {
       const id = Date.now();
-      const rotate = (Math.random() - 0.5) * 40; // 随机旋转 -20 到 20 度，增加灵动感
-      setHearts(prev => [...prev, { id, x, y, rotate }]);
+      const rotate = (Math.random() - 0.5) * 40;
+      const scale = 0.8 + Math.random() * 0.6;
+      setHearts(prev => [...prev, { id, x, y, rotate, scale }]);
       
-      // 1秒后自动移除，配合动画周期
       setTimeout(() => {
           setHearts(prev => prev.filter(h => h.id !== id));
       }, 1000);
@@ -339,7 +339,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
                   // 双击，获取触摸坐标并显示红心动效
                   const touchX = e.changedTouches[0].clientX;
                   const touchY = e.changedTouches[0].clientY;
+                  
+                  // 添加多个红心，更有视觉冲击力
                   addHeart(touchX, touchY);
+                  addHeart(touchX - 30, touchY - 20);
+                  addHeart(touchX + 30, touchY + 20);
                   
                   // 只有在无红心的情况下才触发红心
                   if (!isFavorite) {
@@ -450,18 +454,18 @@ const VideoCard: React.FC<VideoCardProps> = ({
                   key={heart.id}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{
-                      scale: [0, 1.2, 1], // 关键帧：弹出效果
+                      scale: [0, heart.scale * 1.3, heart.scale],
                       opacity: [0, 1, 1],
-                      y: -100             // 向上漂移
+                      y: -100 - Math.random() * 50
                   }}
-                  exit={{ scale: 1.5, opacity: 0 }} // 退出时放大并消失
+                  exit={{ scale: heart.scale * 1.5, opacity: 0 }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                   style={{
                       position: 'fixed',
-                      left: heart.x - 40, // 居中显示
+                      left: heart.x - 40,
                       top: heart.y - 40,
                       zIndex: 100,
-                      rotate: heart.rotate // 应用随机旋转
+                      rotate: heart.rotate
                   }}
               >
                   <Heart className="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" />
