@@ -1,12 +1,9 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { EmbyItem, FeedType } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
-import VideoSkeleton from './VideoSkeleton';
 import { RefreshCw, Film, Shuffle, Infinity } from 'lucide-react';
-import { Translations } from '../src/locales';
-import { isTVDevice } from '../utils';
-import { useSmartVideoPreload } from '../src/hooks';
 
 interface VideoFeedProps {
   videos: EmbyItem[];
@@ -25,10 +22,10 @@ interface VideoFeedProps {
   onLoadMore: () => void;
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
-  t: Translations;
+  language?: 'zh' | 'en';
 }
 
-const VideoFeed: React.FC<VideoFeedProps> = React.memo(({ 
+const VideoFeed: React.FC<VideoFeedProps> = ({ 
     videos, 
     client, 
     onRefresh, 
@@ -45,20 +42,17 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
     onLoadMore,
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
-    t
+    language = 'zh'
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [showToast, setShowToast] = useState(false);
-  const isTV = useMemo(() => isTVDevice(), []);
+  const [isTV, setIsTV] = useState(false);
   const isFirstRender = useRef(true);
 
-  const { isPreloaded, getCacheStatus, config } = useSmartVideoPreload(videos, activeIndex, {
-    enabled: true,
-    maxCachedVideos: 3,
-    preloadBuffer: 10,
-    nextVideoPreloadSeconds: 5
-  });
+  useEffect(() => {
+    setIsTV(window.navigator.userAgent.toLowerCase().includes('tv'));
+  }, []);
 
   useLayoutEffect(() => {
     if (isFirstRender.current && containerRef.current && initialIndex > 0) {
@@ -74,6 +68,7 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
         const timer = setTimeout(() => setShowToast(false), 2000);
         return () => clearTimeout(timer);
     } else {
+        // 当自动连播关闭时，立即隐藏提示
         setShowToast(false);
     }
   }, [isAutoPlay]);
@@ -88,6 +83,7 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
     }
   }, [videos.length]);
 
+  // 关键：电视遥控器按键接管
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isTV) return;
@@ -141,98 +137,75 @@ const VideoFeed: React.FC<VideoFeedProps> = React.memo(({
     return () => observer.disconnect();
   }, [videos, onIndexChange, feedType, hasMore, isLoading, onLoadMore]);
 
-  const handleNextVideo = useCallback(() => {
+  const handleNextVideo = () => {
     if (activeIndex < videos.length - 1) {
         scrollToVideo(activeIndex + 1);
     } else if (hasMore) {
         onLoadMore();
     }
-  }, [activeIndex, videos.length, scrollToVideo, hasMore, onLoadMore]);
+  };
 
   if (videos.length === 0 && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-white bg-black pt-20">
         <Film className="w-16 h-16 text-zinc-800 mb-4" />
-        <p className="text-lg mb-2 font-bold">{t.videoFeed.noVideos}</p>
-        <button onClick={onRefresh} className="px-6 py-3 bg-indigo-600 rounded-full text-sm font-bold">{t.videoFeed.refresh}</button>
+        <p className="text-lg mb-2 font-bold">未找到视频</p>
+        <button onClick={onRefresh} className="px-6 py-3 bg-indigo-600 rounded-full text-sm font-bold">刷新</button>
       </div>
     );
   }
 
-  const [videoLoadingStates, setVideoLoadingStates] = useState<Map<string, boolean>>(new Map());
-
-  const setVideoLoading = useCallback((itemId: string, isLoading: boolean) => {
-    setVideoLoadingStates(prev => {
-      const newStates = new Map(prev);
-      if (isLoading) {
-        newStates.set(itemId, true);
-      } else {
-        newStates.delete(itemId);
-      }
-      return newStates;
-    });
-  }, []);
-
   return (
     <div className="relative h-full w-full bg-black">
-      {showToast && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-          <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
-            <Infinity className="w-5 h-5 text-green-400" />
-            <span className="font-bold">{t.videoFeed.autoPlayOn}</span>
+        {showToast && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
+                  <Infinity className="w-5 h-5 text-green-400" />
+                  <span className="font-bold">自动连播已开启</span>
+              </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div
-        ref={containerRef}
-        className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black"
-      >
-        {videos.map((item, index) => {
-          const shouldRenderCard = useMemo(() => Math.abs(activeIndex - index) <= 1, [activeIndex, index]);
-          const isLoading = videoLoadingStates.has(item.Id);
-          return (
+        <div
+          ref={containerRef}
+          className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black"
+        >
+          {videos.map((item, index) => (
             <div
               key={item.Id}
               data-index={index}
               className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
             >
-              {isLoading && <VideoSkeleton />}
-              {shouldRenderCard && !isLoading && (
+              {Math.abs(activeIndex - index) <= 1 ? (
                 <VideoCard
                   item={item}
                   client={client}
                   isActive={activeIndex === index}
                   isFavorite={favoriteIds.has(item.Id)}
-                  onToggleFavorite={useCallback(() => onToggleFavorite(item.Id, favoriteIds.has(item.Id)), [item.Id, onToggleFavorite, favoriteIds])}
-                  onDelete={useCallback(() => onDelete(item.Id), [item.Id, onDelete])}
+                  onToggleFavorite={() => onToggleFavorite(item.Id, favoriteIds.has(item.Id))}
+                  onDelete={() => onDelete(item.Id)}
                   isMuted={isMuted}
                   onToggleMute={onToggleMute}
                   isAutoPlay={isAutoPlay}
                   onToggleAutoPlay={onToggleAutoPlay}
                   onVideoEnd={handleNextVideo}
-                  onVideoLoadStart={useCallback(() => setVideoLoading(item.Id, true), [item.Id, setVideoLoading])}
-                  onVideoLoadComplete={useCallback(() => setVideoLoading(item.Id, false), [item.Id, setVideoLoading])}
-                  onSwipeDown={activeIndex === index && onRefresh ? onRefresh : undefined}
-                  t={t.videoCard}
+                  language={language}
                 />
+              ) : (
+                <div className="w-full h-full bg-black" />
               )}
-              {!shouldRenderCard && !isLoading && <div className="w-full h-full bg-black" />}
             </div>
-          );
-        })}
-        
-        {feedType === 'random' && videos.length > 0 && (
-          <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
-            <Shuffle className="w-16 h-16 text-zinc-700" />
-            <button onClick={onRefresh} className="px-8 py-4 bg-indigo-600 rounded-full text-lg font-bold">{t.videoFeed.shuffle}</button>
-          </div>
-        )}
+          ))}
+          
+          {feedType === 'random' && videos.length > 0 && (
+            <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
+                <Shuffle className="w-16 h-16 text-zinc-700" />
+                <button onClick={onRefresh} className="px-8 py-4 bg-indigo-600 rounded-full text-lg font-bold">换一批</button>
+            </div>
+          )}
         </div>
     </div>
   );
-});
-
-VideoFeed.displayName = 'VideoFeed';
+};
 
 export default VideoFeed;

@@ -1,3 +1,4 @@
+
 import React, { useState, useLayoutEffect } from 'react';
 import StandardRoot from './components/standard/StandardRoot';
 import TVRoot from './components/tv/TVRoot';
@@ -8,8 +9,7 @@ function App() {
       const forcedMode = localStorage.getItem('embyForceDeviceMode');
       if (forcedMode === 'tv' || forcedMode === 'standard') return forcedMode as 'standard' | 'tv';
       const userAgent = navigator.userAgent.toLowerCase();
-      const isTV =
-        userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
+      const isTV = userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
       return isTV ? 'tv' : 'standard';
     } catch (e) {
       return 'standard';
