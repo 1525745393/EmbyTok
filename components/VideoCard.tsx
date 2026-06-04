@@ -368,9 +368,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
   };
 
   const formatTimeText = (ticks?: number) => {
-      if (!ticks) return '';
-      const minutes = Math.round(ticks / 10000000 / 60);
-      return `${minutes} 分钟`;
+    if (!ticks) return '';
+    const minutes = Math.round(ticks / 10000000 / 60);
+    return `${minutes} 分钟`;
+  };
+
+  const formatSecondsToTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
   const showBlurBackground = isScreenLandscape && !isContentLandscape;
@@ -678,22 +685,35 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Progress Bar (Conditional) */}
       {showProgressBar && duration > 0 && (
           <div 
-            className="absolute bottom-8 left-4 right-4 h-8 flex items-center z-50 pointer-events-auto touch-none"
+            className="absolute bottom-8 left-4 right-4 h-12 flex items-center gap-3 z-50"
             onTouchStart={handleSeekStart}
             onTouchMove={handleSeekMove}
             onTouchEnd={handleSeekEnd}
             onClick={(e) => e.stopPropagation()} 
           >
-              <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
+              {/* Current Time */}
+              <span className="text-white text-xs font-medium drop-shadow-md w-10 text-right pointer-events-none">
+                {formatSecondsToTime(currentTime)}
+              </span>
+
+              {/* Progress Bar Container */}
+              <div className="flex-1 relative h-12 flex items-center pointer-events-auto touch-none">
+                  <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
+                      <div 
+                          className="h-full bg-indigo-500 transition-all duration-75"
+                          style={{ width: `${(currentTime / duration) * 100}%` }}
+                      />
+                  </div>
                   <div 
-                      className="h-full bg-indigo-500 transition-all duration-75"
-                      style={{ width: `${(currentTime / duration) * 100}%` }}
+                      className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-1/2"
+                      style={{ left: `${(currentTime / duration) * 100}%` }}
                   />
               </div>
-               <div 
-                    className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-2"
-                    style={{ left: `${(currentTime / duration) * 100}%` }}
-               />
+
+              {/* Total Time */}
+              <span className="text-white text-xs font-medium drop-shadow-md w-10 pointer-events-none">
+                {formatSecondsToTime(duration)}
+              </span>
           </div>
       )}
 
