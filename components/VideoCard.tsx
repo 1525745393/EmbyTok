@@ -64,6 +64,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false); 
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -178,6 +179,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const handlePlaying = () => {
       setIsPlaying(true);
       setHasStarted(true); 
+      setIsLoading(false);
+  };
+
+  const handleWaiting = () => {
+      setIsLoading(true);
+  };
+
+  const handleCanPlay = () => {
+      setIsLoading(false);
   };
 
   const handleTimeUpdate = () => {
@@ -398,13 +408,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
         ref={videoRef}
         className={`w-full h-full pointer-events-none relative z-10 bg-transparent ${videoObjectFitClass}`}
         src={videoSrc}
-        loop={!isAutoPlay} // Disable loop in AutoPlay mode to trigger onEnded
+        loop={!isAutoPlay}
         playsInline
         muted={isMuted}
         onPlaying={handlePlaying}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleVideoEnded}
+        onWaiting={handleWaiting}
+        onCanPlay={handleCanPlay}
         onError={() => setError(t.videoLoadError)}
       />
 
@@ -415,6 +427,13 @@ const VideoCard: React.FC<VideoCardProps> = ({
             className={`absolute inset-0 w-full h-full z-10 bg-transparent pointer-events-none ${videoObjectFitClass}`}
             alt=""
         />
+      )}
+
+      {/* Loading Indicator */}
+      {isLoading && !error && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className="w-10 h-10 border-4 border-white/30 border-t-white/80 rounded-full animate-spin" />
+        </div>
       )}
 
       {/* Play/Pause Overlay Icon */}

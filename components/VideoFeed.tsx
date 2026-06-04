@@ -168,7 +168,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
         <div
           ref={containerRef}
-          className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black"
+          className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black scroll-smooth"
         >
           {videos.map((item, index) => (
             <div
