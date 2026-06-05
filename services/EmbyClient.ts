@@ -152,9 +152,17 @@ export class EmbyClient extends MediaClient {
     }
 
     getVideoUrl(item: EmbyItem): string {
-        // 让Emby服务器自动决定转码格式，而不是强制mp4
-        // 支持ts、mkv等各种格式的视频
-        return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${Date.now()}&api_key=${this.config.token}`;
+        // 直接获取原始文件，完全不转码
+        // 优先从MediaSources中找到可以直接播放的媒体源
+        if (item.MediaSources && item.MediaSources.length > 0) {
+            const directSource = item.MediaSources.find(m => m.SupportsDirectPlay && m.Path);
+            if (directSource) {
+                return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${directSource.Id}&PlaySessionId=${Date.now()}&api_key=${this.config.token}`;
+            }
+        }
+        
+        // 回退到直接流方式，但明确告诉Emby我们不想要转码
+        return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${Date.now()}&RequireAvc=false&RequireNonAnamorphic=false&MaxWidth=3840&MaxHeight=2160&api_key=${this.config.token}`;
     }
 
     getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {
