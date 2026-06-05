@@ -152,7 +152,9 @@ export class EmbyClient extends MediaClient {
     }
 
     getVideoUrl(item: EmbyItem): string {
-        return `${this.getCleanUrl()}/Videos/${item.Id}/stream.mp4?Static=true&api_key=${this.config.token}`;
+        // 让Emby服务器自动决定转码格式，而不是强制mp4
+        // 支持ts、mkv等各种格式的视频
+        return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${Date.now()}&api_key=${this.config.token}`;
     }
 
     getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {
