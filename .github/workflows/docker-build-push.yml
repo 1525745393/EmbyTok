@@ -126,8 +126,34 @@ jobs:
           tag_name: v${{ steps.extract-version.outputs.VERSION }}
           name: Release v${{ steps.extract-version.outputs.VERSION }}
           body: |
-            EmbyTok Release v${{ steps.extract-version.outputs.VERSION }}
-            
-            - Download the APK below to install on Android
+            # EmbyTok v${{ steps.extract-version.outputs.VERSION }} 更新说明
+
+            ## 下载安装
+            - 下载下方 APK 文件安装到 Android 设备
+
+            ## 本次更新
+            ### v${{ steps.extract-version.outputs.VERSION }}
+            - 完善进度条拖动快进功能
+
+            ## 历史更新
+            ### v1.6.2
+            - 进度条显示/隐藏优化
+
+            ### v1.6.1
+            - 修复 Android 登录问题（支持 HTTP 和自签名证书）
+
+            ### v1.6.0
+            - 记忆播放进度
+            - 播放失败自动重试
+            - 更好的错误提示
+            - 播放速度调节功能
+
+            ## 功能特点
+            - TikTok 式竖屏浏览体验
+            - 支持 Emby/Jellyfin 服务器
+            - 双击屏幕显示/隐藏进度条
+            - 长按快进手势
+            - 记忆播放进度
+            - 速度调节 0.5x-5.0x
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
