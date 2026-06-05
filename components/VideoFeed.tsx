@@ -13,6 +13,7 @@ interface VideoFeedProps {
   isLoading?: boolean;
   favoriteIds: Set<string>;
   onToggleFavorite: (itemId: string, isFavorite: boolean) => void;
+  isFavoriteFunc?: (itemId: string) => boolean;
   onDelete?: (itemId: string) => void;
   initialIndex?: number;
   onIndexChange?: (index: number) => void;
@@ -37,6 +38,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     isLoading,
     favoriteIds,
     onToggleFavorite,
+    isFavoriteFunc,
     onDelete = () => {},
     initialIndex = 0,
     onIndexChange,
@@ -233,6 +235,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       const isVisible = visibleIndices.has(index);
       const isPreloadedItem = isPreloaded(item.Id);
       const cacheStatus = getCacheStatus(item.Id);
+      const isFav = isFavoriteFunc ? isFavoriteFunc(item.Id) : favoriteIds.has(item.Id);
       
       return (
         <div
@@ -245,8 +248,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               item={item}
               client={client}
               isActive={activeIndex === index}
-              isFavorite={favoriteIds.has(item.Id)}
-              onToggleFavorite={createToggleFavorite(item.Id, favoriteIds.has(item.Id))}
+              isFavorite={isFav}
+              onToggleFavorite={createToggleFavorite(item.Id, isFav)}
               onDelete={createDelete(item.Id)}
               isMuted={isMuted}
               onToggleMute={onToggleMute}
@@ -267,7 +270,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory]);
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory]);
 
   if (videos.length === 0 && !isLoading) {
     return (

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
-import { useSearch, useSubtitles } from '../../src/hooks';
+import { useSearch, useSubtitles, useFavorites } from '../../src/hooks';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
@@ -86,29 +86,19 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     }
   });
   
-  // 收藏相关状态
+  // 收藏相关状态 - 使用 useFavorites Hook
   const [showFavoritesManager, setShowFavoritesManager] = useState(false);
-  const [favoritesCollections, setFavoritesCollections] = useState<FavoriteCollection[]>(() => {
-    try {
-      const saved = localStorage.getItem('embyFavorites');
-      if (saved) {
-        return JSON.parse(saved).collections;
-      }
-      return [{
-        id: 'default',
-        name: '默认收藏',
-        createdAt: Date.now(),
-        itemIds: []
-      }];
-    } catch (e) {
-      return [{
-        id: 'default',
-        name: '默认收藏',
-        createdAt: Date.now(),
-        itemIds: []
-      }];
-    }
-  });
+  const {
+    collections: favoritesCollections,
+    createCollection,
+    deleteCollection,
+    renameCollection,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite,
+    getCollection,
+    getItemCollections
+  } = useFavorites();
   
   // 字幕相关状态 - 使用 useSubtitles Hook
   const {
@@ -154,14 +144,6 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       lastUpdated: Date.now()
     }));
   }, [watchHistory]);
-  
-  // 保存收藏到 localStorage
-  useEffect(() => {
-    localStorage.setItem('embyFavorites', JSON.stringify({
-      collections: favoritesCollections,
-      defaultCollectionId: 'default'
-    }));
-  }, [favoritesCollections]);
   
   // 添加到观看历史
   const handleAddToWatchHistory = useCallback((item: EmbyItem, currentTime: number, duration: number) => {
@@ -212,44 +194,26 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     }
   }, [videos]);
   
-  // 收藏相关函数
+  // 收藏相关函数 - 使用 useFavorites hook
   const handleCreateCollection = useCallback((name: string) => {
-    const newCollection: FavoriteCollection = {
-      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: name.trim(),
-      createdAt: Date.now(),
-      itemIds: []
-    };
-    setFavoritesCollections(prev => [...prev, newCollection]);
-  }, []);
+    createCollection(name);
+  }, [createCollection]);
   
   const handleDeleteCollection = useCallback((collectionId: string) => {
-    setFavoritesCollections(prev => prev.filter(c => c.id !== collectionId));
-  }, []);
+    deleteCollection(collectionId);
+  }, [deleteCollection]);
   
   const handleRenameCollection = useCallback((collectionId: string, newName: string) => {
-    setFavoritesCollections(prev => prev.map(c => 
-      c.id === collectionId ? { ...c, name: newName.trim() } : c
-    ));
-  }, []);
+    renameCollection(collectionId, newName);
+  }, [renameCollection]);
   
   const handleAddToCollection = useCallback((itemId: string, collectionId: string) => {
-    setFavoritesCollections(prev => prev.map(c => {
-      if (c.id === collectionId && !c.itemIds.includes(itemId)) {
-        return { ...c, itemIds: [...c.itemIds, itemId] };
-      }
-      return c;
-    }));
-  }, []);
+    addToFavorites(itemId, collectionId);
+  }, [addToFavorites]);
   
   const handleRemoveFromCollection = useCallback((itemId: string, collectionId: string) => {
-    setFavoritesCollections(prev => prev.map(c => {
-      if (c.id === collectionId) {
-        return { ...c, itemIds: c.itemIds.filter(id => id !== itemId) };
-      }
-      return c;
-    }));
-  }, []);
+    removeFromFavorites(itemId, collectionId);
+  }, [removeFromFavorites]);
   
   // 更新字幕设置 - 使用 useSubtitles hook
   const handleUpdateSubtitleSettings = useCallback((settings: Partial<SubtitleSettings>) => {
@@ -531,7 +495,8 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                         } else {
                           handleAddToCollection(id, 'default');
                         }
-                    }} 
+                    }}
+                    isFavoriteFunc={isFavorite}
                     onDelete={async (itemId) => {
                         try {
                             await client.deleteItem(itemId);
