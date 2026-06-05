@@ -1,5 +1,17 @@
 # 版本更新日志 (Changelog)
 
+## v1.9.3
+**日期**: 2026-06-05
+
+### 🐛 修复与优化
+- **Android 签名配置**
+  - 生成固定签名密钥文件 `embytok-release.keystore`
+  - 配置 Gradle 自动签名，避免安装签名不兼容问题
+  - 添加 `build-android.sh` 自动化构建脚本
+  - 更新 Android versionCode 和 versionName
+
+---
+
 ## v1.9.2
 **日期**: 2026-06-05
 
