@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
-import { useSearch, useSubtitles, useFavorites } from '../../src/hooks';
+import { useSearch, useSubtitles, useFavorites, useWatchHistory } from '../../src/hooks';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
@@ -75,16 +75,16 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     clearHistory
   } = useSearch(client);
   
-  // 观看历史相关状态
+  // 观看历史相关状态 - 使用 useWatchHistory Hook
   const [showWatchHistory, setShowWatchHistory] = useState(false);
-  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('embyWatchHistory');
-      return saved ? JSON.parse(saved).items : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const {
+    history: watchHistory,
+    addToHistory,
+    removeFromHistory,
+    clearHistory: clearWatchHistory,
+    getHistoryItem,
+    getProgress
+  } = useWatchHistory();
   
   // 收藏相关状态 - 使用 useFavorites Hook
   const [showFavoritesManager, setShowFavoritesManager] = useState(false);
@@ -137,50 +137,31 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   }, [client]);
   const fetchLibraries = async () => { if (client) setLibraries(await client.getLibraries()); };
   
-  // 保存观看历史到 localStorage
-  useEffect(() => {
-    localStorage.setItem('embyWatchHistory', JSON.stringify({
-      items: watchHistory,
-      lastUpdated: Date.now()
-    }));
-  }, [watchHistory]);
-  
-  // 添加到观看历史
+  // 添加到观看历史 - 使用 useWatchHistory hook
   const handleAddToWatchHistory = useCallback((item: EmbyItem, currentTime: number, duration: number) => {
     const imageUrl = item.ImageTags?.Primary 
       ? client?.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
       : undefined;
     
-    setWatchHistory(prev => {
-      const existingIndex = prev.findIndex(h => h.itemId === item.Id);
-      const newItem: WatchHistoryItem = {
-        id: existingIndex >= 0 ? prev[existingIndex].id : `${item.Id}_${Date.now()}`,
-        itemId: item.Id,
-        name: item.Name,
-        imageUrl,
-        positionTicks: currentTime,
-        totalTicks: duration,
-        watchedAt: Date.now(),
-        libraryId: ''
-      };
-      
-      if (existingIndex >= 0) {
-        return [newItem, ...prev.filter((_, i) => i !== existingIndex)];
-      }
-      
-      return [newItem, ...prev].slice(0, 100);
+    addToHistory({
+      itemId: item.Id,
+      name: item.Name,
+      imageUrl,
+      positionTicks: currentTime,
+      totalTicks: duration,
+      libraryId: ''
     });
-  }, [client]);
+  }, [client, addToHistory]);
   
-  // 从观看历史移除
+  // 从观看历史移除 - 使用 useWatchHistory hook
   const handleRemoveFromWatchHistory = useCallback((itemId: string) => {
-    setWatchHistory(prev => prev.filter(item => item.itemId !== itemId));
-  }, []);
+    removeFromHistory(itemId);
+  }, [removeFromHistory]);
   
-  // 清空观看历史
+  // 清空观看历史 - 使用 useWatchHistory hook
   const handleClearWatchHistory = useCallback(() => {
-    setWatchHistory([]);
-  }, []);
+    clearWatchHistory();
+  }, [clearWatchHistory]);
   
   // 处理从历史记录选择视频
   const handleSelectFromHistory = useCallback((itemId: string, positionTicks: number) => {
