@@ -36,12 +36,22 @@
 - 中英文双语国际化支持
 - 性能优化：防抖搜索、懒加载
 
+### 📱 Android 签名修复
+- 添加固定签名密钥配置
+- 创建签名配置示例文件
+- 更新 Android 版本号（versionCode: 3）
+- 新增详细的 Android 签名指南文档
+- 解决 "同名应用签名不同" 的安装失败问题
+
 ### 📁 文件更新
 - 新增 4 个自定义 Hook
 - 新增 6 个功能组件
 - 更新翻译文件（中英文）
 - 更新类型定义
 - 集成到现有 UI
+- 新增 ANDROID_SIGNING_GUIDE.md 签名指南
+- 更新 ANDROID_BUILD.md 构建指南
+- 更新 android/app/build.gradle
 
 ---
 
