@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { EmbyLibrary, OrientationMode, GitHubRelease } from '../types';
-import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe, Download, CheckCircle, AlertCircle, Copy, Check, Smartphone, Zap, Infinity, Heart, Tv, Star, Code2, ShieldCheck, FileText, Users, Shield, FileCode, Terminal, ExternalLink as ExternalLinkIcon, Smile } from 'lucide-react';
 
 interface LibrarySelectProps {
   libraries: EmbyLibrary[];
@@ -30,6 +30,13 @@ interface LibrarySelectProps {
 }
 
 type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
+
+const FeatureCard: React.FC<{ icon: React.ReactNode; title: string }> = ({ icon, title }) => (
+    <div className="p-3 bg-zinc-800/50 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center gap-2 min-h-[80px]">
+        <div className="text-indigo-400">{icon}</div>
+        <span className="text-xs text-white/80 leading-tight line-clamp-2">{title}</span>
+    </div>
+);
 
 const LibrarySelect: React.FC<LibrarySelectProps> = ({ 
     libraries, onSelect, selectedId, onClose, isOpen,
@@ -212,55 +219,99 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           )}
 
           {mode === 'about' && (
-              <div className="space-y-6 p-4">
-                  <div className="bg-gradient-to-br from-indigo-600/10 to-transparent p-6 rounded-2xl border border-white/5">
-                      <div className="text-xl font-black text-white mb-2 tracking-tighter">EmbyTok</div>
-                      <div className="text-sm font-bold text-indigo-400 mb-4">{t.version}</div>
-                      <p className="text-xs text-white/70 leading-relaxed mb-6">{t.aboutDesc}</p>
-                      <div className="flex gap-2 flex-wrap mb-6">
-                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">React 18</div>
-                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">TypeScript</div>
-                          <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">Vite</div>
+              <div className="space-y-5 p-4">
+                  {/* App Header with Logo */}
+                  <div className="bg-gradient-to-br from-indigo-600/20 via-purple-600/10 to-transparent p-6 rounded-2xl border border-white/5">
+                      <div className="flex items-center gap-4 mb-4">
+                          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                              <Smartphone className="w-8 h-8 text-white" />
+                          </div>
+                          <div className="flex-1">
+                              <div className="text-2xl font-black text-white tracking-tighter">EmbyTok</div>
+                              <div className="text-sm font-bold text-indigo-300 mb-2">{t.version}</div>
+                          </div>
                       </div>
-                      
-                      <button
-                          onClick={onCheckUpdates}
-                          disabled={isCheckingUpdates}
-                          className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl mb-4 font-bold text-sm transition-all ${
-                              isCheckingUpdates 
-                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                                : updateCheckResult?.hasUpdate 
-                                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-400 hover:to-red-400' 
-                                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                          }`}
-                      >
-                          {isCheckingUpdates ? (
-                              <>
-                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                  <span>{t.checkingUpdates}</span>
-                              </>
-                          ) : updateCheckResult?.hasUpdate ? (
-                              <>
-                                  <Download className="w-4 h-4" />
-                                  <span>{t.updateAvailable}</span>
-                              </>
-                          ) : (
-                              <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>{t.checkUpdates}</span>
-                              </>
-                          )}
-                      </button>
-                      
+                      <p className="text-xs text-white/70 leading-relaxed mb-5">{t.aboutDesc}</p>
+                  </div>
+
+                  {/* Tech Stack & Quick Actions */}
+                  <div className="space-y-4">
+                      {/* Tech Badges */}
+                      <div className="flex flex-wrap gap-2">
+                          <div className="bg-white/5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-white/5 uppercase tracking-widest text-white/70 flex items-center gap-1">
+                              <Code2 className="w-3.5 h-3.5" /> React 18
+                          </div>
+                          <div className="bg-white/5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-white/5 uppercase tracking-widest text-white/70 flex items-center gap-1">
+                              <FileCode className="w-3.5 h-3.5" /> TypeScript
+                          </div>
+                          <div className="bg-white/5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-white/5 uppercase tracking-widest text-white/70 flex items-center gap-1">
+                              <Terminal className="w-3.5 h-3.5" /> Vite
+                          </div>
+                      </div>
+
+                      {/* Copy Version & Check Updates */}
+                      <div className="flex gap-2">
+                          <button 
+                              onClick={() => {
+                                  // Extract clean version number
+                                  const cleanVersion = version.replace(/^V? ?/g, '');
+                                  navigator.clipboard.writeText(cleanVersion)
+                                      .then(() => {
+                                          alert(language === 'zh' ? '已复制！' : 'Copied!');
+                                      })
+                                      .catch(() => {
+                                          // Fallback for browsers that don't support clipboard API
+                                          console.error('Failed to copy');
+                                      });
+                              }}
+                              className="flex-1 flex items-center justify-center gap-2 p-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold text-sm hover:bg-zinc-700 transition-all"
+                          >
+                              <Copy className="w-4 h-4" />
+                              {language === 'zh' ? '复制版本号' : 'Copy Version'}
+                          </button>
+                          <button
+                              onClick={onCheckUpdates}
+                              disabled={isCheckingUpdates}
+                              className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl font-bold text-sm transition-all ${
+                                  isCheckingUpdates 
+                                    ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                                    : updateCheckResult?.hasUpdate 
+                                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-400 hover:to-red-400' 
+                                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                              }`}
+                          >
+                              {isCheckingUpdates ? (
+                                  <>
+                                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      <span>{t.checkingUpdates}</span>
+                                  </>
+                              ) : updateCheckResult?.hasUpdate ? (
+                                  <>
+                                      <Download className="w-4 h-4" />
+                                      <span>{t.updateAvailable}</span>
+                                  </>
+                              ) : (
+                                  <>
+                                      <CheckCircle className="w-4 h-4" />
+                                      <span>{t.checkUpdates}</span>
+                                  </>
+                              )}
+                          </button>
+                      </div>
+
+                      {/* Update Status */}
                       {updateCheckResult && !isCheckingUpdates && (
-                          <div className={`mb-4 p-3 rounded-xl text-xs ${
+                          <div className={`p-3 rounded-xl text-xs ${
                               updateCheckResult.hasUpdate 
                                 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' 
                                 : 'bg-green-500/10 text-green-400 border border-green-500/20'
                           }`}>
                               {updateCheckResult.hasUpdate ? (
                                   <div className="flex items-center justify-between">
-                                      <span>新版本: {updateCheckResult.latestVersion}</span>
+                                      <span className="flex items-center gap-2">
+                                          <AlertCircle className="w-4 h-4" />
+                                          {language === 'zh' ? '新版本' : 'New Version'}: {updateCheckResult.latestVersion}
+                                      </span>
                                       <button 
                                           onClick={onShowUpdateDialog}
                                           className="underline hover:text-orange-300"
@@ -276,49 +327,77 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                               )}
                           </div>
                       )}
-                      
-                      <a href="https://gitee.com/miguyomi/embytok" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
-                          <ExternalLink className="w-4 h-4" />
-                          <span>{language === 'zh' ? '项目地址' : 'Project Link'}</span>
-                      </a>
-                      <button onClick={() => setMode('sponsor')} className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors mt-4">
-                          <ExternalLink className="w-4 h-4" />
-                          <span>{t.sponsor}</span>
-                      </button>
                   </div>
-                  
-                  <div className="space-y-4">
-                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">特色功能</h3>
+
+                  {/* Feature Highlights */}
+                  <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                          <Star className="w-4 h-4 text-indigo-400" />
+                          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                              {language === 'zh' ? '功能特性' : 'Features'}
+                          </h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                          <FeatureCard icon={<Smartphone className="w-4 h-4" />} title={t.feature1} />
+                          <FeatureCard icon={<Zap className="w-4 h-4" />} title={t.feature2} />
+                          <FeatureCard icon={<Infinity className="w-4 h-4" />} title={t.feature3} />
+                          <FeatureCard icon={<Smartphone className="w-4 h-4" />} title={t.feature4} />
+                          <FeatureCard icon={<Heart className="w-4 h-4" />} title={t.feature5} />
+                          <FeatureCard icon={<Tv className="w-4 h-4" />} title={t.feature6} />
+                          <FeatureCard icon={<Download className="w-4 h-4" />} title={t.feature7} />
+                      </div>
+                  </div>
+
+                  {/* Quick Links */}
+                  <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                          <ExternalLinkIcon className="w-4 h-4 text-indigo-400" />
+                          <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                              {language === 'zh' ? '相关链接' : 'Links'}
+                          </h3>
+                      </div>
                       <div className="space-y-2">
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature1}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature2}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature3}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature4}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature5}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature6}</div>
-                           </div>
-                           <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5">
-                               <div className="text-indigo-400 font-bold text-sm mt-0.5">•</div>
-                               <div className="text-sm text-white">{t.feature7}</div>
-                           </div>
-                       </div>
+                          <a 
+                              href="https://gitee.com/miguyomi/embytok" 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5 text-white hover:bg-zinc-700/50 transition-all"
+                          >
+                              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                                  <Star className="w-4 h-4 text-red-400" />
+                              </div>
+                              <div className="flex-1">
+                                  <div className="text-sm font-medium text-white">Gitee</div>
+                                  <div className="text-xs text-zinc-400">{language === 'zh' ? '给项目点 Star' : 'Star the project'}</div>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-zinc-500" />
+                          </a>
+                          <button 
+                              onClick={() => setMode('sponsor')} 
+                              className="w-full flex items-center gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5 text-white hover:bg-zinc-700/50 transition-all"
+                          >
+                              <div className="w-8 h-8 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                                  <Heart className="w-4 h-4 text-pink-400" />
+                              </div>
+                              <div className="flex-1 text-left">
+                                  <div className="text-sm font-medium text-white">{t.sponsor}</div>
+                                  <div className="text-xs text-zinc-400">{language === 'zh' ? '支持项目发展' : 'Support development'}</div>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-zinc-500" />
+                          </button>
+                      </div>
+                  </div>
+
+                  {/* Footer Info */}
+                  <div className="pt-4 border-t border-zinc-800 space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-zinc-500">
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>{language === 'zh' ? '开源项目 · 享受自由' : 'Open Source · Enjoy Freedom'}</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-600 text-center">
+                          <p>{language === 'zh' ? '特别感谢所有贡献者' : 'Special thanks to all contributors'}</p>
+                          <p className="mt-1">EmbyTok © 2024</p>
+                      </div>
                   </div>
               </div>
           )}
