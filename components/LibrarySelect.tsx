@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { EmbyLibrary, OrientationMode } from '../types';
-import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe } from 'lucide-react';
+import { EmbyLibrary, OrientationMode, GitHubRelease } from '../types';
+import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe, Download, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface LibrarySelectProps {
   libraries: EmbyLibrary[];
@@ -22,6 +22,11 @@ interface LibrarySelectProps {
   onToggleLanguage: () => void;
   // 新增：版本号
   version: string;
+  // 新增：检查更新
+  onCheckUpdates?: () => void;
+  isCheckingUpdates?: boolean;
+  updateCheckResult?: { hasUpdate: boolean; latestVersion?: string; release?: GitHubRelease };
+  onShowUpdateDialog?: () => void;
 }
 
 type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
@@ -31,7 +36,11 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
     hiddenLibIds, onToggleHidden, onLogout, serverUrl, username,
     orientationMode, onOrientationChange, onToggleMode,
     language, onToggleLanguage,
-    version
+    version,
+    onCheckUpdates,
+    isCheckingUpdates,
+    updateCheckResult,
+    onShowUpdateDialog
 }) => {
   const [mode, setMode] = useState<MenuMode>('list');
 
@@ -60,7 +69,12 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           feature7: '电视APK下载（Gitee发行版）',
           sponsorPoint1: '💰 一杯咖啡 = 开发者的动力',
           sponsorPoint2: '🚀 你的支持 = 项目的未来',
-          sponsorPoint3: '🎉 每一分钱都值得感谢'
+          sponsorPoint3: '🎉 每一分钱都值得感谢',
+          checkUpdates: '检查更新',
+          checkingUpdates: '正在检查更新...',
+          updateAvailable: '有新版本',
+          noUpdate: '已是最新版本',
+          checkFailed: '检查失败',
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -74,7 +88,7 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           sponsorText: 'If you find this project helpful, consider buying the developer a coffee! Your support will help the project continue to improve and maintain, allowing more people to enjoy a better Emby browsing experience.',
           sponsorThanks: 'Thank you for your support! Every contribution will be used for the development and maintenance of the project.',
           back: 'Back',
-          aboutDesc: 'A vertical video browsing client designed for Emby media server, providing a TikTok-like experience that allows users to browse their personal media library in a more modern and convenient way.',
+          aboutDesc: 'A vertical video browsing client designed for Emby media server, providing a TikTok-like experience that allows users to browse their personal library in a more modern and convenient way.',
           feature1: 'TikTok-style vertical video browsing experience',
           feature2: 'Multi-view switching (feed view/grid view)',
           feature3: 'Infinite playback + pure mode',
@@ -84,7 +98,12 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           feature7: 'TV APK download (Gitee release)',
           sponsorPoint1: '💰 A cup of coffee = Developer motivation',
           sponsorPoint2: '🚀 Your support = Project future',
-          sponsorPoint3: '🎉 Every contribution is appreciated'
+          sponsorPoint3: '🎉 Every contribution is appreciated',
+          checkUpdates: 'Check for Updates',
+          checkingUpdates: 'Checking for updates...',
+          updateAvailable: 'Update Available',
+          noUpdate: 'You are up to date',
+          checkFailed: 'Check failed',
       }
   }[language];
 
@@ -203,9 +222,64 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                           <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">TypeScript</div>
                           <div className="bg-white/5 px-3 py-1 rounded-full text-[10px] font-black border border-white/5 uppercase tracking-widest">Vite</div>
                       </div>
+                      
+                      <button
+                          onClick={onCheckUpdates}
+                          disabled={isCheckingUpdates}
+                          className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl mb-4 font-bold text-sm transition-all ${
+                              isCheckingUpdates 
+                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                                : updateCheckResult?.hasUpdate 
+                                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-400 hover:to-red-400' 
+                                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                          }`}
+                      >
+                          {isCheckingUpdates ? (
+                              <>
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  <span>{t.checkingUpdates}</span>
+                              </>
+                          ) : updateCheckResult?.hasUpdate ? (
+                              <>
+                                  <Download className="w-4 h-4" />
+                                  <span>{t.updateAvailable}</span>
+                              </>
+                          ) : (
+                              <>
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>{t.checkUpdates}</span>
+                              </>
+                          )}
+                      </button>
+                      
+                      {updateCheckResult && !isCheckingUpdates && (
+                          <div className={`mb-4 p-3 rounded-xl text-xs ${
+                              updateCheckResult.hasUpdate 
+                                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' 
+                                : 'bg-green-500/10 text-green-400 border border-green-500/20'
+                          }`}>
+                              {updateCheckResult.hasUpdate ? (
+                                  <div className="flex items-center justify-between">
+                                      <span>新版本: {updateCheckResult.latestVersion}</span>
+                                      <button 
+                                          onClick={onShowUpdateDialog}
+                                          className="underline hover:text-orange-300"
+                                      >
+                                          {language === 'zh' ? '查看' : 'View'}
+                                      </button>
+                                  </div>
+                              ) : (
+                                  <div className="flex items-center gap-2">
+                                      <CheckCircle className="w-4 h-4" />
+                                      <span>{t.noUpdate}</span>
+                                  </div>
+                              )}
+                          </div>
+                      )}
+                      
                       <a href="https://gitee.com/miguyomi/embytok" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors">
                           <ExternalLink className="w-4 h-4" />
-                          <span>项目地址</span>
+                          <span>{language === 'zh' ? '项目地址' : 'Project Link'}</span>
                       </a>
                       <button onClick={() => setMode('sponsor')} className="flex items-center gap-2 text-indigo-400 text-sm font-bold hover:text-indigo-300 transition-colors mt-4">
                           <ExternalLink className="w-4 h-4" />

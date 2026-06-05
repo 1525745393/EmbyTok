@@ -14,3 +14,4 @@ export { useWatchHistory } from './useWatchHistory';
 export { useSearch } from './useSearch';
 export { useFavorites } from './useFavorites';
 export { useSubtitles } from './useSubtitles';
+export { useUpdateChecker } from './useUpdateChecker';

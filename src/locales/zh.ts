@@ -170,4 +170,18 @@ export default {
     bottom: '底部',
     top: '顶部',
   },
+  update: {
+    check: '检查更新',
+    checking: '正在检查更新...',
+    newVersion: '发现新版本',
+    currentVersion: '当前版本',
+    latestVersion: '最新版本',
+    updateNow: '立即更新',
+    later: '稍后再说',
+    noUpdate: '你已经使用最新版本',
+    checkFailed: '检查更新失败',
+    updateAvailable: '有更新可用',
+    whatNew: '更新内容',
+    download: '下载',
+  },
 };

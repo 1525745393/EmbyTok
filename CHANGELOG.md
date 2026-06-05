@@ -1,5 +1,36 @@
 # 版本更新日志 (Changelog)
 
+## v1.9.4
+**日期**: 2026-06-05
+
+### 🎉 新功能
+#### 1. 自动检查更新
+- 集成 GitHub Releases API 获取最新版本
+- 版本号自动比较和检测更新
+- 友好的更新通知对话框
+- 显示更新内容（Changelog）
+- APK 下载链接自动提取和跳转
+- 支持中英文双语界面
+
+### 🔧 技术优化
+- 新增自定义 Hook `useUpdateChecker`
+- 更新类型定义 `GitHubRelease` 和 `UpdateCheckResult`
+- Vite 配置自动读取 package.json 版本号
+- 更新翻译文件添加更新功能文案
+
+### 📁 文件更新
+- `src/hooks/useUpdateChecker.ts (新增)
+- `components/UpdateNotification.tsx (新增)
+- `types.ts` (更新)
+- `src/locales/en.ts (更新)
+- `src/locales/zh.ts (更新)
+- `components/LibrarySelect.tsx (更新)
+- `components/standard/StandardRoot.tsx (更新)
+- `vite.config.ts (更新)
+- `package.json` (更新)
+
+---
+
 ## v1.9.3
 **日期**: 2026-06-05
 

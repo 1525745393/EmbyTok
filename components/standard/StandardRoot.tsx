@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy, Suspense } from 'react';
-import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
+import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack, GitHubRelease, UpdateCheckResult } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
-import { useSearch, useSubtitles, useFavorites, useWatchHistory } from '../../src/hooks';
+import { useSearch, useSubtitles, useFavorites, useWatchHistory, useUpdateChecker } from '../../src/hooks';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
 const SearchBarComponent = lazy(() => import('../SearchBar'));
 const SearchResultsComponent = lazy(() => import('../SearchResults'));
 const FavoritesManagerComponent = lazy(() => import('../FavoritesManager'));
+const UpdateNotification = lazy(() => import('../UpdateNotification'));
 
 // 代码分割：延迟加载组件
 const Login = lazy(() => import('../Login'));
@@ -60,8 +61,15 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   
   // 语言状态
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
-  // 版本号
-  const [appVersion, setAppVersion] = useState<string>('1.2.3');
+  
+  // 更新检查功能
+  const { 
+    currentVersion, 
+    isChecking, 
+    checkForUpdates 
+  } = useUpdateChecker();
+  const [updateCheckResult, setUpdateCheckResult] = useState<UpdateCheckResult | null>(null);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   
   // 搜索相关状态 - 使用 useSearch Hook
   const [showSearch, setShowSearch] = useState(false);
@@ -286,6 +294,19 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       const next = language === 'zh' ? 'en' : 'zh';
       setLanguage(next);
       localStorage.setItem('embyLanguage', next);
+  };
+  
+  // 检查更新
+  const handleCheckUpdates = useCallback(async () => {
+      const result = await checkForUpdates();
+      setUpdateCheckResult(result);
+      if (result.hasUpdate) {
+          // 如果有更新，可以在这里显示对话框
+      }
+  }, [checkForUpdates]);
+  
+  const handleShowUpdateDialog = () => {
+      setShowUpdateDialog(true);
   };
 
   if (!config || !client) {
@@ -513,9 +534,27 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
             setHiddenLibIds(n); localStorage.setItem('embyHiddenLibs', JSON.stringify(Array.from(n)));
         }} onLogout={() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }} serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode} onToggleMode={onToggleMode}
         language={language} onToggleLanguage={toggleLanguage}
-        version={appVersion}
+        version={currentVersion}
+        onCheckUpdates={handleCheckUpdates}
+        isCheckingUpdates={isChecking}
+        updateCheckResult={updateCheckResult}
+        onShowUpdateDialog={handleShowUpdateDialog}
       />
       </Suspense>
+      
+      {/* 更新通知对话框 */}
+      {updateCheckResult?.hasUpdate && updateCheckResult?.release && (
+        <Suspense fallback={null}>
+          <UpdateNotification
+            isOpen={showUpdateDialog}
+            onClose={() => setShowUpdateDialog(false)}
+            currentVersion={currentVersion}
+            latestVersion={updateCheckResult.latestVersion || ''}
+            release={updateCheckResult.release}
+            language={language}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

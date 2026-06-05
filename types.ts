@@ -137,3 +137,21 @@ export interface VideoResponse {
     nextStartIndex: number;
     totalCount: number;
 }
+
+export interface GitHubRelease {
+  tag_name: string;
+  name: string;
+  body: string;
+  html_url: string;
+  published_at: string;
+  assets: Array<{
+    name: string;
+    browser_download_url: string;
+  }>;
+}
+
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  latestVersion?: string;
+  release?: GitHubRelease;
+}

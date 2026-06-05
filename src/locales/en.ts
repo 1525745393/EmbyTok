@@ -172,4 +172,18 @@ export default {
     bottom: 'Bottom',
     top: 'Top',
   },
+  update: {
+    check: 'Check for Updates',
+    checking: 'Checking for updates...',
+    newVersion: 'New Version Available',
+    currentVersion: 'Current Version',
+    latestVersion: 'Latest Version',
+    updateNow: 'Update Now',
+    later: 'Later',
+    noUpdate: 'You are already have the latest version',
+    checkFailed: 'Failed to check for updates',
+    updateAvailable: 'Update Available',
+    whatNew: "What's New",
+    download: 'Download',
+  },
 };
