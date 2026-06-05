@@ -444,10 +444,13 @@ const VideoCard: React.FC<VideoCardProps> = ({
       isDragging.current = false;
       isLongPress.current = false;
       setSeekOffset(null);
+      setIsSpeedAdjusting(false);
 
       longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           setPlaybackRate(2.0);
+          setIsSpeedAdjusting(true);
+          speedStartRate.current = 2.0; // 保存初始速度
           if (videoRef.current) videoRef.current.playbackRate = 2.0;
       }, 500);
   };
@@ -465,7 +468,20 @@ const VideoCard: React.FC<VideoCardProps> = ({
           }
       }
 
-      if (!isLongPress.current && Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      // 长按后上下滑动调整速度
+      if (isLongPress.current && Math.abs(deltaY) > 20) {
+          // 上下滑动调整速度：向上滑动提高速度，向下滑动降低速度
+          // speedStartRate.current 保存了初始速度（2.0）
+          let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
+          // 限制在 0.5 - 5.0 范围内
+          newRate = Math.max(0.5, Math.min(5.0, newRate));
+          setPlaybackRate(newRate);
+          if (videoRef.current) {
+              videoRef.current.playbackRate = newRate;
+          }
+          // 更新初始速度，便于连续调整
+          speedStartRate.current = newRate;
+      } else if (!isLongPress.current && Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
            isDragging.current = true;
            const offset = Math.round(deltaX / 5); 
            setSeekOffset(offset);
@@ -483,6 +499,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
       if (isLongPress.current) {
           isLongPress.current = false;
+          setIsSpeedAdjusting(false);
           setPlaybackRate(1.0);
           if (videoRef.current) videoRef.current.playbackRate = 1.0;
       } else if (isDragging.current) {
