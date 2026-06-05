@@ -358,16 +358,16 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                       </div>
                       <div className="space-y-2">
                           <a 
-                              href="https://gitee.com/miguyomi/embytok" 
+                              href="https://github.com/1525745393/embytok" 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-xl border border-white/5 text-white hover:bg-zinc-700/50 transition-all"
                           >
-                              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
-                                  <Star className="w-4 h-4 text-red-400" />
+                              <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                                  <Star className="w-4 h-4 text-purple-400" />
                               </div>
                               <div className="flex-1">
-                                  <div className="text-sm font-medium text-white">Gitee</div>
+                                  <div className="text-sm font-medium text-white">GitHub</div>
                                   <div className="text-xs text-zinc-400">{language === 'zh' ? '给项目点 Star' : 'Star the project'}</div>
                               </div>
                               <ExternalLink className="w-4 h-4 text-zinc-500" />
