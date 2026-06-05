@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
-import { useSearch } from '../../src/hooks';
+import { useSearch, useSubtitles } from '../../src/hooks';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
@@ -110,27 +110,18 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     }
   });
   
-  // 字幕相关状态
-  const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(() => {
-    try {
-      const saved = localStorage.getItem('embySubtitleSettings');
-      return saved ? JSON.parse(saved) : {
-        enabled: false,
-        fontSize: 'medium',
-        textColor: '#ffffff',
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        position: 'bottom'
-      };
-    } catch (e) {
-      return {
-        enabled: false,
-        fontSize: 'medium',
-        textColor: '#ffffff',
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        position: 'bottom'
-      };
-    }
-  });
+  // 字幕相关状态 - 使用 useSubtitles Hook
+  const {
+    settings: subtitleSettings,
+    updateSettings: updateSubtitleSettings,
+    toggleSubtitles,
+    selectTrack,
+    loadSubtitles,
+    cues: subtitleCues
+  } = useSubtitles();
+  
+  // 存储每个视频的字幕轨道
+  const [subtitleTracksMap, setSubtitleTracksMap] = useState<Map<string, SubtitleTrack[]>>(new Map());
   
   // 用于收藏管理的视频详情映射
   const [itemDetailsMap, setItemDetailsMap] = useState<Map<string, EmbyItem>>(new Map());
@@ -171,11 +162,6 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       defaultCollectionId: 'default'
     }));
   }, [favoritesCollections]);
-  
-  // 保存字幕设置到 localStorage
-  useEffect(() => {
-    localStorage.setItem('embySubtitleSettings', JSON.stringify(subtitleSettings));
-  }, [subtitleSettings]);
   
   // 添加到观看历史
   const handleAddToWatchHistory = useCallback((item: EmbyItem, currentTime: number, duration: number) => {
@@ -265,10 +251,46 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     }));
   }, []);
   
-  // 更新字幕设置
+  // 更新字幕设置 - 使用 useSubtitles hook
   const handleUpdateSubtitleSettings = useCallback((settings: Partial<SubtitleSettings>) => {
-    setSubtitleSettings(prev => ({ ...prev, ...settings }));
-  }, []);
+    updateSubtitleSettings(settings);
+  }, [updateSubtitleSettings]);
+  
+  // 加载当前视频的字幕轨道
+  const loadSubtitleTracksForItem = useCallback(async (itemId: string) => {
+    if (!client || subtitleTracksMap.has(itemId)) return;
+    
+    try {
+      const tracks = await client.getSubtitleTracks(itemId);
+      setSubtitleTracksMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(itemId, tracks);
+        return newMap;
+      });
+    } catch (error) {
+      console.error('Failed to load subtitle tracks:', error);
+    }
+  }, [client, subtitleTracksMap]);
+  
+  // 监听当前视频变化，加载字幕轨道
+  useEffect(() => {
+    if (videos.length > 0 && currentIndex < videos.length) {
+      const currentItem = videos[currentIndex];
+      loadSubtitleTracksForItem(currentItem.Id);
+    }
+  }, [videos, currentIndex, loadSubtitleTracksForItem]);
+  
+  // 监听字幕轨道选择变化，加载字幕内容
+  useEffect(() => {
+    if (videos.length > 0 && currentIndex < videos.length && subtitleSettings.selectedTrackId) {
+      const currentItem = videos[currentIndex];
+      const tracks = subtitleTracksMap.get(currentItem.Id) || [];
+      const selectedTrack = tracks.find(t => t.id === subtitleSettings.selectedTrackId);
+      if (selectedTrack) {
+        loadSubtitles(selectedTrack);
+      }
+    }
+  }, [videos, currentIndex, subtitleSettings.selectedTrackId, subtitleTracksMap, loadSubtitles]);
   
   // 将视频添加到 itemDetailsMap 以便收藏管理使用
   useEffect(() => {
@@ -529,6 +551,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                     isAutoPlay={isAutoPlay} 
                     onToggleAutoPlay={() => setIsAutoPlay(!isAutoPlay)} 
                     language={language}
+                    subtitleTracksMap={subtitleTracksMap}
                     subtitleSettings={subtitleSettings}
                     onUpdateSubtitleSettings={handleUpdateSubtitleSettings}
                     onAddToWatchHistory={handleAddToWatchHistory}

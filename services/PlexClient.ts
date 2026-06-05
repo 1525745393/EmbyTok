@@ -1,6 +1,6 @@
 
 import { MediaClient } from './MediaClient';
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode, SubtitleTrack } from '../types';
 
 export class PlexClient extends MediaClient {
     
@@ -228,6 +228,52 @@ export class PlexClient extends MediaClient {
             return this.mapPlexItems(videoItems);
         } catch (error) {
             console.error('Plex search failed:', error);
+            return [];
+        }
+    }
+
+    async getSubtitleTracks(itemId: string): Promise<SubtitleTrack[]> {
+        try {
+            const response = await fetch(`${this.getCleanUrl()}/library/metadata/${itemId}`, { 
+                headers: this.getHeaders() 
+            });
+            
+            const data = await response.json();
+            const metadata = data.MediaContainer?.Metadata?.[0];
+            const subtitleTracks: SubtitleTrack[] = [];
+            
+            if (metadata?.Media) {
+                metadata.Media.forEach((media: any) => {
+                    if (media.Part) {
+                        media.Part.forEach((part: any) => {
+                            if (part.Stream) {
+                                part.Stream
+                                    .filter((stream: any) => stream.streamType === 3) // 3 = subtitle
+                                    .forEach((stream: any) => {
+                                        let url: string | undefined;
+                                        if (stream.key) {
+                                            url = `${this.getCleanUrl()}${stream.key}?X-Plex-Token=${this.config.token}`;
+                                        }
+                                        
+                                        subtitleTracks.push({
+                                            id: `${itemId}_${stream.id}`,
+                                            label: stream.displayTitle || stream.languageCode || `字幕 ${subtitleTracks.length + 1}`,
+                                            language: stream.languageCode || 'und',
+                                            isDefault: stream.default || false,
+                                            codec: stream.codec,
+                                            isExternal: false,
+                                            url
+                                        });
+                                    });
+                            }
+                        });
+                    }
+                });
+            }
+            
+            return subtitleTracks;
+        } catch (error) {
+            console.error('Failed to get subtitle tracks:', error);
             return [];
         }
     }

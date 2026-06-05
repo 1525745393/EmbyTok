@@ -1,6 +1,6 @@
 
 import { MediaClient } from './MediaClient';
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode, SubtitleTrack } from '../types';
 
 export class EmbyClient extends MediaClient {
     
@@ -247,7 +247,7 @@ export class EmbyClient extends MediaClient {
         }));
     }
 
-    async getSubtitleTracks(itemId: string): Promise<any[]> {
+    async getSubtitleTracks(itemId: string): Promise<SubtitleTrack[]> {
         try {
             const params = new URLSearchParams({
                 Fields: 'MediaSources'
@@ -260,7 +260,7 @@ export class EmbyClient extends MediaClient {
             const data = await response.json();
             const mediaSources = data.MediaSources || [];
             
-            const subtitleTracks: any[] = [];
+            const subtitleTracks: SubtitleTrack[] = [];
             mediaSources.forEach((source: any) => {
                 if (source.MediaStreams) {
                     source.MediaStreams

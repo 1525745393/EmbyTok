@@ -24,7 +24,7 @@ interface VideoFeedProps {
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
   language?: 'zh' | 'en';
-  subtitleTracks?: SubtitleTrack[];
+  subtitleTracksMap?: Map<string, SubtitleTrack[]>;
   subtitleSettings?: SubtitleSettings;
   onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
   onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
@@ -48,7 +48,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
     language = 'zh',
-    subtitleTracks = [],
+    subtitleTracksMap = new Map(),
     subtitleSettings,
     onUpdateSubtitleSettings = () => {},
     onAddToWatchHistory = () => {}
@@ -256,7 +256,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               language={language}
               isPreloaded={isPreloadedItem}
               cacheStatus={cacheStatus}
-              subtitleTracks={subtitleTracks}
+              subtitleTracks={subtitleTracksMap.get(item.Id) || []}
               subtitleSettings={subtitleSettings}
               onUpdateSubtitleSettings={onUpdateSubtitleSettings}
               onAddToWatchHistory={onAddToWatchHistory}
@@ -267,7 +267,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus]);
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory]);
 
   if (videos.length === 0 && !isLoading) {
     return (

@@ -1,5 +1,5 @@
 
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode } from '../types';
+import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode, SubtitleTrack } from '../types';
 
 export abstract class MediaClient {
     config: ServerConfig;
@@ -38,4 +38,7 @@ export abstract class MediaClient {
 
     // 搜索功能
     abstract searchItems(query: string): Promise<EmbyItem[]>;
+
+    // 字幕功能
+    abstract getSubtitleTracks(itemId: string): Promise<SubtitleTrack[]>;
 }
