@@ -32,6 +32,9 @@ export interface MediaSource {
   Container: string;
   Path: string;
   Protocol: string;
+  SupportsDirectPlay?: boolean;
+  SupportsDirectStream?: boolean;
+  SupportsTranscoding?: boolean;
 }
 
 export interface EmbyItem {
