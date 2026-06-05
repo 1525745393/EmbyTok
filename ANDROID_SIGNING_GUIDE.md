@@ -4,7 +4,25 @@
 
 如果在更新应用时遇到 "同名应用签名不同" / "安装失败" 的错误，是因为每次构建都使用了不同的签名密钥。本指南将帮助您配置固定的签名密钥。
 
-## 解决方案
+## 🚀 快速开始（推荐）
+
+使用我们提供的自动化脚本，一键完成签名配置：
+
+```bash
+cd android
+./setup-keystore.sh
+```
+
+脚本会自动：
+1. 生成签名密钥
+2. 创建配置文件
+3. 设置所有必要的选项
+
+---
+
+## 手动配置步骤
+
+如果您想手动配置，请按以下步骤操作：
 
 ### 步骤 1：生成签名密钥
 
@@ -57,7 +75,7 @@ cd android
 ./gradlew assembleRelease
 ```
 
-## 密钥管理
+## 🔑 密钥管理
 
 ### 备份密钥
 
@@ -88,8 +106,8 @@ cd android
 ## 版本号更新说明
 
 当前版本信息：
-- `versionCode`: 3
-- `versionName`: 1.9.0
+- `versionCode`: 4
+- `versionName`: 1.9.1
 
 每次发布新版本时：
 - `versionCode` 需要递增（整数）
@@ -105,3 +123,10 @@ A: 非常遗憾，无法恢复。您需要生成新密钥并要求用户重新�
 
 ### Q: 可以同时保留 debug 和 release 签名吗？
 A: 可以，但本配置已统一使用 release 签名，确保所有构建签名一致。
+
+### Q: 使用 setup-keystore.sh 脚本时需要什么环境？
+A: 需要安装 Java JDK（推荐 JDK 17 或 21），并且有 `keytool` 命令可用。
+
+### Q: 生成后的 APK 在哪里？
+A: 构建完成后，APK 位于：`android/app/build/outputs/apk/debug/app-debug.apk` 或 `android/app/build/outputs/apk/release/app-release.apk`
+
