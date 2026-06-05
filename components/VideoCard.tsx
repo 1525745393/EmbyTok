@@ -516,17 +516,17 @@ const VideoCard: React.FC<VideoCardProps> = ({
               const tapInterval = currentTime - lastTapTime.current;
               
               if (tapInterval < 300 && tapInterval > 0) {
-                  // 双击，切换进度条显示/隐藏
-                  setShowProgress(!showProgress);
-                  if (!showProgress) {
-                      // 如果从隐藏切换到显示，启动自动隐藏定时器
-                      resetHideTimer();
-                  } else {
-                      // 如果从显示切换到隐藏，清除定时器
-                      if (hideProgressTimerRef.current) {
-                          clearTimeout(hideProgressTimerRef.current);
-                      }
+                  // 双击，显示红心动效
+                  const touch = e.changedTouches[0];
+                  addHeart(touch.clientX - 40, touch.clientY - 40);
+                  
+                  // 双击同时也触发收藏
+                  if (!isFavorite) {
+                      onToggleFavorite();
                   }
+                  
+                  // 双击也显示进度条
+                  showProgressAndResetTimer();
               } else {
                   // 单击，延迟判断，避免与双击冲突
                   setTimeout(() => {
@@ -534,7 +534,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
                       const newTapInterval = newTapTime - lastTapTime.current;
                       // 如果在300ms内没有新的点击，则认为是单击
                       if (newTapInterval >= 300) {
-                          togglePlay();
+                          // 单击显示/隐藏进度条
+                          if (showProgress) {
+                              // 如果进度条已经显示，单击播放/暂停
+                              togglePlay();
+                          } else {
+                              // 如果进度条隐藏，单击显示进度条
+                              showProgressAndResetTimer();
+                          }
                       }
                   }, 310);
               }
