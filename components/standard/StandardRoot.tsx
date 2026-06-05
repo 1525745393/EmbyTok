@@ -60,8 +60,8 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   
   // 语言状态
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
-  // 版本号 - 从 package.json 读取
-  const appVersion = '1.9.3';
+  // 版本号
+  const [appVersion, setAppVersion] = useState<string>('1.2.3');
   
   // 搜索相关状态 - 使用 useSearch Hook
   const [showSearch, setShowSearch] = useState(false);
