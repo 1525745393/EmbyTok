@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { EmbyItem, FeedType } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
@@ -49,6 +49,26 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [showToast, setShowToast] = useState(false);
   const [isTV, setIsTV] = useState(false);
   const isFirstRender = useRef(true);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // 只渲染当前、上一个和下一个视频，大幅减少 DOM 节点
+  const visibleIndices = useMemo(() => {
+    const indices = new Set<number>();
+    if (activeIndex > 0) indices.add(activeIndex - 1);
+    indices.add(activeIndex);
+    if (activeIndex < videos.length - 1) indices.add(activeIndex + 1);
+    return indices;
+  }, [activeIndex, videos.length]);
+
+  // 记忆化的 toggle favorite 回调
+  const createToggleFavorite = useCallback((itemId: string, isFavorite: boolean) => {
+    return () => onToggleFavorite(itemId, isFavorite);
+  }, [onToggleFavorite]);
+
+  // 记忆化的 delete 回调
+  const createDelete = useCallback((itemId: string) => {
+    return () => onDelete(itemId);
+  }, [onDelete]);
 
   useEffect(() => {
     setIsTV(window.navigator.userAgent.toLowerCase().includes('tv'));
@@ -68,7 +88,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         const timer = setTimeout(() => setShowToast(false), 2000);
         return () => clearTimeout(timer);
     } else {
-        // 当自动连播关闭时，立即隐藏提示
         setShowToast(false);
     }
   }, [isAutoPlay]);
@@ -83,7 +102,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, [videos.length]);
 
-  // 关键：电视遥控器按键接管
+  // 优化的键盘事件处理
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isTV) return;
@@ -107,9 +126,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isTV, activeIndex, videos.length, hasMore, scrollToVideo, onLoadMore]);
 
+  // 优化的 Intersection Observer，避免重复创建
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
 
     const options = {
       root: container,
@@ -130,20 +154,57 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       });
     };
 
-    const observer = new IntersectionObserver(handleIntersect, options);
+    observerRef.current = new IntersectionObserver(handleIntersect, options);
     const elements = container.querySelectorAll('.video-card-container');
-    elements.forEach((el) => observer.observe(el));
+    elements.forEach((el) => observerRef.current!.observe(el));
 
-    return () => observer.disconnect();
-  }, [videos, onIndexChange, feedType, hasMore, isLoading, onLoadMore]);
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [feedType, hasMore, isLoading, onIndexChange, onLoadMore, videos.length]);
 
-  const handleNextVideo = () => {
+  const handleNextVideo = useCallback(() => {
     if (activeIndex < videos.length - 1) {
         scrollToVideo(activeIndex + 1);
     } else if (hasMore) {
         onLoadMore();
     }
-  };
+  }, [activeIndex, hasMore, onLoadMore, scrollToVideo, videos.length]);
+
+  // 记忆化渲染的视频卡片
+  const renderVideoCards = useMemo(() => {
+    return videos.map((item, index) => {
+      const isVisible = visibleIndices.has(index);
+      return (
+        <div
+          key={item.Id}
+          data-index={index}
+          className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
+        >
+          {isVisible ? (
+            <VideoCard
+              item={item}
+              client={client}
+              isActive={activeIndex === index}
+              isFavorite={favoriteIds.has(item.Id)}
+              onToggleFavorite={createToggleFavorite(item.Id, favoriteIds.has(item.Id))}
+              onDelete={createDelete(item.Id)}
+              isMuted={isMuted}
+              onToggleMute={onToggleMute}
+              isAutoPlay={isAutoPlay}
+              onToggleAutoPlay={onToggleAutoPlay}
+              onVideoEnd={handleNextVideo}
+              language={language}
+            />
+          ) : (
+            <div className="w-full h-full bg-black" />
+          )}
+        </div>
+      );
+    });
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language]);
 
   if (videos.length === 0 && !isLoading) {
     return (
@@ -170,32 +231,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           ref={containerRef}
           className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black scroll-smooth"
         >
-          {videos.map((item, index) => (
-            <div
-              key={item.Id}
-              data-index={index}
-              className="video-card-container h-[100dvh] w-full snap-center snap-always relative"
-            >
-              {Math.abs(activeIndex - index) <= 1 ? (
-                <VideoCard
-                  item={item}
-                  client={client}
-                  isActive={activeIndex === index}
-                  isFavorite={favoriteIds.has(item.Id)}
-                  onToggleFavorite={() => onToggleFavorite(item.Id, favoriteIds.has(item.Id))}
-                  onDelete={() => onDelete(item.Id)}
-                  isMuted={isMuted}
-                  onToggleMute={onToggleMute}
-                  isAutoPlay={isAutoPlay}
-                  onToggleAutoPlay={onToggleAutoPlay}
-                  onVideoEnd={handleNextVideo}
-                  language={language}
-                />
-              ) : (
-                <div className="w-full h-full bg-black" />
-              )}
-            </div>
-          ))}
+          {renderVideoCards}
           
           {feedType === 'random' && videos.length > 0 && (
             <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
@@ -208,4 +244,4 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   );
 };
 
-export default VideoFeed;
+export default React.memo(VideoFeed);

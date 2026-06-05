@@ -1,12 +1,21 @@
 
-import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
-import Login from '../Login';
-import VideoFeed from '../VideoFeed';
-import VideoGrid from '../VideoGrid';
-import LibrarySelect from '../LibrarySelect';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy, Suspense } from 'react';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft } from 'lucide-react';
+
+// 代码分割：延迟加载组件
+const Login = lazy(() => import('../Login'));
+const VideoFeed = lazy(() => import('../VideoFeed'));
+const VideoGrid = lazy(() => import('../VideoGrid'));
+const LibrarySelect = lazy(() => import('../LibrarySelect'));
+
+// 简单的加载组件
+const ComponentFallback = () => (
+  <div className="flex items-center justify-center h-full w-full bg-black">
+    <div className="w-8 h-8 border-4 border-white/30 border-t-indigo-500 rounded-full animate-spin" />
+  </div>
+);
 
 type ViewMode = 'feed' | 'grid';
 const PAGE_SIZE = 200;
@@ -108,7 +117,13 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       localStorage.setItem('embyLanguage', next);
   };
 
-  if (!config || !client) return <Login onLogin={setConfig} />;
+  if (!config || !client) {
+    return (
+      <Suspense fallback={<ComponentFallback />}>
+        <Login onLogin={setConfig} />
+      </Suspense>
+    );
+  }
 
   const t = {
       zh: { favorites: '收藏', random: '随机', latest: '最新', discover: '发现中心' },
@@ -151,6 +166,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         </div>
       </div>
       <div className="w-full h-full bg-black relative z-10">
+        <Suspense fallback={<ComponentFallback />}>
         {viewMode === 'grid' ? (
             <VideoGrid videos={videos} client={client} isLoading={loading} feedType={feedType} hasMore={hasMore} onSelect={(idx) => { setCurrentIndex(idx); setViewMode('feed'); }} onLoadMore={() => loadVideos(false)} onRefresh={() => loadVideos(true)} currentIndex={currentIndex} onNavigate={(id, title) => { setNavStack(prev => [...prev, { id, title }]); setViewMode('grid'); }} />
         ) : (
@@ -189,14 +205,17 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                 language={language}
             />
         )}
+        </Suspense>
       </div>
-      <LibrarySelect isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} libraries={libraries} selectedId={selectedLib?.Id || null} onSelect={(lib) => { setSelectedLib(lib); setIsMenuOpen(false); }} hiddenLibIds={hiddenLibIds} onToggleHidden={(id) => {
+      <Suspense fallback={null}>
+        <LibrarySelect isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} libraries={libraries} selectedId={selectedLib?.Id || null} onSelect={(lib) => { setSelectedLib(lib); setIsMenuOpen(false); }} hiddenLibIds={hiddenLibIds} onToggleHidden={(id) => {
             const n = new Set(hiddenLibIds); if (n.has(id)) n.delete(id); else n.add(id);
             setHiddenLibIds(n); localStorage.setItem('embyHiddenLibs', JSON.stringify(Array.from(n)));
         }} onLogout={() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }} serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode} onToggleMode={onToggleMode}
         language={language} onToggleLanguage={toggleLanguage}
         version={appVersion}
       />
+      </Suspense>
     </div>
   );
 }

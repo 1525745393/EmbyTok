@@ -1,9 +1,9 @@
-
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { EmbyItem } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2 } from 'lucide-react';
+import { useLazyImage } from '../src/hooks';
 
 interface VideoCardProps {
   item: EmbyItem;
@@ -20,7 +20,7 @@ interface VideoCardProps {
   language?: 'zh' | 'en';
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ 
+const VideoCardComponent: React.FC<VideoCardProps> = ({ 
     item, 
     client, 
     isActive, 
@@ -34,7 +34,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
     onVideoEnd = () => {},
     language = 'zh'
 }) => {
-  const t = {
+  const t = useMemo(() => ({
     zh: {
       deleteVideo: '删除视频',
       deleteWarning: '⚠️ 警告：这将删除媒体库中的原文件！',
@@ -49,7 +49,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       networkError: '网络连接失败，请检查网络后重试',
       fileNotFound: '视频文件不存在',
       formatNotSupported: '视频格式不支持',
-      unknownError: '播放出错，请重试'
+      unknownError: '播放出错，请重试',
+      imageLoadError: '图片加载失败'
     },
     en: {
       deleteVideo: 'Delete Video',
@@ -65,9 +66,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
       networkError: 'Network error, please check your connection and try again',
       fileNotFound: 'Video file not found',
       formatNotSupported: 'Video format not supported',
-      unknownError: 'Playback error, please try again'
+      unknownError: 'Playback error, please try again',
+      imageLoadError: 'Image load failed'
     }
-  }[language];
+  }[language]), [language]);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -76,33 +79,42 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  // 播放失败重试相关
   const [retryCount, setRetryCount] = useState(0);
+  const [videoPreload, setVideoPreload] = useState<'metadata' | 'auto' | 'none'>('metadata');
   const MAX_RETRIES = 3;
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Progress State
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
-  // Gesture State
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
   const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  // 图片懒加载 hook
+  const {
+    setRef: setPosterRef,
+    isLoaded: posterIsLoaded,
+    isError: posterIsError,
+    retryLoad: retryPosterLoad,
+    canRetry: canRetryPoster
+  } = useLazyImage({
+    retryCount: 3,
+    retryDelay: 1500,
+    onError: () => setImageLoadError(true)
+  });
   
-  // 用户暂停状态
   const [isUserPaused, setIsUserPaused] = useState(false);
   
-  // Screen Orientation State
   const [isScreenLandscape, setIsScreenLandscape] = useState(() => 
     typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false
   );
   
-  // --- Gesture Refs
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
@@ -110,32 +122,39 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speedStartRate = useRef(2.0);
   
-  // 双击检测
   const lastTapTime = useRef<number>(0);
-
-  // 进度条区域双击检测
   const progressTapCount = useRef(0);
   const progressTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 自动隐藏进度条
-  const resetHideTimer = () => {
-    if (hideProgressTimerRef.current) {
-      clearTimeout(hideProgressTimerRef.current);
-    }
-    hideProgressTimerRef.current = setTimeout(() => {
-      setShowProgress(false);
-    }, 5000);
-  };
-
-  // 显示进度条并重置隐藏定时器
-  const showProgressAndResetTimer = () => {
-    setShowProgress(true);
-    resetHideTimer();
-  };
-  
-  // 红心动效状态管理
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number; rotate: number; scale: number }[]>([]);
   
+  const saveProgressIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const STORAGE_KEY_PREFIX = 'embystok_progress_';
+  
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
+  const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
+  const posterSrc = useMemo(() => 
+    item.ImageTags?.Primary 
+      ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
+      : undefined,
+    [client, item.Id, item.ImageTags?.Primary]
+  );
+    
+  const isContentLandscape = useMemo(() => (item.Width || 0) > (item.Height || 0), [item.Width, item.Height]);
+
+  const showBlurBackground = useMemo(() => isScreenLandscape && !isContentLandscape, [isScreenLandscape, isContentLandscape]);
+  
+  const videoObjectFitClass = useMemo(() => 
+    (isScreenLandscape || isContentLandscape) 
+      ? 'object-contain' 
+      : 'object-cover',
+    [isScreenLandscape, isContentLandscape]
+  );
+
+  const showProgressBar = useMemo(() => duration > 180 && !isAutoPlay && showProgress, [duration, isAutoPlay, showProgress]);
+  const renderUI = useMemo(() => !isAutoPlay, [isAutoPlay]);
+
   const addHeart = useCallback((x: number, y: number) => {
       const id = Date.now();
       const rotate = (Math.random() - 0.5) * 40;
@@ -147,10 +166,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
       }, 1000);
   }, []);
 
-  // 记忆播放进度相关
-  const saveProgressIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const STORAGE_KEY_PREFIX = 'embystok_progress_';
-  
   const saveProgress = useCallback(() => {
       if (!videoRef.current || !item.Id) return;
       try {
@@ -161,7 +176,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           };
           localStorage.setItem(STORAGE_KEY_PREFIX + item.Id, JSON.stringify(progress));
       } catch (e) {
-          // 静默失败
       }
   }, [item.Id]);
 
@@ -171,99 +185,30 @@ const VideoCard: React.FC<VideoCardProps> = ({
           const saved = localStorage.getItem(STORAGE_KEY_PREFIX + item.Id);
           if (saved) {
               const progress = JSON.parse(saved);
-              // 只保留最近7天的进度
               if (Date.now() - progress.timestamp < 7 * 24 * 60 * 60 * 1000) {
                   return progress.time;
               }
           }
       } catch (e) {
-          // 静默失败
       }
       return 0;
   }, [item.Id]);
 
-  const videoSrc = client.getVideoUrl(item);
-  const posterSrc = item.ImageTags?.Primary 
-    ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
-    : undefined;
-    
-  const isContentLandscape = (item.Width || 0) > (item.Height || 0);
-
-  useEffect(() => {
-      const handleResize = () => {
-          setIsScreenLandscape(window.innerWidth > window.innerHeight);
-      };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+  const resetHideTimer = useCallback(() => {
+    if (hideProgressTimerRef.current) {
+      clearTimeout(hideProgressTimerRef.current);
+    }
+    hideProgressTimerRef.current = setTimeout(() => {
+      setShowProgress(false);
+    }, 5000);
   }, []);
 
-  // 初始化自动隐藏
-  useEffect(() => {
+  const showProgressAndResetTimer = useCallback(() => {
+    setShowProgress(true);
     resetHideTimer();
-    return () => {
-      if (hideProgressTimerRef.current) clearTimeout(hideProgressTimerRef.current);
-    };
-  }, []);
+  }, [resetHideTimer]);
 
-  // 播放进度保存
-  useEffect(() => {
-    if (isActive && isPlaying) {
-      // 每5秒保存一次进度
-      saveProgressIntervalRef.current = setInterval(() => {
-        saveProgress();
-      }, 5000);
-    } else if (saveProgressIntervalRef.current) {
-      // 停止播放时立即保存一次
-      saveProgress();
-      clearInterval(saveProgressIntervalRef.current);
-      saveProgressIntervalRef.current = null;
-    }
-    
-    return () => {
-      if (saveProgressIntervalRef.current) {
-        clearInterval(saveProgressIntervalRef.current);
-      }
-      saveProgress(); // 组件卸载时保存进度
-    };
-  }, [isActive, isPlaying, saveProgress]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    video.muted = isMuted;
-
-    if (isActive) {
-      setError(null);
-      video.playbackRate = 1.0;
-      setPlaybackRate(1.0);
-      setIsUserPaused(false); // 重置用户暂停状态
-      
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-              // Only set playing state, hasStarted is set in onPlaying event for smoother visual transition
-              setIsPlaying(true);
-          })
-          .catch((err) => {
-            console.warn("Autoplay failed", err);
-            setIsPlaying(false);
-          });
-      }
-      
-      // CRITICAL FIX: preventScroll: true prevents the browser from jumping the scroll position
-      containerRef.current?.focus({ preventScroll: true });
-    } else {
-      video.pause();
-      video.currentTime = 0;
-      setIsPlaying(false);
-      setHasStarted(false);
-      setIsUserPaused(false); // 重置用户暂停状态
-    }
-  }, [isActive, isMuted]);
-
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -276,46 +221,44 @@ const VideoCard: React.FC<VideoCardProps> = ({
       setIsPlaying(false);
       setIsUserPaused(true);
     }
-  };
+  }, []);
 
-  const handlePlaying = () => {
+  const handlePlaying = useCallback(() => {
       setIsPlaying(true);
       setHasStarted(true); 
       setIsLoading(false);
-  };
+  }, []);
 
-  const handleWaiting = () => {
+  const handleWaiting = useCallback(() => {
       setIsLoading(true);
-  };
+  }, []);
 
-  const handleCanPlay = () => {
+  const handleCanPlay = useCallback(() => {
       setIsLoading(false);
-      setRetryCount(0); // 成功播放，重置重试计数
+      setRetryCount(0);
       if (retryTimerRef.current) {
           clearTimeout(retryTimerRef.current);
           retryTimerRef.current = null;
       }
-  };
+  }, []);
 
-  const handleTimeUpdate = () => {
+  const handleTimeUpdate = useCallback(() => {
       if (videoRef.current && !isSeeking) {
           setCurrentTime(videoRef.current.currentTime);
       }
-  };
+  }, [isSeeking]);
 
-  const handleLoadedMetadata = () => {
+  const handleLoadedMetadata = useCallback(() => {
       if (videoRef.current) {
           setDuration(videoRef.current.duration);
-          // 恢复播放进度
           const savedTime = loadProgress();
           if (savedTime > 0 && savedTime < videoRef.current.duration - 10) {
               videoRef.current.currentTime = savedTime;
           }
       }
-  };
+  }, [loadProgress]);
 
-  const handleVideoEnded = () => {
-      // 视频结束时清除保存的进度
+  const handleVideoEnded = useCallback(() => {
       if (item.Id) {
           try {
               localStorage.removeItem(STORAGE_KEY_PREFIX + item.Id);
@@ -324,61 +267,46 @@ const VideoCard: React.FC<VideoCardProps> = ({
       if (isAutoPlay) {
           onVideoEnd();
       }
-  };
+  }, [item.Id, isAutoPlay, onVideoEnd]);
 
-  // --- Button Handlers with Robust Touch Support ---
-  
-  const handleButtonAction = (e: React.TouchEvent | React.MouseEvent | React.KeyboardEvent, action: () => void) => {
+  const handleButtonAction = useCallback((e: React.TouchEvent | React.MouseEvent | React.KeyboardEvent, action: () => void) => {
       e.stopPropagation();
       if (e.type === 'touchend') {
           e.preventDefault(); 
       }
       action();
-  };
+  }, []);
 
-  const stopProp = (e: React.TouchEvent | React.MouseEvent | React.KeyboardEvent) => {
+  const stopProp = useCallback((e: React.TouchEvent | React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
-  };
+  }, []);
 
-  const handleContextMenu = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent) => {
       e.preventDefault();
-  };
+  }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-      switch(e.key) {
-          case 'Enter':
-          case ' ':
-              togglePlay();
-              break;
-          case 'ArrowLeft':
-              if (videoRef.current) videoRef.current.currentTime -= 10;
-              break;
-          case 'ArrowRight':
-              if (videoRef.current) videoRef.current.currentTime += 10;
-              break;
-          case 'm':
-              onToggleMute();
-              break;
-          case 'f':
-              onToggleFavorite();
-              break;
-      }
-  };
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    switch(e.key) {
+      case 'Enter':
+      case ' ':
+          togglePlay();
+          break;
+      case 'ArrowLeft':
+          if (videoRef.current) videoRef.current.currentTime -= 10;
+          break;
+      case 'ArrowRight':
+          if (videoRef.current) videoRef.current.currentTime += 10;
+          break;
+      case 'm':
+          onToggleMute();
+          break;
+      case 'f':
+          onToggleFavorite();
+          break;
+    }
+  }, [togglePlay, onToggleMute, onToggleFavorite]);
 
-  // 进度条容器引用
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  
-  // --- Seek Bar Handlers ---
-  const handleSeekStart = (e: React.TouchEvent | React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      setIsSeeking(true);
-      
-      // 计算初始位置
-      updateSeekPosition(e);
-  };
-
-  const updateSeekPosition = (e: React.TouchEvent | React.MouseEvent) => {
+  const updateSeekPosition = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       if (!progressBarRef.current || !duration) return;
       
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -387,58 +315,50 @@ const VideoCard: React.FC<VideoCardProps> = ({
       const newTime = percent * duration;
       setCurrentTime(newTime);
       
-      // 实时更新视频位置
       if (videoRef.current) {
           videoRef.current.currentTime = newTime;
       }
-  };
+  }, [duration]);
 
-  const handleSeekMove = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleSeekStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      if (!isSeeking) return;
-      
+      setIsSeeking(true);
       updateSeekPosition(e);
-  };
+  }, [updateSeekPosition]);
 
-  // 进度条区域手势处理
-  const handleProgressTouchStart = (e: React.TouchEvent) => {
-      e.stopPropagation();
-      
-      // 显示进度条并重置定时器
-      showProgressAndResetTimer();
-      
-      // 开始拖动进度
-      handleSeekStart(e);
-  };
-
-  const handleProgressTouchMove = (e: React.TouchEvent) => {
+  const handleSeekMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      
-      // 显示进度条并重置定时器
-      showProgressAndResetTimer();
-      
-      handleSeekMove(e);
-  };
+      if (!isSeeking) return;
+      updateSeekPosition(e);
+  }, [isSeeking, updateSeekPosition]);
 
-  const handleProgressTouchEnd = (e: React.TouchEvent) => {
-      e.stopPropagation();
-      
-      handleSeekEnd(e);
-  };
-
-  const handleSeekEnd = (e: React.TouchEvent | React.MouseEvent) => {
+  const handleSeekEnd = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
       if (!isSeeking) return;
-      
       setIsSeeking(false);
-      // 视频位置已经在 updateSeekPosition 中实时更新了
-  };
+  }, [isSeeking]);
 
-  // --- Gesture Handlers ---
+  const handleProgressTouchStart = useCallback((e: React.TouchEvent) => {
+      e.stopPropagation();
+      showProgressAndResetTimer();
+      handleSeekStart(e);
+  }, [showProgressAndResetTimer, handleSeekStart]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleProgressTouchMove = useCallback((e: React.TouchEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      showProgressAndResetTimer();
+      handleSeekMove(e);
+  }, [showProgressAndResetTimer, handleSeekMove]);
+
+  const handleProgressTouchEnd = useCallback((e: React.TouchEvent) => {
+      e.stopPropagation();
+      handleSeekEnd(e);
+  }, [handleSeekEnd]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
       isDragging.current = false;
@@ -450,12 +370,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
           isLongPress.current = true;
           setPlaybackRate(2.0);
           setIsSpeedAdjusting(true);
-          speedStartRate.current = 2.0; // 保存初始速度
+          speedStartRate.current = 2.0;
           if (videoRef.current) videoRef.current.playbackRate = 2.0;
       }, 500);
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
       const currentX = e.touches[0].clientX;
       const currentY = e.touches[0].clientY;
       const deltaX = currentX - touchStartX.current;
@@ -468,27 +388,22 @@ const VideoCard: React.FC<VideoCardProps> = ({
           }
       }
 
-      // 长按后上下滑动调整速度
       if (isLongPress.current && Math.abs(deltaY) > 20) {
-          // 上下滑动调整速度：向上滑动提高速度，向下滑动降低速度
-          // speedStartRate.current 保存了初始速度（2.0）
           let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
-          // 限制在 0.5 - 5.0 范围内
           newRate = Math.max(0.5, Math.min(5.0, newRate));
           setPlaybackRate(newRate);
           if (videoRef.current) {
               videoRef.current.playbackRate = newRate;
           }
-          // 更新初始速度，便于连续调整
           speedStartRate.current = newRate;
       } else if (!isLongPress.current && Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
            isDragging.current = true;
            const offset = Math.round(deltaX / 5); 
            setSeekOffset(offset);
       }
-  };
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
       if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
@@ -511,35 +426,26 @@ const VideoCard: React.FC<VideoCardProps> = ({
           setSeekOffset(null);
       } else {
           if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-              // 检测双击
               const currentTime = Date.now();
               const tapInterval = currentTime - lastTapTime.current;
               
               if (tapInterval < 300 && tapInterval > 0) {
-                  // 双击，显示红心动效
                   const touch = e.changedTouches[0];
                   addHeart(touch.clientX - 40, touch.clientY - 40);
                   
-                  // 双击同时也触发收藏
                   if (!isFavorite) {
                       onToggleFavorite();
                   }
                   
-                  // 双击也显示进度条
                   showProgressAndResetTimer();
               } else {
-                  // 单击，延迟判断，避免与双击冲突
                   setTimeout(() => {
                       const newTapTime = Date.now();
                       const newTapInterval = newTapTime - lastTapTime.current;
-                      // 如果在300ms内没有新的点击，则认为是单击
                       if (newTapInterval >= 300) {
-                          // 单击显示/隐藏进度条
                           if (showProgress) {
-                              // 如果进度条已经显示，单击播放/暂停
                               togglePlay();
                           } else {
-                              // 如果进度条隐藏，单击显示进度条
                               showProgressAndResetTimer();
                           }
                       }
@@ -549,32 +455,97 @@ const VideoCard: React.FC<VideoCardProps> = ({
               lastTapTime.current = currentTime;
           }
       }
-  };
+  }, [addHeart, isFavorite, onToggleFavorite, showProgress, togglePlay, showProgressAndResetTimer]);
 
-  const formatTimeText = (ticks?: number) => {
+  const formatTimeText = useCallback((ticks?: number) => {
     if (!ticks) return '';
     const minutes = Math.round(ticks / 10000000 / 60);
     return `${minutes} 分钟`;
-  };
+  }, []);
 
-  const formatSecondsToTime = (seconds: number): string => {
+  const formatSecondsToTime = useCallback((seconds: number): string => {
     if (!seconds || isNaN(seconds)) return '00:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
+  }, []);
 
-  const showBlurBackground = isScreenLandscape && !isContentLandscape;
-  
-  const videoObjectFitClass = (isScreenLandscape || isContentLandscape) 
-      ? 'object-contain' 
-      : 'object-cover';
+  useEffect(() => {
+      const handleResize = () => {
+          setIsScreenLandscape(window.innerWidth > window.innerHeight);
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Only show progress bar for videos longer than 3 minutes, AND when NOT in AutoPlay mode
-  const showProgressBar = duration > 180 && !isAutoPlay && showProgress;
+  useEffect(() => {
+    resetHideTimer();
+    return () => {
+      if (hideProgressTimerRef.current) clearTimeout(hideProgressTimerRef.current);
+    };
+  }, [resetHideTimer]);
 
-  // Render UI elements only if NOT in AutoPlay (Pure) Mode
-  const renderUI = !isAutoPlay;
+  useEffect(() => {
+    if (isActive && isPlaying) {
+      saveProgressIntervalRef.current = setInterval(() => {
+        saveProgress();
+      }, 5000);
+    } else if (saveProgressIntervalRef.current) {
+      saveProgress();
+      clearInterval(saveProgressIntervalRef.current);
+      saveProgressIntervalRef.current = null;
+    }
+    
+    return () => {
+      if (saveProgressIntervalRef.current) {
+        clearInterval(saveProgressIntervalRef.current);
+      }
+      saveProgress();
+    };
+  }, [isActive, isPlaying, saveProgress]);
+
+  // 根据活跃状态动态调整视频 preload 策略
+  useEffect(() => {
+    if (isActive) {
+      setVideoPreload('auto');
+    } else {
+      setVideoPreload('metadata');
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    video.muted = isMuted;
+
+    if (isActive) {
+      setError(null);
+      video.playbackRate = 1.0;
+      setPlaybackRate(1.0);
+      setIsUserPaused(false);
+      
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+              setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn("Autoplay failed", err);
+            setIsPlaying(false);
+          });
+      }
+      
+      containerRef.current?.focus({ preventScroll: true });
+    } else {
+      video.pause();
+      video.currentTime = 0;
+      setIsPlaying(false);
+      setHasStarted(false);
+      setIsUserPaused(false);
+    }
+  }, [isActive, isMuted]);
 
   return (
     <div 
@@ -587,19 +558,19 @@ const VideoCard: React.FC<VideoCardProps> = ({
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
     >
-      {/* Blurred Background Layer for Vertical Videos in Landscape Mode */}
       {showBlurBackground && posterSrc && (
           <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
                <img 
                   src={posterSrc} 
                   alt="" 
-                  className="w-full h-full object-cover blur-2xl opacity-40 scale-110" 
+                  className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
+                  loading="lazy"
+                  decoding="async"
                />
                <div className="absolute inset-0 bg-black/30"></div>
           </div>
       )}
 
-      {/* Video Element */}
       <video
         ref={videoRef}
         className={`w-full h-full pointer-events-none relative z-10 bg-transparent ${videoObjectFitClass}`}
@@ -607,12 +578,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
         loop={!isAutoPlay}
         playsInline
         muted={isMuted}
+        preload={videoPreload}
         onPlaying={handlePlaying}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleVideoEnded}
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
+        onCanPlayThrough={() => {
+          setIsLoading(false);
+        }}
         onError={(e) => {
           const video = e.target as HTMLVideoElement;
           let errorMsg = t.unknownError;
@@ -637,30 +612,52 @@ const VideoCard: React.FC<VideoCardProps> = ({
         }}
       />
 
-      {/* Manual Poster Overlay */}
       {posterSrc && !hasStarted && (
-        <img 
-            src={posterSrc}
-            className={`absolute inset-0 w-full h-full z-10 bg-transparent pointer-events-none ${videoObjectFitClass}`}
-            alt=""
-        />
+        <>
+          <img 
+              ref={setPosterRef}
+              data-src={posterSrc}
+              className={`absolute inset-0 w-full h-full z-10 bg-transparent pointer-events-none ${videoObjectFitClass} ${posterIsLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+              alt=""
+              decoding="async"
+              onLoad={() => {}}
+              onError={() => setImageLoadError(true)}
+          />
+          {!posterIsLoaded && (
+            <div className="absolute inset-0 w-full h-full z-9 bg-zinc-900 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-white/30 border-t-white/60 rounded-full animate-spin" />
+            </div>
+          )}
+          {posterIsError && canRetryPoster && (
+            <div className="absolute inset-0 w-full h-full z-9 bg-zinc-900 flex flex-col items-center justify-center gap-3">
+              <p className="text-white/70 text-sm">{t.imageLoadError}</p>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageLoadError(false);
+                  retryPosterLoad();
+                }}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
+              >
+                {language === 'zh' ? '重试' : 'Retry'}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Loading Indicator */}
       {isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="w-10 h-10 border-4 border-white/30 border-t-white/80 rounded-full animate-spin" />
         </div>
       )}
 
-      {/* Play/Pause Overlay Icon */}
       {!isPlaying && !error && !seekOffset && !isLongPress.current && isUserPaused && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/20 z-20">
           <Play className="w-16 h-16 text-white/50 fill-white/50" />
         </div>
       )}
 
-      {/* 红心动效 */}
       <AnimatePresence>
           {hearts.map(heart => (
               <motion.div
@@ -686,7 +683,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           ))}
       </AnimatePresence>
 
-      {/* Speed Indicator (Clickable) */}
       {playbackRate !== 1.0 && (
           <div 
             className="absolute top-24 left-0 right-0 flex justify-center z-50 cursor-pointer"
@@ -702,7 +698,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </div>
       )}
 
-      {/* Speed Selection Menu */}
       {showSpeedMenu && (
           <div 
             className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
@@ -729,7 +724,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </div>
       )}
 
-      {/* Seek Overlay */}
       {seekOffset !== null && (
           <div className="absolute top-24 left-0 right-0 flex flex-col items-center justify-start z-50 pointer-events-none">
               <div className="flex flex-col items-center gap-1 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl">
@@ -744,8 +738,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
               </div>
           </div>
       )}
-      
-      {/* Toast Notification Removed from here to prevent duplicate alerts */}
 
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 z-10">
@@ -755,7 +747,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                // 重试播放
                 setError(null);
                 setRetryCount(prev => prev + 1);
                 if (videoRef.current) {
@@ -771,7 +762,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
         </div>
       )}
       
-      {/* Auto Play Toggle Button (Always Visible) */}
       <div className="absolute bottom-8 right-2 z-40 w-12 flex flex-col items-center justify-center pointer-events-auto">
           <button
             onTouchStart={stopProp} 
@@ -784,13 +774,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </button>
       </div>
 
-      {/* RIGHT SIDEBAR ACTION BAR (Conditional) */}
       {renderUI && (
           <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 z-30 pointer-events-auto">
               <div className="relative w-12 h-12 mb-2">
                   <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-zinc-800">
                       {posterSrc ? (
-                          <img src={posterSrc} alt="Poster" className="w-full h-full object-cover" />
+                          <img src={posterSrc} alt="Poster" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                           <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-xs">Media</div>
                       )}
@@ -868,7 +857,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     className={`mt-4 w-10 h-10 rounded-full bg-zinc-900 border-4 cursor-pointer transition-colors duration-300 flex items-center justify-center overflow-hidden focus:ring-2 focus:ring-indigo-500 outline-none ${isMuted ? 'border-red-500/80' : 'border-zinc-800'} ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}
               >
                     {posterSrc ? (
-                        <img src={posterSrc} className="w-full h-full object-cover opacity-70" />
+                        <img src={posterSrc} className="w-full h-full object-cover opacity-70" loading="lazy" decoding="async" />
                     ) : (
                         <Disc className="w-6 h-6 text-zinc-500" />
                     )}
@@ -876,7 +865,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </div>
       )}
 
-      {/* BOTTOM INFO (Conditional) */}
       {renderUI && (
           <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-all duration-300 pointer-events-auto z-10 ${showInfo ? 'h-2/3 from-black/95' : 'pt-24'}`}>
             <div className="flex flex-col items-start max-w-[80%]">
@@ -898,13 +886,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     onClick={(e) => handleButtonAction(e, () => setShowInfo(!showInfo))}
                     className={`text-white/80 text-sm drop-shadow-md transition-all duration-300 cursor-pointer focus:ring-1 focus:ring-white/50 rounded ${showInfo ? 'line-clamp-none overflow-y-auto max-h-[40vh]' : 'line-clamp-2'}`}
                 >
-                    {item.Overview || t.noOverview}
+                  {item.Overview || t.noOverview}
                 </div>
             </div>
           </div>
       )}
 
-      {/* Speed Adjustment Indicator */}
       {isSpeedAdjusting && (
           <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-50">
               <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2 animate-in fade-in zoom-in">
@@ -914,17 +901,14 @@ const VideoCard: React.FC<VideoCardProps> = ({
           </div>
       )}
 
-      {/* Progress Bar (Conditional) */}
       {showProgressBar && duration > 0 && (
           <div 
             className="absolute bottom-8 left-4 right-4 h-12 flex items-center gap-3 z-50"
           >
-              {/* Current Time */}
               <span className="text-white text-xs font-medium drop-shadow-md w-10 text-right pointer-events-none">
                 {formatSecondsToTime(currentTime)}
               </span>
 
-              {/* Progress Bar Container */}
               <div 
                 ref={progressBarRef}
                 className="flex-1 relative h-12 flex items-center cursor-pointer"
@@ -940,7 +924,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
                     showProgressAndResetTimer();
                 }} 
               >
-                  {/* 增大触摸区域 */}
                   <div className="absolute inset-0 -my-4" />
                   
                   <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
@@ -957,14 +940,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
                   </div>
               </div>
 
-              {/* Total Time */}
               <span className="text-white text-xs font-medium drop-shadow-md w-10 pointer-events-none">
                 {formatSecondsToTime(duration)}
               </span>
           </div>
       )}
 
-      {/* 删除确认对话框 */}
       {showDeleteConfirm && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md z-50">
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
@@ -1000,5 +981,19 @@ const VideoCard: React.FC<VideoCardProps> = ({
     </div>
   );
 };
+
+const arePropsEqual = (prevProps: VideoCardProps, nextProps: VideoCardProps) => {
+  return (
+    prevProps.item.Id === nextProps.item.Id &&
+    prevProps.isActive === nextProps.isActive &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.isMuted === nextProps.isMuted &&
+    prevProps.isAutoPlay === nextProps.isAutoPlay &&
+    prevProps.language === nextProps.language &&
+    prevProps.client === nextProps.client
+  );
+};
+
+const VideoCard = React.memo(VideoCardComponent, arePropsEqual);
 
 export default VideoCard;

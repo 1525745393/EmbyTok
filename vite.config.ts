@@ -52,5 +52,35 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // 代码分割优化
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': ['lucide-react'],
+          'motion-vendor': ['framer-motion'],
+        },
+      },
+    },
+    // 压缩配置
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    // 目标浏览器
+    target: 'es2015',
+    // 启用 CSS 代码分割
+    cssCodeSplit: true,
+    // 源地图
+    sourcemap: false,
+    // 块大小警告限制
+    chunkSizeWarningLimit: 1000,
+  },
+  // 预构建优化
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react', 'framer-motion'],
   },
 });
