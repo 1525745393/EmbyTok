@@ -18,6 +18,8 @@ interface VideoCardProps {
   onToggleAutoPlay?: () => void;
   onVideoEnd?: () => void;
   language?: 'zh' | 'en';
+  isPreloaded?: boolean;
+  cacheStatus?: string;
 }
 
 const VideoCardComponent: React.FC<VideoCardProps> = ({ 
@@ -32,7 +34,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
     onVideoEnd = () => {},
-    language = 'zh'
+    language = 'zh',
+    isPreloaded = false,
+    cacheStatus = 'idle'
 }) => {
   const t = useMemo(() => ({
     zh: {

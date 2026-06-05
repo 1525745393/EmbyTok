@@ -4,6 +4,7 @@ import { EmbyItem, FeedType } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
 import { RefreshCw, Film, Shuffle, Infinity } from 'lucide-react';
+import { useSmartVideoPreload } from '../src/hooks';
 
 interface VideoFeedProps {
   videos: EmbyItem[];
@@ -50,15 +51,39 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [isTV, setIsTV] = useState(false);
   const isFirstRender = useRef(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  
+  // 使用智能视频预加载
+  const {
+    isPreloaded,
+    getCacheStatus,
+    updateScrollSpeed
+  } = useSmartVideoPreload(videos, activeIndex);
 
-  // 只渲染当前、上一个和下一个视频，大幅减少 DOM 节点
+  // 根据滚动速度动态调整可见视频数量
+  const [currentScrollSpeed, setCurrentScrollSpeed] = useState<number>(0);
+
+  // 根据滚动速度动态确定渲染的视频范围
   const visibleIndices = useMemo(() => {
     const indices = new Set<number>();
-    if (activeIndex > 0) indices.add(activeIndex - 1);
-    indices.add(activeIndex);
-    if (activeIndex < videos.length - 1) indices.add(activeIndex + 1);
+    let range = 1; // 默认渲染前后各1个
+    
+    // 根据滚动速度调整范围
+    if (currentScrollSpeed < 0.5) {
+      range = 2; // 慢速滚动时渲染更多
+    } else if (currentScrollSpeed > 2) {
+      range = 1; // 快速滚动时减少渲染
+    }
+    
+    // 添加要渲染的索引
+    for (let i = -range; i <= range; i++) {
+      const idx = activeIndex + i;
+      if (idx >= 0 && idx < videos.length) {
+        indices.add(idx);
+      }
+    }
+    
     return indices;
-  }, [activeIndex, videos.length]);
+  }, [activeIndex, videos.length, currentScrollSpeed]);
 
   // 记忆化的 toggle favorite 回调
   const createToggleFavorite = useCallback((itemId: string, isFavorite: boolean) => {
@@ -69,6 +94,27 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const createDelete = useCallback((itemId: string) => {
     return () => onDelete(itemId);
   }, [onDelete]);
+
+  // 处理滚动事件并更新滚动速度
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      updateScrollSpeed(containerRef.current.scrollTop);
+      setCurrentScrollSpeed(containerRef.current.scrollTop); // 简化实现
+    }
+  }, [updateScrollSpeed]);
+
+  // 添加滚动监听器
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [handleScroll]);
 
   useEffect(() => {
     setIsTV(window.navigator.userAgent.toLowerCase().includes('tv'));
@@ -94,11 +140,11 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const scrollToVideo = useCallback((index: number) => {
     if (containerRef.current && index >= 0 && index < videos.length) {
-        containerRef.current.scrollTo({
-            top: index * window.innerHeight,
-            behavior: 'smooth'
-        });
-        setActiveIndex(index);
+      containerRef.current.scrollTo({
+          top: index * window.innerHeight,
+          behavior: 'smooth'
+      });
+      setActiveIndex(index);
     }
   }, [videos.length]);
 
@@ -173,10 +219,13 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, [activeIndex, hasMore, onLoadMore, scrollToVideo, videos.length]);
 
-  // 记忆化渲染的视频卡片
+  // 记忆化渲染的视频卡片，集成预加载状态
   const renderVideoCards = useMemo(() => {
     return videos.map((item, index) => {
       const isVisible = visibleIndices.has(index);
+      const isPreloadedItem = isPreloaded(item.Id);
+      const cacheStatus = getCacheStatus(item.Id);
+      
       return (
         <div
           key={item.Id}
@@ -197,6 +246,8 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               onToggleAutoPlay={onToggleAutoPlay}
               onVideoEnd={handleNextVideo}
               language={language}
+              isPreloaded={isPreloadedItem}
+              cacheStatus={cacheStatus}
             />
           ) : (
             <div className="w-full h-full bg-black" />
@@ -204,7 +255,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language]);
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus]);
 
   if (videos.length === 0 && !isLoading) {
     return (
