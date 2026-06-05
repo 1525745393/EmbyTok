@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy, Suspense } from 'react';
-import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, SearchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
+import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
+import { useSearch } from '../../src/hooks';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
@@ -62,19 +63,17 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   // 版本号
   const [appVersion, setAppVersion] = useState<string>('1.2.3');
   
-  // 搜索相关状态
+  // 搜索相关状态 - 使用 useSearch Hook
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<EmbyItem[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('embySearchHistory');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const {
+    query: searchQuery,
+    results: searchResults,
+    loading: searchLoading,
+    searchHistory,
+    debouncedSearch,
+    performSearch,
+    clearHistory
+  } = useSearch(client);
   
   // 观看历史相关状态
   const [showWatchHistory, setShowWatchHistory] = useState(false);
@@ -157,11 +156,6 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   }, [client]);
   const fetchLibraries = async () => { if (client) setLibraries(await client.getLibraries()); };
   
-  // 保存搜索历史到 localStorage
-  useEffect(() => {
-    localStorage.setItem('embySearchHistory', JSON.stringify(searchHistory));
-  }, [searchHistory]);
-  
   // 保存观看历史到 localStorage
   useEffect(() => {
     localStorage.setItem('embyWatchHistory', JSON.stringify({
@@ -182,37 +176,6 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   useEffect(() => {
     localStorage.setItem('embySubtitleSettings', JSON.stringify(subtitleSettings));
   }, [subtitleSettings]);
-  
-  // 搜索函数
-  const handleSearch = useCallback(async (query: string) => {
-    if (!client || !query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
-    setSearchLoading(true);
-    try {
-      const results = await client.searchItems(query);
-      setSearchResults(results);
-      
-      // 添加到搜索历史
-      if (results.length > 0) {
-        setSearchHistory(prev => {
-          const filtered = prev.filter(item => item.query.toLowerCase() !== query.toLowerCase());
-          const newItem: SearchHistoryItem = {
-            query: query.trim(),
-            timestamp: Date.now()
-          };
-          return [newItem, ...filtered].slice(0, 20);
-        });
-      }
-    } catch (error) {
-      console.error('搜索失败:', error);
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [client]);
   
   // 添加到观看历史
   const handleAddToWatchHistory = useCallback((item: EmbyItem, currentTime: number, duration: number) => {
@@ -436,19 +399,16 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                   isFocused={true}
                   searchHistory={searchHistory}
                   onQueryChange={(q) => {
-                    setSearchQuery(q);
-                    handleSearch(q);
+                    debouncedSearch(q);
                   }}
                   onFocus={() => {}}
                   onBlur={() => {}}
                   onHistoryItemClick={(q) => {
-                    setSearchQuery(q);
-                    handleSearch(q);
+                    performSearch(q);
                   }}
-                  onClearHistory={() => setSearchHistory([])}
+                  onClearHistory={() => clearHistory()}
                   onClearQuery={() => {
-                    setSearchQuery('');
-                    setSearchResults([]);
+                    debouncedSearch('');
                   }}
                 />
               </Suspense>
@@ -456,7 +416,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
             <div className="flex-1 overflow-y-auto">
               <Suspense fallback={<ComponentFallback />}>
                 <SearchResultsComponent
-                  results={searchResults}
+                  results={searchResults.items}
                   loading={searchLoading}
                   query={searchQuery}
                   client={client}
