@@ -10,3 +10,7 @@ export { useConfig } from './useConfig';
 export { useLibraries } from './useLibraries';
 export { useVideoList } from './useVideoList';
 export { useUIState } from './useUIState';
+export { useWatchHistory } from './useWatchHistory';
+export { useSearch } from './useSearch';
+export { useFavorites } from './useFavorites';
+export { useSubtitles } from './useSubtitles';

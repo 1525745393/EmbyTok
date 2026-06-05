@@ -1,9 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { EmbyItem } from '../types';
+import { EmbyItem, SubtitleTrack, SubtitleSettings } from '../types';
 import { MediaClient } from '../services/MediaClient';
-import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2 } from 'lucide-react';
+import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2, Subtitles } from 'lucide-react';
 import { useLazyImage } from '../src/hooks';
+import SubtitleControls from './SubtitleControls';
+import SubtitleRenderer from './SubtitleRenderer';
 
 interface VideoCardProps {
   item: EmbyItem;
@@ -20,6 +22,10 @@ interface VideoCardProps {
   language?: 'zh' | 'en';
   isPreloaded?: boolean;
   cacheStatus?: string;
+  subtitleTracks?: SubtitleTrack[];
+  subtitleSettings?: SubtitleSettings;
+  onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
+  onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
 }
 
 const VideoCardComponent: React.FC<VideoCardProps> = ({ 
@@ -36,7 +42,11 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     onVideoEnd = () => {},
     language = 'zh',
     isPreloaded = false,
-    cacheStatus = 'idle'
+    cacheStatus = 'idle',
+    subtitleTracks = [],
+    subtitleSettings,
+    onUpdateSubtitleSettings = () => {},
+    onAddToWatchHistory = () => {}
 }) => {
   const t = useMemo(() => ({
     zh: {
@@ -99,6 +109,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
   const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [showSubtitleControls, setShowSubtitleControls] = useState(false);
+  const [subtitleCues, setSubtitleCues] = useState<any[]>([]);
 
   // 图片懒加载 hook
   const {
@@ -247,10 +259,18 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   }, []);
 
   const handleTimeUpdate = useCallback(() => {
-      if (videoRef.current && !isSeeking) {
-          setCurrentTime(videoRef.current.currentTime);
+    if (videoRef.current && !isSeeking) {
+      setCurrentTime(videoRef.current.currentTime);
+      // 定期保存观看历史
+      if (isActive && videoRef.current.currentTime > 0) {
+        onAddToWatchHistory(
+          item,
+          videoRef.current.currentTime * 10000000, // 转换为 ticks
+          (videoRef.current.duration || 0) * 10000000
+        );
       }
-  }, [isSeeking]);
+    }
+  }, [isSeeking, isActive, item, onAddToWatchHistory]);
 
   const handleLoadedMetadata = useCallback(() => {
       if (videoRef.current) {
@@ -852,6 +872,19 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                   </button>
               </div>
 
+              <div className="flex flex-col items-center gap-1">
+                  <button 
+                    tabIndex={0}
+                    onTouchStart={stopProp}
+                    onMouseDown={stopProp}
+                    onTouchEnd={(e) => handleButtonAction(e, () => setShowSubtitleControls(!showSubtitleControls))}
+                    onClick={(e) => handleButtonAction(e, () => setShowSubtitleControls(!showSubtitleControls))}
+                    className={`p-2 rounded-full transition-all active:scale-90 focus:ring-2 focus:ring-indigo-500 outline-none shadow-lg ${subtitleSettings?.enabled ? 'bg-indigo-600/80 text-white' : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'}`}
+                  >
+                      <Subtitles className="w-7 h-7 drop-shadow-md" />
+                  </button>
+              </div>
+
               <div 
                     tabIndex={0}
                     onTouchStart={stopProp}
@@ -950,6 +983,25 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           </div>
       )}
 
+      {subtitleSettings && (
+        <SubtitleRenderer
+          cues={subtitleCues}
+          currentTime={currentTime}
+          settings={subtitleSettings}
+        />
+      )}
+
+      {showSubtitleControls && subtitleSettings && (
+        <SubtitleControls
+          tracks={subtitleTracks}
+          settings={subtitleSettings}
+          onToggleSubtitles={() => onUpdateSubtitleSettings({ enabled: !subtitleSettings.enabled })}
+          onSelectTrack={(trackId) => onUpdateSubtitleSettings({ selectedTrackId: trackId })}
+          onUpdateSettings={onUpdateSubtitleSettings}
+          onClose={() => setShowSubtitleControls(false)}
+        />
+      )}
+
       {showDeleteConfirm && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-md z-50">
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
@@ -994,7 +1046,10 @@ const arePropsEqual = (prevProps: VideoCardProps, nextProps: VideoCardProps) => 
     prevProps.isMuted === nextProps.isMuted &&
     prevProps.isAutoPlay === nextProps.isAutoPlay &&
     prevProps.language === nextProps.language &&
-    prevProps.client === nextProps.client
+    prevProps.client === nextProps.client &&
+    prevProps.subtitleSettings?.enabled === nextProps.subtitleSettings?.enabled &&
+    prevProps.subtitleSettings?.selectedTrackId === nextProps.subtitleSettings?.selectedTrackId &&
+    prevProps.subtitleTracks?.length === nextProps.subtitleTracks?.length
   );
 };
 

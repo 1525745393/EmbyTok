@@ -65,7 +65,70 @@ export interface EmbyItem {
   _PlexKey?: string;
 }
 
-export type FeedType = 'latest' | 'random' | 'favorites';
+export type FeedType = 'latest' | 'random' | 'favorites' | 'history';
+
+export interface WatchHistoryItem {
+  id: string;
+  itemId: string;
+  name: string;
+  imageUrl?: string;
+  positionTicks: number;
+  totalTicks: number;
+  watchedAt: number;
+  libraryId?: string;
+}
+
+export interface WatchHistory {
+  items: WatchHistoryItem[];
+  lastUpdated: number;
+}
+
+export interface SearchResult {
+  items: EmbyItem[];
+  totalRecordCount: number;
+}
+
+export interface SearchHistoryItem {
+  query: string;
+  timestamp: number;
+}
+
+export interface FavoriteCollection {
+  id: string;
+  name: string;
+  createdAt: number;
+  itemIds: string[];
+}
+
+export interface FavoritesState {
+  collections: FavoriteCollection[];
+  defaultCollectionId: string;
+}
+
+export interface SubtitleTrack {
+  id: string;
+  label: string;
+  language: string;
+  isDefault: boolean;
+  codec?: string;
+  isExternal?: boolean;
+  url?: string;
+}
+
+export interface SubtitleCue {
+  startTime: number;
+  endTime: number;
+  text: string;
+}
+
+export interface SubtitleSettings {
+  enabled: boolean;
+  selectedTrackId?: string;
+  fontSize: 'small' | 'medium' | 'large';
+  textColor: string;
+  backgroundColor: string;
+  position: 'bottom' | 'top';
+}
 
 export type OrientationMode = 'vertical' | 'horizontal' | 'both';
 

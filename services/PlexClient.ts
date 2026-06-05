@@ -48,7 +48,6 @@ export class PlexClient extends MediaClient {
         }));
     }
 
-    // 补全缺失的方法实现，解决编译错误
     async getResumeItems(): Promise<EmbyItem[]> {
         try {
             const response = await fetch(`${this.getCleanUrl()}/library/onDeck`, { headers: this.getHeaders() });
@@ -211,7 +210,25 @@ export class PlexClient extends MediaClient {
     }
 
     async deleteItem(itemId: string): Promise<void> {
-        // Plex 暂不支持删除功能
         throw new Error('Plex does not support delete functionality');
+    }
+
+    async searchItems(query: string): Promise<EmbyItem[]> {
+        try {
+            const response = await fetch(`${this.getCleanUrl()}/search?query=${encodeURIComponent(query)}`, { 
+                headers: this.getHeaders() 
+            });
+            
+            const data = await response.json();
+            const items = data.MediaContainer?.Metadata || [];
+            const videoItems = items.filter((item: any) => 
+                ['movie', 'episode', 'show', 'video'].includes(item.type)
+            );
+            
+            return this.mapPlexItems(videoItems);
+        } catch (error) {
+            console.error('Plex search failed:', error);
+            return [];
+        }
     }
 }

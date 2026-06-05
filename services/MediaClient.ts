@@ -35,4 +35,7 @@ export abstract class MediaClient {
     
     // 删除视频方法
     abstract deleteItem(itemId: string): Promise<void>;
+
+    // 搜索功能
+    abstract searchItems(query: string): Promise<EmbyItem[]>;
 }

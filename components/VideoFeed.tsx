@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
-import { EmbyItem, FeedType } from '../types';
+import { EmbyItem, FeedType, SubtitleTrack, SubtitleSettings } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
 import { RefreshCw, Film, Shuffle, Infinity } from 'lucide-react';
@@ -24,6 +24,10 @@ interface VideoFeedProps {
   isAutoPlay?: boolean;
   onToggleAutoPlay?: () => void;
   language?: 'zh' | 'en';
+  subtitleTracks?: SubtitleTrack[];
+  subtitleSettings?: SubtitleSettings;
+  onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
+  onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
 }
 
 const VideoFeed: React.FC<VideoFeedProps> = ({ 
@@ -43,7 +47,11 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     onLoadMore,
     isAutoPlay = false,
     onToggleAutoPlay = () => {},
-    language = 'zh'
+    language = 'zh',
+    subtitleTracks = [],
+    subtitleSettings,
+    onUpdateSubtitleSettings = () => {},
+    onAddToWatchHistory = () => {}
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -248,6 +256,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               language={language}
               isPreloaded={isPreloadedItem}
               cacheStatus={cacheStatus}
+              subtitleTracks={subtitleTracks}
+              subtitleSettings={subtitleSettings}
+              onUpdateSubtitleSettings={onUpdateSubtitleSettings}
+              onAddToWatchHistory={onAddToWatchHistory}
             />
           ) : (
             <div className="w-full h-full bg-black" />

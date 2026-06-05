@@ -220,4 +220,76 @@ export class EmbyClient extends MediaClient {
             throw new Error(`Failed to delete item: ${response.status}`);
         }
     }
+
+    async searchItems(query: string): Promise<EmbyItem[]> {
+        const params = new URLSearchParams({
+            SearchTerm: query,
+            IncludeItemTypes: 'Movie,Video,Episode,Series',
+            Recursive: 'true',
+            Fields: 'MediaSources,Width,Height,Overview,UserData,SeriesName,ParentIndexNumber,IndexNumber,Type',
+            Limit: '50'
+        });
+
+        const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items?${params.toString()}`, { 
+            headers: this.getHeaders() 
+        });
+        
+        const data = await response.json();
+        return (data.Items || []).map((item: any) => ({
+            ...item,
+            Name: this.formatItemName(item),
+            UserData: item.UserData ? {
+                ...item.UserData,
+                Played: item.UserData.Played || false,
+                PlaybackPositionTicks: item.UserData.PlaybackPositionTicks || 0,
+                LastPlayedDate: item.UserData.LastPlayedDate
+            } : undefined
+        }));
+    }
+
+    async getSubtitleTracks(itemId: string): Promise<any[]> {
+        try {
+            const params = new URLSearchParams({
+                Fields: 'MediaSources'
+            });
+            
+            const response = await fetch(`${this.getCleanUrl()}/Users/${this.config.userId}/Items/${itemId}?${params.toString()}`, { 
+                headers: this.getHeaders() 
+            });
+            
+            const data = await response.json();
+            const mediaSources = data.MediaSources || [];
+            
+            const subtitleTracks: any[] = [];
+            mediaSources.forEach((source: any) => {
+                if (source.MediaStreams) {
+                    source.MediaStreams
+                        .filter((stream: any) => stream.Type === 'Subtitle')
+                        .forEach((stream: any) => {
+                            let url: string | undefined;
+                            if (stream.IsExternal && stream.Path) {
+                                url = `${this.getCleanUrl()}/Videos/${itemId}/${stream.Index}/Stream?api_key=${this.config.token}`;
+                            } else if (stream.Codec === 'srt' || stream.Codec === 'vtt') {
+                                url = `${this.getCleanUrl()}/Videos/${itemId}/${stream.Index}/Stream?api_key=${this.config.token}`;
+                            }
+                            
+                            subtitleTracks.push({
+                                id: `${itemId}_${stream.Index}`,
+                                label: stream.DisplayTitle || stream.Language || `字幕 ${subtitleTracks.length + 1}`,
+                                language: stream.Language || 'und',
+                                isDefault: stream.IsDefault || false,
+                                codec: stream.Codec,
+                                isExternal: stream.IsExternal || false,
+                                url
+                            });
+                        });
+                }
+            });
+            
+            return subtitleTracks;
+        } catch (error) {
+            console.error('Failed to get subtitle tracks:', error);
+            return [];
+        }
+    }
 }
