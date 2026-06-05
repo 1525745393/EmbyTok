@@ -90,7 +90,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showProgress, setShowProgress] = useState(true);
+  const [showProgress, setShowProgress] = useState(false);
   const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
   const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -528,18 +528,16 @@ const VideoCard: React.FC<VideoCardProps> = ({
               const tapInterval = currentTime - lastTapTime.current;
               
               if (tapInterval < 300 && tapInterval > 0) {
-                  // 双击，获取触摸坐标并显示红心动效
-                  const touchX = e.changedTouches[0].clientX;
-                  const touchY = e.changedTouches[0].clientY;
-                  
-                  // 添加多个红心，更有视觉冲击力
-                  addHeart(touchX, touchY);
-                  addHeart(touchX - 30, touchY - 20);
-                  addHeart(touchX + 30, touchY + 20);
-                  
-                  // 只有在无红心的情况下才触发红心
-                  if (!isFavorite) {
-                      onToggleFavorite();
+                  // 双击，切换进度条显示/隐藏
+                  setShowProgress(!showProgress);
+                  if (!showProgress) {
+                      // 如果从隐藏切换到显示，启动自动隐藏定时器
+                      resetHideTimer();
+                  } else {
+                      // 如果从显示切换到隐藏，清除定时器
+                      if (hideProgressTimerRef.current) {
+                          clearTimeout(hideProgressTimerRef.current);
+                      }
                   }
               } else {
                   // 单击，延迟判断，避免与双击冲突
