@@ -365,20 +365,40 @@ const VideoCard: React.FC<VideoCardProps> = ({
       }
   };
 
+  // 进度条容器引用
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  
   // --- Seek Bar Handlers ---
   const handleSeekStart = (e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
+      e.preventDefault();
       setIsSeeking(true);
+      
+      // 计算初始位置
+      updateSeekPosition(e);
+  };
+
+  const updateSeekPosition = (e: React.TouchEvent | React.MouseEvent) => {
+      if (!progressBarRef.current || !duration) return;
+      
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const newTime = percent * duration;
+      setCurrentTime(newTime);
+      
+      // 实时更新视频位置
+      if (videoRef.current) {
+          videoRef.current.currentTime = newTime;
+      }
   };
 
   const handleSeekMove = (e: React.TouchEvent | React.MouseEvent) => {
       e.stopPropagation();
-      if (!isSeeking || !containerRef.current) return;
+      e.preventDefault();
+      if (!isSeeking) return;
       
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const rect = containerRef.current.getBoundingClientRect();
-      const percent = Math.max(0, Math.min(1, clientX / rect.width));
-      setCurrentTime(percent * duration);
+      updateSeekPosition(e);
   };
 
   // 进度条区域手势处理
@@ -388,71 +408,24 @@ const VideoCard: React.FC<VideoCardProps> = ({
       // 显示进度条并重置定时器
       showProgressAndResetTimer();
       
-      // 检测双击
-      progressTapCount.current += 1;
-      if (progressTapTimer.current) clearTimeout(progressTapTimer.current);
-      
-      progressTapTimer.current = setTimeout(() => {
-          progressTapCount.current = 0;
-      }, 300);
-      
-      if (progressTapCount.current === 2) {
-          // 双击：切换显示/隐藏
-          setShowProgress(!showProgress);
-          progressTapCount.current = 0;
-          return;
-      }
-      
-      // 长按检测
-      touchStartX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
-      speedStartRate.current = playbackRate;
-      
-      longPressTimer.current = setTimeout(() => {
-          setIsSpeedAdjusting(true);
-          setPlaybackRate(2.0);
-          if (videoRef.current) videoRef.current.playbackRate = 2.0;
-      }, 500);
+      // 开始拖动进度
+      handleSeekStart(e);
   };
 
   const handleProgressTouchMove = (e: React.TouchEvent) => {
       e.stopPropagation();
+      e.preventDefault();
       
       // 显示进度条并重置定时器
       showProgressAndResetTimer();
       
-      if (longPressTimer.current && Math.abs(e.touches[0].clientY - touchStartY.current) > 20) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-      }
-      
-      if (isSpeedAdjusting) {
-          const deltaY = e.touches[0].clientY - touchStartY.current;
-          // 上下滑动调整速度：向上滑动提高速度，向下滑动降低速度
-          let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
-          // 限制在 0.5 - 5.0 范围内
-          newRate = Math.max(0.5, Math.min(5.0, newRate));
-          setPlaybackRate(newRate);
-          if (videoRef.current) videoRef.current.playbackRate = newRate;
-      } else {
-          // 普通拖动调整进度
-          handleSeekMove(e);
-      }
+      handleSeekMove(e);
   };
 
   const handleProgressTouchEnd = (e: React.TouchEvent) => {
       e.stopPropagation();
       
-      if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-      }
-      
-      if (isSpeedAdjusting) {
-          setIsSpeedAdjusting(false);
-      } else {
-          handleSeekEnd(e);
-      }
+      handleSeekEnd(e);
   };
 
   const handleSeekEnd = (e: React.TouchEvent | React.MouseEvent) => {
@@ -460,9 +433,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
       if (!isSeeking) return;
       
       setIsSeeking(false);
-      if (videoRef.current) {
-          videoRef.current.currentTime = currentTime;
-      }
+      // 视频位置已经在 updateSeekPosition 中实时更新了
   };
 
   // --- Gesture Handlers ---
@@ -923,13 +894,6 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {showProgressBar && duration > 0 && (
           <div 
             className="absolute bottom-8 left-4 right-4 h-12 flex items-center gap-3 z-50"
-            onTouchStart={handleProgressTouchStart}
-            onTouchMove={handleProgressTouchMove}
-            onTouchEnd={handleProgressTouchEnd}
-            onClick={(e) => {
-                e.stopPropagation();
-                showProgressAndResetTimer();
-            }} 
           >
               {/* Current Time */}
               <span className="text-white text-xs font-medium drop-shadow-md w-10 text-right pointer-events-none">
@@ -937,7 +901,24 @@ const VideoCard: React.FC<VideoCardProps> = ({
               </span>
 
               {/* Progress Bar Container */}
-              <div className="flex-1 relative h-12 flex items-center pointer-events-auto">
+              <div 
+                ref={progressBarRef}
+                className="flex-1 relative h-12 flex items-center cursor-pointer"
+                onTouchStart={handleProgressTouchStart}
+                onTouchMove={handleProgressTouchMove}
+                onTouchEnd={handleProgressTouchEnd}
+                onMouseDown={handleSeekStart}
+                onMouseMove={handleSeekMove}
+                onMouseUp={handleSeekEnd}
+                onMouseLeave={handleSeekEnd}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    showProgressAndResetTimer();
+                }} 
+              >
+                  {/* 增大触摸区域 */}
+                  <div className="absolute inset-0 -my-4" />
+                  
                   <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
                       <div 
                           className="h-full bg-indigo-500 transition-all duration-75"
@@ -945,9 +926,11 @@ const VideoCard: React.FC<VideoCardProps> = ({
                       />
                   </div>
                   <div 
-                      className="absolute w-4 h-4 bg-white rounded-full shadow-lg transform -translate-x-1/2"
+                      className="absolute w-6 h-6 bg-white rounded-full shadow-lg transform -translate-x-1/2 cursor-grab active:cursor-grabbing"
                       style={{ left: `${(currentTime / duration) * 100}%` }}
-                  />
+                  >
+                      <div className="w-full h-full rounded-full border-2 border-indigo-500 bg-white" />
+                  </div>
               </div>
 
               {/* Total Time */}
