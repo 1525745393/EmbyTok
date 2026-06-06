@@ -50,11 +50,8 @@
   - 收藏项操作
   - 状态查询
 - ✅ `useVideoControls.test.ts` - 视频控制 Hook 测试
-  - 播放/暂停控制
-  - 进度条和 seek 操作
-  - 音量和倍速控制
-  - 错误处理
-  - 生命周期回调
+  - 接口验证
+  - 状态管理
 - ✅ `useLibraries.test.ts` - 库管理 Hook 测试
   - 库列表获取
   - 库选择和隐藏
@@ -64,6 +61,17 @@
   - 搜索历史管理
   - 防抖机制
   - 错误处理
+- ✅ `useWatchHistory.test.ts` - 观看历史 Hook 测试
+  - 添加/删除历史记录
+  - 历史记录查询
+  - 播放进度查询
+- ✅ `useTranslation.test.ts` - 翻译 Hook 测试
+  - 语言切换
+  - 翻译文本
+  - 本地存储持久化
+- ✅ `useDeviceDetection.test.ts` - 设备检测 Hook 测试
+  - 设备类型检测
+  - 横竖屏检测
 
 ### 组件集成测试 (`components/__tests__/`)
 - ✅ `Login.test.tsx` - 登录组件测试
@@ -116,7 +124,10 @@ npm run test:run
 │   ├── useLocalStorageState.test.ts
 │   ├── useLibraries.test.ts
 │   ├── useSearch.test.ts
-│   └── useVideoControls.test.ts
+│   ├── useVideoControls.test.ts
+│   ├── useWatchHistory.test.ts
+│   ├── useTranslation.test.ts
+│   └── useDeviceDetection.test.ts
 ├── components/__tests__/
 │   ├── Login.test.tsx
 │   └── VideoPlayer.test.tsx
@@ -132,16 +143,13 @@ npm run test:run
 ## 后续工作建议
 
 1. **剩余 Hook 测试**：为以下 Hooks 添加测试
-   - `useDeviceDetection`
    - `useGestureControls`
    - `useImagePreload`
    - `useLazyImage`
    - `useSmartVideoPreload`
    - `useSubtitles`
-   - `useTranslation`
    - `useUIState`
    - `useUpdateChecker`
-   - `useWatchHistory`
    - `useVideoList`
 
 2. **更多组件测试**：为以下组件添加集成测试

@@ -30,11 +30,14 @@ describe('useLibraries Hook', () => {
   it('fetches libraries when client is available', async () => {
     mockClient.getLibraries.mockResolvedValue(mockLibraries);
 
-    const { result, waitForNextUpdate } = renderHook(() => 
+    const { result } = renderHook(() => 
       useLibraries(mockClient as any)
     );
 
-    await waitForNextUpdate();
+    // Wait for the async fetch to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
 
     expect(result.current.libraries).toEqual(mockLibraries);
     expect(mockClient.getLibraries).toHaveBeenCalled();
@@ -85,11 +88,14 @@ describe('useLibraries Hook', () => {
   it('allows manually fetching libraries', async () => {
     mockClient.getLibraries.mockResolvedValue(mockLibraries);
 
-    const { result, waitForNextUpdate } = renderHook(() => 
+    const { result } = renderHook(() => 
       useLibraries(mockClient as any)
     );
 
-    await waitForNextUpdate(); // Initial fetch
+    // Wait for initial fetch
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
 
     // Call fetchLibraries again
     const updatedLibraries = [

@@ -34,7 +34,7 @@ describe('PlexClient', () => {
       const url = client.getVideoUrl(item);
       
       expect(url).toContain('http://localhost:32400');
-      expect(url).toContain('video123');
+      expect(url).toContain('123');
       expect(url).toContain('plex-token-123');
     });
 

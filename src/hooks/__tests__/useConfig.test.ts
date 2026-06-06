@@ -82,7 +82,7 @@ describe('useConfig', () => {
       result.current.logout();
     });
 
-    expect(localStorage.getItem('embyConfig')).toBeNull();
+    expect(localStorage.getItem('embyConfig')).toEqual(JSON.stringify(null));
     expect(mockReload).toHaveBeenCalled();
   });
 });

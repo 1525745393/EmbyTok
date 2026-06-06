@@ -47,6 +47,9 @@ export function isIOSSafari(): boolean {
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) &&
     !(window as any).MSStream &&
-    /Safari/.test(navigator.userAgent)
+    /Safari/.test(navigator.userAgent) &&
+    !/CriOS/.test(navigator.userAgent) &&
+    !/FxiOS/.test(navigator.userAgent) &&
+    !/OPiOS/.test(navigator.userAgent)
   );
 }
