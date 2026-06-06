@@ -2,7 +2,7 @@
 # 支持多架构：amd64, arm64
 
 # ============ 第一阶段：构建应用 ============
-FROM --platform=$BUILDPLATFORM node:18-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
