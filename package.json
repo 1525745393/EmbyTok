@@ -16,6 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install",
     "test:performance": "playwright test --grep performance",
+    "benchmark:save": "node scripts/benchmark-compare.js save-baseline",
+    "benchmark:compare": "node scripts/benchmark-compare.js compare",
     "cap:add": "cap add android",
     "cap:sync": "cap sync",
     "build:android": "tsc && vite build && cap sync android"

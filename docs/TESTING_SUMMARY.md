@@ -282,6 +282,34 @@ npm run test:bench
 npm run test:performance
 ```
 
+## CI/CD 集成
+
+### 自动化测试工作流
+
+项目已配置 GitHub Actions 工作流，在以下情况下自动运行：
+- 代码推送到 `main` 分支时
+- 提交 PR 到 `main` 分支时
+- 手动触发（workflow_dispatch）
+
+### 工作流作业
+
+1. **单元和集成测试** - 运行所有单元和集成测试，生成覆盖率报告
+2. **基准性能测试** - 在单元测试通过后运行性能基准测试
+3. **代码格式化检查** - 检查代码是否符合 Prettier 格式规范
+
+### 手动触发测试
+
+可以通过 GitHub 仓库页面的 "Actions" 标签手动触发测试工作流。
+
+### 工作流文件
+
+- [`.github/workflows/test.yml`](file:///workspace/.github/workflows/test.yml) - 测试工作流
+- [`.github/workflows/docker-build-push.yml`](file:///workspace/.github/workflows/docker-build-push.yml) - 构建和部署工作流
+
+### 测试覆盖率报告
+
+CI 运行测试后会自动上传覆盖率报告作为 artifacts，可在 Actions 页面下载查看。
+
 ## 测试覆盖率目标
 
 当前已覆盖的核心功能：
