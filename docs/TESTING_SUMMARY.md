@@ -211,6 +211,10 @@
 - ✅ `TVRoot.test.tsx` - TV 模式根组件测试
   - 登录表单渲染
   - 品牌名称显示
+- ✅ `StandardRoot.test.tsx` - 标准模式根组件测试
+  - 加载状态渲染
+- ✅ `MobileRoot.test.tsx` - 移动模式根组件测试
+  - 登录表单渲染
 
 ## 测试运行命令
 
@@ -237,8 +241,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：45 个
-- 总测试用例：303 个
+- 总测试文件：47 个
+- 总测试用例：305 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -288,6 +292,10 @@ npm run test:run
 │   ├── TVVideoGrid.test.tsx
 │   ├── TVVideoPlayer.test.tsx
 │   └── TVRoot.test.tsx
+├── components/standard/__tests__/
+│   └── StandardRoot.test.tsx
+├── components/mobile/__tests__/
+│   └── MobileRoot.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
