@@ -203,6 +203,11 @@
   - 视频网格渲染
   - 视频点击选择
   - 键盘选择功能
+- ✅ `TVVideoPlayer.test.tsx` - TV 模式视频播放器组件测试
+  - 视频播放器渲染
+  - 无海报图渲染
+  - 返回按钮功能
+  - 语言切换支持
 
 ## 测试运行命令
 
@@ -229,8 +234,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：43 个
-- 总测试用例：298 个
+- 总测试文件：44 个
+- 总测试用例：302 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -277,7 +282,8 @@ npm run test:run
 ├── components/tv/__tests__/
 │   ├── TVDashboard.test.tsx
 │   ├── TVSettings.test.tsx
-│   └── TVVideoGrid.test.tsx
+│   ├── TVVideoGrid.test.tsx
+│   └── TVVideoPlayer.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -290,9 +296,9 @@ npm run test:run
 ## 后续工作建议
 
 1. **更多组件测试**：为以下组件添加集成测试
-  - `TVVideoPlayer`
   - `MobileRoot`
   - `StandardRoot`
+  - `TVRoot`
   - 以及其他所有 UI 组件
 
 2. **E2E 测试**：添加端到端测试
