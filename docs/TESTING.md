@@ -56,19 +56,25 @@ npm run test:run
 测试文件位于源代码旁边的 `__tests__` 目录中：
 
 ```
+components/
+└── __tests__/
+    ├── Login.test.tsx
+    └── VideoPlayer.test.tsx
 src/
 ├── hooks/
 │   └── __tests__/
 │       ├── useConfig.test.ts
+│       ├── useFavorites.test.ts
 │       └── useLocalStorageState.test.ts
-├── services/
-│   └── __tests__/
-│       └── EmbyClient.test.ts
-└── utils/
-    └── __tests__/
-        ├── media.test.ts
-        ├── time.test.ts
-        └── device.test.ts
+services/
+└── __tests__/
+    ├── EmbyClient.test.ts
+    └── PlexClient.test.ts
+utils/
+└── __tests__/
+    ├── media.test.ts
+    ├── time.test.ts
+    └── device.test.ts
 ```
 
 ## 测试命名约定
@@ -270,8 +276,10 @@ global.fetch = vi.fn().mockResolvedValue({
 
 ## 下一步
 
-- [ ] 为更多 React 组件添加集成测试
-- [ ] 为 PlexClient 添加测试
+- [ ] 为更多 React 组件添加集成测试（如 VideoControls、VideoFeed 等）
+- [ ] 为剩余的自定义 Hooks 添加测试
 - [ ] 配置 CI/CD 自动运行测试
 - [ ] 添加 E2E 测试
 - [ ] 提高测试覆盖率到 80% 以上
+- [ ] 为移动和电视模式添加专门的测试用例
+- [ ] 配置测试覆盖率报告和监控
