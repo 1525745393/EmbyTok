@@ -83,6 +83,14 @@
   - 视图模式切换
   - 索引管理
   - 视频选择
+- ✅ `useSubtitles.test.ts` - 字幕管理 Hook 测试
+  - 字幕开关
+  - 字幕设置
+  - VTT 字幕解析
+  - 本地存储持久化
+- ✅ `useUpdateChecker.test.ts` - 更新检查 Hook 测试
+  - 版本检查
+  - 错误处理
 
 ### 组件集成测试 (`components/__tests__/`)
 - ✅ `Login.test.tsx` - 登录组件测试
@@ -140,7 +148,9 @@ npm run test:run
 │   ├── useTranslation.test.ts
 │   ├── useDeviceDetection.test.ts
 │   ├── useUIState.test.ts
-│   └── useVideoList.test.ts
+│   ├── useVideoList.test.ts
+│   ├── useSubtitles.test.ts
+│   └── useUpdateChecker.test.ts
 ├── components/__tests__/
 │   ├── Login.test.tsx
 │   └── VideoPlayer.test.tsx
@@ -160,8 +170,6 @@ npm run test:run
    - `useImagePreload`
    - `useLazyImage`
    - `useSmartVideoPreload`
-   - `useSubtitles`
-   - `useUpdateChecker`
 
 2. **更多组件测试**：为以下组件添加集成测试
    - `VideoFeed`
