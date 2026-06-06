@@ -160,9 +160,9 @@ export class PlexClient extends MediaClient {
         });
     }
 
-    getVideoUrl(item: EmbyItem): string {
+    getVideoUrl(item: EmbyItem, useTranscode: boolean = false): string {
         const plexItem = item as any;
-        if (plexItem._PlexKey) return `${this.getCleanUrl()}${plexItem._PlexKey}?X-Plex-Token=${this.config.token}`;
+        if (!useTranscode && plexItem._PlexKey) return `${this.getCleanUrl()}${plexItem._PlexKey}?X-Plex-Token=${this.config.token}`;
         return `${this.getCleanUrl()}/video/:/transcode/universal/start?path=${encodeURIComponent('/library/metadata/' + item.Id)}&mediaIndex=0&partIndex=0&protocol=hls&offset=0&fastSeek=1&directPlay=0&directStream=1&subtitleSize=100&audioBoost=100&X-Plex-Token=${this.config.token}`;
     }
 

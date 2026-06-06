@@ -64,7 +64,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       fileNotFound: '视频文件不存在',
       formatNotSupported: '视频格式不支持',
       unknownError: '播放出错，请重试',
-      imageLoadError: '图片加载失败'
+      imageLoadError: '图片加载失败',
+      tryTranscode: '尝试转码播放',
+      debugInfo: '调试信息',
+      mediaSources: '媒体源信息'
     },
     en: {
       deleteVideo: 'Delete Video',
@@ -81,7 +84,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       fileNotFound: 'Video file not found',
       formatNotSupported: 'Video format not supported',
       unknownError: 'Playback error, please try again',
-      imageLoadError: 'Image load failed'
+      imageLoadError: 'Image load failed',
+      tryTranscode: 'Try transcoded playback',
+      debugInfo: 'Debug info',
+      mediaSources: 'Media sources'
     }
   }[language]), [language]);
   
@@ -91,12 +97,15 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [hasStarted, setHasStarted] = useState(false); 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [videoPreload, setVideoPreload] = useState<'metadata' | 'auto' | 'none'>('metadata');
+  const [useTranscode, setUseTranscode] = useState(false);
   const MAX_RETRIES = 3;
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const DEBUG_MODE = process.env.NODE_ENV === 'development';
   
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -149,7 +158,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   
   const progressBarRef = useRef<HTMLDivElement>(null);
 
-  const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
+  const videoSrc = useMemo(() => {
+    const url = client.getVideoUrl(item, useTranscode);
+    if (DEBUG_MODE) {
+      console.log(`[VideoCard] Using ${useTranscode ? 'transcoded' : 'direct'} video URL for ${item.Name}:`, url);
+    }
+    return url;
+  }, [client, item, useTranscode, DEBUG_MODE]);
   const posterSrc = useMemo(() => 
     item.ImageTags?.Primary 
       ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
@@ -605,31 +620,76 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
         preload={videoPreload}
         onPlaying={handlePlaying}
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedMetadata={(e) => {
+          handleLoadedMetadata();
+          const video = e.target as HTMLVideoElement;
+          if (DEBUG_MODE) {
+            console.log(`[VideoCard] Metadata loaded for ${item.Name}:`, {
+              duration: video.duration,
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              videoSrc: videoSrc
+            });
+          }
+        }}
         onEnded={handleVideoEnded}
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
         onCanPlayThrough={() => {
           setIsLoading(false);
+          if (DEBUG_MODE) {
+            console.log(`[VideoCard] Can play through for ${item.Name}`);
+          }
+        }}
+        onProgress={(e) => {
+          const video = e.target as HTMLVideoElement;
+          if (DEBUG_MODE) {
+            const buffered = [];
+            for (let i = 0; i < video.buffered.length; i++) {
+              buffered.push({ start: video.buffered.start(i), end: video.buffered.end(i) });
+            }
+            if (buffered.length > 0) {
+              console.log(`[VideoCard] Progress for ${item.Name}: buffered =`, buffered);
+            }
+          }
+        }}
+        onLoadStart={(e) => {
+          const video = e.target as HTMLVideoElement;
+          if (DEBUG_MODE) {
+            console.log(`[VideoCard] onLoadStart for ${item.Name}`, video.currentSrc);
+          }
         }}
         onError={(e) => {
           const video = e.target as HTMLVideoElement;
           let errorMsg = t.unknownError;
+          let debugInfo = '';
           
           if (video.error) {
             switch (video.error.code) {
               case video.error.MEDIA_ERR_ABORTED:
                 errorMsg = t.unknownError;
+                debugInfo = 'Media load aborted';
                 break;
               case video.error.MEDIA_ERR_NETWORK:
                 errorMsg = t.networkError;
+                debugInfo = 'Network error during playback';
                 break;
               case video.error.MEDIA_ERR_DECODE:
                 errorMsg = t.formatNotSupported;
+                debugInfo = 'Video decode error (codec/format unsupported)';
                 break;
               case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
                 errorMsg = t.fileNotFound;
+                debugInfo = 'Video source not supported or invalid';
                 break;
+            }
+            
+            const fullDebugInfo = `${debugInfo}\nError: ${video.error.message || 'No message'}\nURL: ${videoSrc}\nVideo: ${item.Name}`;
+            console.error('[VideoCard]', fullDebugInfo);
+            setDetailedError(fullDebugInfo);
+            
+            if (video.error.code === video.error.MEDIA_ERR_DECODE && !useTranscode) {
+              console.log('[VideoCard] Decode error detected, will offer transcoding option');
             }
           }
           setError(errorMsg);
@@ -764,9 +824,28 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       )}
 
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white p-4 z-10 overflow-y-auto">
           <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
           <p className="text-center mb-4">{error}</p>
+          
+          {!useTranscode && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('[VideoCard] User requested transcoding');
+                setUseTranscode(true);
+                setError(null);
+                setRetryCount(0);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 rounded-full text-sm font-bold mb-3"
+            >
+              {t.tryTranscode}
+            </button>
+          )}
+          
           {retryCount < MAX_RETRIES && (
             <button 
               onClick={(e) => {
@@ -778,10 +857,41 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                   videoRef.current.play().catch(() => {});
                 }
               }}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-bold"
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-full text-sm font-bold mb-3"
             >
               {language === 'zh' ? `重试 (${MAX_RETRIES - retryCount})` : `Retry (${MAX_RETRIES - retryCount})`}
             </button>
+          )}
+          
+          {(DEBUG_MODE || detailedError) && (
+            <details className="w-full max-w-lg mt-3">
+              <summary className="cursor-pointer text-white/70 text-sm mb-2 flex items-center gap-2">
+                {t.debugInfo}
+              </summary>
+              <div className="bg-black/50 p-3 rounded-lg text-left text-xs font-mono text-white/80 max-h-[40vh] overflow-y-auto">
+                {detailedError ? (
+                  <pre className="whitespace-pre-wrap">{detailedError}</pre>
+                ) : (
+                  <div>
+                    <p><strong>Video:</strong> {item.Name}</p>
+                    <p><strong>Item ID:</strong> {item.Id}</p>
+                    <p><strong>Video URL:</strong> {videoSrc}</p>
+                    <p><strong>Media Sources:</strong> {item.MediaSources?.length || 0}</p>
+                    {item.MediaSources && item.MediaSources.length > 0 && (
+                      <div className="mt-2">
+                        <p className="mb-1"><strong>{t.mediaSources}:</strong></p>
+                        {item.MediaSources.map((src, idx) => (
+                          <div key={idx} className="border-l-2 border-gray-600 pl-2 mb-1">
+                            <p>- {src.Name || 'Source ' + idx} ({src.Container || 'unknown'})</p>
+                            {src.MediaStreams && <p>&nbsp;&nbsp;Streams: {src.MediaStreams.length}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </details>
           )}
         </div>
       )}

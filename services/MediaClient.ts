@@ -25,7 +25,7 @@ export abstract class MediaClient {
         includeIds?: string 
     ): Promise<VideoResponse>;
 
-    abstract getVideoUrl(item: EmbyItem): string;
+    abstract getVideoUrl(item: EmbyItem, useTranscode?: boolean): string;
     
     abstract getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string;
 
