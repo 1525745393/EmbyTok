@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { EmbyItem, SubtitleTrack, SubtitleSettings, PlaybackSpeed } from '../types';
 import { MediaClient } from '../services/MediaClient';
-import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2, Subtitles, Loader } from 'lucide-react';
+import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Trash2, Subtitles, Loader, Infinity as InfinityIcon } from 'lucide-react';
 import { useLazyImage, usePlaybackSpeed, useBuffering, useVideoPreview } from '../src/hooks';
 import SubtitleControls from './SubtitleControls';
 import SubtitleRenderer from './SubtitleRenderer';
@@ -260,6 +260,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           };
           localStorage.setItem(STORAGE_KEY_PREFIX + item.Id, JSON.stringify(progress));
       } catch (e) {
+          // Ignore localStorage errors
       }
   }, [item.Id]);
 
@@ -274,6 +275,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
               }
           }
       } catch (e) {
+          // Ignore localStorage errors
       }
       return 0;
   }, [item.Id]);
@@ -344,7 +346,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       if (videoRef.current) {
           setDuration(videoRef.current.duration);
           const savedTime = loadProgress();
-          if (savedTime > 0 && savedTime < videoRef.current.duration - 10) {
+          const minDuration = 30;
+          if (savedTime > 0 && videoRef.current.duration > minDuration && savedTime < videoRef.current.duration - 10) {
               videoRef.current.currentTime = savedTime;
           }
       }
@@ -354,7 +357,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       if (item.Id) {
           try {
               localStorage.removeItem(STORAGE_KEY_PREFIX + item.Id);
-          } catch (e) {}
+          } catch (e) {
+              // Ignore localStorage errors
+          }
       }
       if (isAutoPlay) {
           onVideoEnd();
@@ -894,7 +899,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
             onClick={(e) => handleButtonAction(e, onToggleAutoPlay)}
             className={`p-2.5 rounded-full backdrop-blur-sm transition-all active:scale-90 focus:ring-2 focus:ring-green-500 outline-none shadow-lg ${isAutoPlay ? 'bg-green-500/80 text-white' : 'bg-black/30 text-white/50 hover:bg-black/50 hover:text-white'}`}
           >
-              <Infinity className="w-6 h-6" />
+              <InfinityIcon className="w-6 h-6" />
           </button>
       </div>
 

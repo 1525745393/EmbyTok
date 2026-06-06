@@ -230,7 +230,7 @@ export function useSmartVideoPreload(): UseSmartPreloadReturn {
     // 监听加载完成
     videoElement.addEventListener('canplay', () => {
       // 创建Blob URL
-      const blobUrl = URL.createObjectURL(videoElement.src);
+      const blobUrl = URL.createObjectURL(videoElement.src as unknown as Blob);
       
       setPreloadTasks(prev => {
         const newMap = new Map(prev);

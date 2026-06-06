@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { EmbyLibrary, OrientationMode, GitHubRelease } from '../types';
-import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe, Download, CheckCircle, AlertCircle, Copy, Check, Smartphone, Zap, Infinity, Heart, Tv, Star, Code2, ShieldCheck, FileText, Users, Shield, FileCode, Terminal, ExternalLink as ExternalLinkIcon, Smile } from 'lucide-react';
+import { X, Folder, Settings, LogOut, Eye, EyeOff, ChevronLeft, Server, User, Info, ExternalLink, Monitor, Globe, Download, CheckCircle, AlertCircle, Copy, Check, Smartphone, Zap, Heart, Tv, Star, Code2, ShieldCheck, FileText, Users, Shield, FileCode, Terminal, ExternalLink as ExternalLinkIcon, Smile, Infinity as InfinityIcon } from 'lucide-react';
 
 interface LibrarySelectProps {
   libraries: EmbyLibrary[];
@@ -365,7 +365,7 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                       <div className="grid grid-cols-2 gap-2">
                           <FeatureCard icon={<Smartphone className="w-4 h-4" />} title={t.feature1} />
                           <FeatureCard icon={<Zap className="w-4 h-4" />} title={t.feature2} />
-                          <FeatureCard icon={<Infinity className="w-4 h-4" />} title={t.feature3} />
+                          <FeatureCard icon={<InfinityIcon className="w-4 h-4" />} title={t.feature3} />
                           <FeatureCard icon={<Smartphone className="w-4 h-4" />} title={t.feature4} />
                           <FeatureCard icon={<Heart className="w-4 h-4" />} title={t.feature5} />
                           <FeatureCard icon={<Tv className="w-4 h-4" />} title={t.feature6} />

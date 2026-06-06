@@ -346,7 +346,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       const skip = 0;
       const effectiveParentId = overrideParentId !== undefined ? overrideParentId : (navStack.length > 0 ? navStack[navStack.length - 1].id : undefined);
       if (reset) { setVideos([]); setHasMore(false); setServerStartIndex(0); setCurrentIndex(0); }
-      let includeIds = !selectedLib ? libraries.filter(l => !hiddenLibIds.has(l.Id)).map(l => l.Id).join(',') : undefined;
+      const includeIds = !selectedLib ? libraries.filter(l => !hiddenLibIds.has(l.Id)).map(l => l.Id).join(',') : undefined;
       try {
           if (reset) setFavoriteIds(await client.getFavorites(selectedLib?.Name || "收藏"));
           const { items: newVideos, totalCount } = await client.getVideos(effectiveParentId, selectedLib, feedType, skip, PAGE_SIZE, orientationMode, includeIds);

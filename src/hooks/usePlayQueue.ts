@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { EmbyItem, PlayQueue, PlayQueueItem, PlayMode } from '../types';
+import { EmbyItem, PlayQueue, PlayQueueItem, PlayMode } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
 
 // 生成唯一ID

@@ -6,7 +6,7 @@ const StandardRoot = lazy(() => import('./components/standard/StandardRoot'));
 const TVRoot = lazy(() => import('./components/tv/TVRoot'));
 
 // 离线状态检测
-import { useNetworkStatus } from './hooks';
+import { useNetworkStatus } from './src/hooks';
 
 // 简单的加载组件
 const LoadingFallback = () => (

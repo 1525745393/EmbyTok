@@ -52,7 +52,10 @@ export function useLazyImage({
 
     retryTimerRef.current = setTimeout(() => {
       if (imgRef.current) {
-        imgRef.current.src = imgRef.current.src;
+        // Retry loading by reassigning the same source
+        const currentSrc = imgRef.current.src;
+        imgRef.current.src = '';
+        imgRef.current.src = currentSrc;
       }
     }, retryDelay);
   }, [attempts, retryCount, retryDelay]);

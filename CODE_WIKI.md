@@ -419,6 +419,44 @@ const [showFavoritesManager, setShowFavoritesManager] = useState(false);
 - 检查 GitHub 发布更新
 - 显示更新通知
 
+#### 3.6.8 useCache ([src/hooks/useCache.ts](file:///workspace/src/hooks/useCache.ts))
+- **功能**：本地缓存管理，使用 IndexedDB
+- **主要方法**：
+  - `cacheVideoMetadata()` - 缓存视频元数据
+  - `getCachedMetadata()` - 获取缓存的元数据
+  - `cacheImage()` - 缓存图片
+  - `clearCache()` - 清理缓存
+- **缓存策略**：LRU 淘汰，最大 100MB
+
+#### 3.6.9 useVideoPreview ([src/hooks/useVideoPreview.ts](file:///workspace/src/hooks/useVideoPreview.ts))
+- **功能**：短视频预览控制
+- **主要方法**：
+  - 预览触发逻辑（500ms 停留）
+  - 3 秒无声预览
+- **预览窗口**：小窗口叠加在缩略图上
+
+#### 3.6.10 useSmartVideoPreload ([src/hooks/useSmartVideoPreload.ts](file:///workspace/src/hooks/useSmartVideoPreload.ts))
+- **功能**：智能视频预加载
+- **主要方法**：
+  - `preloadNext()` - 预加载下一个视频
+  - 网络带宽检测
+  - 滑动方向预测
+- **网络自适应**：WiFi/4G 预加载，3G 仅预加载海报
+
+#### 3.6.11 usePlayQueue ([src/hooks/usePlayQueue.ts](file:///workspace/src/hooks/usePlayQueue.ts))
+- **功能**：播放队列管理
+- **主要方法**：
+  - `addToQueue()` - 添加到队列
+  - `playNext()` - 播放下一个
+  - 播放模式（顺序、随机、循环）
+
+#### 3.6.12 useMultiUser ([src/hooks/useMultiUser.ts](file:///workspace/src/hooks/useMultiUser.ts))
+- **功能**：多用户快速切换
+- **主要方法**：
+  - `addUser()` - 添加用户
+  - `switchUser()` - 切换用户
+  - 用户配置隔离
+
 ---
 
 ## 4. 核心类型定义 ([types.ts](file:///workspace/types.ts))
@@ -1126,3 +1164,27 @@ npm run cap:sync
 
 *文档版本：1.9.5*  
 *最后更新：2026-06-06*
+
+---
+
+## 16. 新增组件
+
+### 16.1 VideoPreview
+- **文件**：`components/VideoPreview.tsx`
+- **功能**：短视频预览组件
+- **特性**：无声播放、3秒预览、自动循环
+
+### 16.2 BoxSetView
+- **文件**：`components/BoxSetView.tsx`
+- **功能**：BoxSet/Collection 视图
+- **特性**：横向滚动海报、播放全部
+
+### 16.3 Skeleton
+- **文件**：`components/Skeleton.tsx`
+- **功能**：骨架屏组件
+- **特性**：分片加载、渐变动画
+
+### 16.4 UserSwitcher
+- **文件**：`components/UserSwitcher.tsx`
+- **功能**：用户切换组件
+- **特性**：快速切换、添加/删除用户

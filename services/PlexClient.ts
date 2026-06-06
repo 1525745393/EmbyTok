@@ -23,7 +23,9 @@ export class PlexClient extends MediaClient {
                 const data = await response.json();
                 return data.MediaContainer.machineIdentifier || data.MediaContainer.MachineIdentifier || '1';
             }
-        } catch (e) {}
+        } catch (e) {
+            // Ignore fetch errors
+        }
         return '1';
     }
 
@@ -95,7 +97,7 @@ export class PlexClient extends MediaClient {
             return { items: reversed.slice(skip, skip + limit), nextStartIndex: skip + limit, totalCount: reversed.length };
         }
 
-        let url = '';
+        let url: string;
         const isLibraryRoot = navParentId === undefined || (library && navParentId === library.Id);
 
         if (!isLibraryRoot && navParentId) {

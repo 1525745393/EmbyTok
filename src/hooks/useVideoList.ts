@@ -53,7 +53,7 @@ export function useVideoList({
         setCurrentIndex(0);
       }
 
-      let includeIds = !selectedLib
+      const includeIds = !selectedLib
         ? libraries
             .filter(l => !hiddenLibIds.has(l.Id))
             .map(l => l.Id)

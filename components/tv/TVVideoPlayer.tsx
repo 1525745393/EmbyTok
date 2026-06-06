@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { EmbyItem } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
-import { Play, Pause, ChevronLeft, Heart, Volume2, VolumeX, Infinity, Rewind, FastForward } from 'lucide-react';
+import { Play, Pause, ChevronLeft, Heart, Volume2, VolumeX, Infinity as InfinityIcon, Rewind, FastForward } from 'lucide-react';
 
 // 预加载时间阈值（秒），播放完毕前多少秒开始预加载下一集
 const PRELOAD_AHEAD_SECONDS = 5;
@@ -45,7 +45,9 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
         try {
             const favs = await client.getFavorites(libraryName);
             setFavoriteIds(favs);
-        } catch (e) {}
+        } catch (e) {
+            // Ignore favorites fetch errors
+        }
     };
     fetchFavs();
   }, [client, libraryName]);
@@ -147,7 +149,9 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
               if (isFav) next.delete(id); else next.add(id);
               return next;
           });
-      } catch (e) {}
+      } catch (e) {
+          // Ignore toggle favorite errors
+      }
   }, [currentItem.Id, favoriteIds, client, libraryName]);
 
   useEffect(() => {
@@ -273,7 +277,7 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
                   <ActionButton id="tv-player-play-btn" icon={<Play fill="currentColor" size={14} />} label={isBuffering ? t.loading : t.resume} onClick={() => { if (!isBuffering) setShowInfoOverlay(false); }} primary />
                   <ActionButton icon={<Heart className={favoriteIds.has(currentItem.Id) ? 'fill-red-500 text-red-500' : ''} size={14} />} label={favoriteIds.has(currentItem.Id) ? t.favorited : t.favorite} onClick={toggleFavorite} />
                   <ActionButton icon={isMuted ? <VolumeX className="text-red-500" size={14} /> : <Volume2 size={14} />} label={isMuted ? t.muted : t.sound} onClick={() => setIsMuted(!isMuted)} />
-                  <ActionButton icon={<Infinity size={14} />} label={isAutoPlay ? t.infinity : t.single} onClick={() => setIsAutoPlay(!isAutoPlay)} />
+                  <ActionButton icon={<InfinityIcon size={14} />} label={isAutoPlay ? t.infinity : t.single} onClick={() => setIsAutoPlay(!isAutoPlay)} />
               </div>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5 overflow-hidden">

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Translations } from '../src/locales';
-import { Heart, Info, Disc, Infinity, Trash2 } from 'lucide-react';
+import { Heart, Info, Disc, Trash2, Infinity as InfinityIcon } from 'lucide-react';
 
 type VideoControlsTranslations = Translations['videoCard'];
 
@@ -67,7 +67,7 @@ const VideoControls: React.FC<VideoControlsProps> = React.memo(({
           onClick={(e) => handleButtonAction(e, onToggleAutoPlay)}
           className={autoPlayButtonClass}
         >
-          <Infinity className="w-6 h-6" />
+          <InfinityIcon className="w-6 h-6" />
         </button>
       </div>
 

@@ -268,7 +268,7 @@ export function useCache(options: CacheOptions = {}): UseCacheReturn {
 
       // 计算需要释放的空间（目标：达到 70% 的阈值）
       const targetSize = maxSize * 0.7;
-      let sizeToFree = currentSizeRef.current - targetSize;
+      const sizeToFree = currentSizeRef.current - targetSize;
       let freedSize = 0;
 
       // 删除最久未使用的条目
@@ -534,7 +534,7 @@ export function useCache(options: CacheOptions = {}): UseCacheReturn {
         const now = Date.now();
         if (now - result.timestamp > maxAge) {
           // 删除过期数据
-          const { store: writeStore } = await getStore('writeonly');
+          const { store: writeStore } = await getStore('readwrite');
           await new Promise<void>((resolve) => {
             const deleteRequest = writeStore.delete(key);
             deleteRequest.onsuccess = () => resolve();
@@ -656,7 +656,3 @@ export function useCache(options: CacheOptions = {}): UseCacheReturn {
     pruneExpiredCache
   };
 }
-
-// ==================== 导出类型 ====================
-
-export type { CacheOptions, CacheEntry, CacheStats };

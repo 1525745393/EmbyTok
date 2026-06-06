@@ -8,6 +8,9 @@
 
 ## EmbyTok
 
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 EmbyTok is a vertical video browsing client designed for both Emby and Plex media servers, providing a TikTok-like experience that allows users to browse their personal media library in a more modern and convenient way.
 
 <div style="display:flex; flex-direction:row;">
@@ -23,6 +26,33 @@ EmbyTok is a vertical video browsing client designed for both Emby and Plex medi
 <img src="tmp/7.jpg" width="32%" />
 <img src="tmp/8.jpg" width="32%" />
 </div>
+
+## ✨ v2.0.0 新功能
+
+### 🎬 TikTok 风格体验
+- 📺 **短视频预览**：滚动停留500ms后自动播放3秒无声预览
+- 🔄 **虚拟滚动**：使用 react-virtuoso 支持大规模视频列表流畅滚动
+- ⚡ **智能预加载**：基于滑动方向预测，提前加载下一个视频
+- 🔗 **无缝连播**：双Video元素实现无感知视频切换
+- 🖼️ **图像API优化**：响应式图片加载，优先使用WebP格式
+
+### 🖥️ Emby 深度集成
+- 🎯 **智能推荐**：Emby Recommendations API 个性化影片推荐
+- 📊 **观影数据**：进度同步、用户评分、观影历史
+- 📋 **播放队列**：剧集自动连播、播放队列管理
+- 🎞️ **BoxSet 支持**：优化的合集展示和浏览体验
+
+### ⚡ 性能优化
+- 💾 **本地缓存**：IndexedDB + LRU 淘汰策略
+- 📡 **离线支持**：Service Worker 增强，支持离线浏览
+- 🔌 **API 优化**：请求合并和缓存，减少HTTP连接
+
+### 🎯 用户体验
+- 🎨 **骨架屏**：友好的加载状态和分片加载
+- 👥 **多用户**：同一设备支持多用户快速切换
+- 🛡️ **错误恢复**：指数退避重试和友好的错误提示
+
+---
 
 ## Features
 

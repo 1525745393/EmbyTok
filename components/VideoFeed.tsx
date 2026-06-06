@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMe
 import { EmbyItem, FeedType, SubtitleTrack, SubtitleSettings } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import VideoCard from './VideoCard';
-import { RefreshCw, Film, Shuffle, Infinity } from 'lucide-react';
+import { RefreshCw, Film, Shuffle, Infinity as InfinityIcon } from 'lucide-react';
 import { useSmartVideoPreload } from '../src/hooks';
 
 interface VideoFeedProps {
@@ -171,7 +171,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       const nextVideo = videos[nextIndex];
       // 获取视频URL - 这里假设VideoCard可以通过某种方式获取视频URL
       // 实际使用时需要从item中获取正确的视频URL
-      const videoUrl = nextVideo.MediaSources?.[0]?.Path || nextVideo.key || '';
+      const videoUrl = nextVideo.MediaSources?.[0]?.Path || '';
       
       if (videoUrl) {
         preloadNext(nextVideo.Id, videoUrl);
@@ -320,7 +320,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               subtitleSettings={subtitleSettings}
               onUpdateSubtitleSettings={onUpdateSubtitleSettings}
               onAddToWatchHistory={onAddToWatchHistory}
-              isPreviewMode={!isActive && isVisible}
+              isPreviewMode={!(activeIndex === index) && isVisible}
               isPreviewing={isCurrentlyPreviewing}
               onPreviewStart={onStartPreview}
               onPreviewStop={onStopPreview}
@@ -331,7 +331,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory, previewingId, onStartPreview, onStopPreview]);
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory, previewingId, onStartPreview, onStopPreview]);
 
   if (videos.length === 0 && !isLoading) {
     return (
@@ -348,7 +348,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         {showToast && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
               <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
-                  <Infinity className="w-5 h-5 text-green-400" />
+                  <InfinityIcon className="w-5 h-5 text-green-400" />
                   <span className="font-bold">自动连播已开启</span>
               </div>
           </div>

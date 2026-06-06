@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.8'
 
 services:
   # EmbyTok 前端应用
@@ -6,12 +6,47 @@ services:
     image: 1525745393/embytok:latest
     container_name: embytok-web
     restart: unless-stopped
+
+    # 多架构支持：amd64 和 arm64
+    # 使用 docker buildx build --platform linux/amd64,linux/arm64 构建
+    platform: linux/amd64
+
     ports:
-      - 8080:80
+      - "8080:80"
+
     environment:
       - NODE_ENV=production
+
+    # 健康检查配置（与 Dockerfile 中的 HEALTHCHECK 配合）
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # 生产环境推荐：资源限制配置（根据实际需求调整）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 256M
+    #     reservations:
+    #       cpus: '0.1'
+    #       memory: 64M
+
+    # 卷挂载（用于开发环境热更新）
+    # volumes:
+    #   - ./dist:/usr/share/nginx/html:ro
+
+    # 网络配置
     networks:
       - embytok-network
+
+    # 安全配置：只读根文件系统（可选）
+    # read_only: true
+    # tmpfs:
+    #   - /tmp:size=10M
 
 networks:
   embytok-network:

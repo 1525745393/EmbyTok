@@ -201,11 +201,13 @@ function TVRoot({ onToggleMode }: TVRootProps) {
     setLoading(true);
     if (reset) setVideos([]);
     
-    let includeIds = !previewLib ? libraries.filter(l => !hiddenLibIds.has(l.Id)).map(l => l.Id).join(',') : undefined;
+    const includeIds = !previewLib ? libraries.filter(l => !hiddenLibIds.has(l.Id)).map(l => l.Id).join(',') : undefined;
     try {
         const { items } = await client.getVideos(undefined, previewLib, feedType, 0, 100, orientationMode, includeIds);
         setVideos(items);
-    } catch (e) {} finally { setLoading(false); }
+    } catch (e) {
+        // Ignore fetch errors
+    } finally { setLoading(false); }
   }, [client, previewLib, feedType, orientationMode, hiddenLibIds, libraries, loading]);
 
   useEffect(() => { loadContent(true); }, [previewLib, feedType, orientationMode, libraries.length]);
