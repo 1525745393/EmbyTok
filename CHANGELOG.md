@@ -30,15 +30,21 @@
 - **防重复发布**：自动检查标签是否存在
 - **灵活配置**：可选择是否创建 Release、推送 Docker、构建 APK
 - **多平台支持**：Docker 镜像支持 linux/amd64 和 linux/arm64
+- **Android 签名支持**：同时提供 Debug 和 Release 版本的 APK
+  - Release APK 使用项目配置的正式签名
+  - Debug APK 使用 Android 默认调试签名
+  - 支持从 GitHub Secrets 读取签名配置
 
 ### 📁 文件更新
-- `.github/workflows/release.yml` (新增) - 正式发布工作流
-- `.github/workflows/pre-release.yml` (新增) - 预发布工作流
+- `.github/workflows/release.yml` (新增/更新) - 正式发布工作流，支持 Release APK
+- `.github/workflows/pre-release.yml` (新增/更新) - 预发布工作流，支持 Release APK
 - `scripts/version-manager.js` (新增) - 版本管理工具
 - `scripts/extract-changelog.js` (新增) - CHANGELOG 提取工具
 - `scripts/pre-release-check.js` (新增) - 发布前检查脚本
-- `RELEASE_GUIDE.md` (新增) - 发布指南文档
+- `RELEASE_GUIDE.md` (新增/更新) - 发布指南文档，添加签名配置说明
 - `package.json` (更新) - 添加版本管理 npm 脚本
+- `android/app/build.gradle` (更新) - 支持从环境变量读取签名配置
+- `build-android.sh` (更新) - 优化构建脚本，支持 Debug 和 Release 版本
 
 ---
 

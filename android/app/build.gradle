@@ -5,18 +5,25 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
-            storeFile file("embytok-release.keystore")
-            storePassword "embytok123"
-            keyAlias "embytok"
-            keyPassword "embytok123"
+            if (System.getenv("ANDROID_KEYSTORE")) {
+                storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "embytok-release.keystore")
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "embytok123"
+                keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "embytok"
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: "embytok123"
+            } else {
+                storeFile file("embytok-release.keystore")
+                storePassword "embytok123"
+                keyAlias "embytok"
+                keyPassword "embytok123"
+            }
         }
     }
     defaultConfig {
         applicationId "com.embytok.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10905
-        versionName "1.9.5"
+        versionCode 11001
+        versionName "1.10.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

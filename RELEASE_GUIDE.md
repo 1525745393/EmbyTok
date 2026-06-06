@@ -239,6 +239,45 @@ A: 使用 `npm run version:patch` 升级补丁版本，然后按照手动发布�
 
 A: 不会。预发布工作流不会推送 Docker 镜像，也不会覆盖 latest 标签。
 
+## Android 签名配置
+
+为了构建带有正确签名的 Release APK，需要在 GitHub 仓库中配置以下 Secrets：
+
+### 配置步骤
+
+1. **获取 keystore 文件的 Base64 编码**
+   ```bash
+   # 在项目根目录执行
+   base64 -w 0 android/app/embytok-release.keystore
+   ```
+
+2. **在 GitHub 仓库中配置 Secrets**
+   - 进入仓库的 **Settings** → **Secrets and variables** → **Actions**
+   - 点击 **New repository secret** 添加以下 Secrets：
+
+     | Secret 名称 | 说明 | 示例值 |
+     |------------|------|--------|
+     | `ANDROID_KEYSTORE` | keystore 文件的 Base64 编码 | (长字符串) |
+     | `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 | embytok123 |
+     | `ANDROID_KEY_ALIAS` | key 别名 | embytok |
+     | `ANDROID_KEY_PASSWORD` | key 密码 | embytok123 |
+
+### 签名说明
+
+- **Debug APK**: 使用 Android 默认调试签名，适合开发测试
+- **Release APK**: 使用项目配置的正式签名，适合发布和生产环境
+- **签名不匹配**: 如果手机上已安装不同签名的版本，需要先卸载再安装
+
+### 本地构建 Release APK
+
+```bash
+# 使用脚本构建 Release 版本
+./build-android.sh release
+
+# 或构建 Debug 版本
+./build-android.sh debug
+```
+
 ## 相关文件
 
 - `.github/workflows/release.yml` - 正式发布工作流
@@ -246,4 +285,6 @@ A: 不会。预发布工作流不会推送 Docker 镜像，也不会覆盖 lates
 - `scripts/version-manager.js` - 版本管理工具
 - `scripts/extract-changelog.js` - CHANGELOG 提取工具
 - `scripts/pre-release-check.js` - 发布前检查脚本
+- `build-android.sh` - Android 构建脚本
+- `android/app/build.gradle` - Android 构建配置
 - `CHANGELOG.md` - 版本更新日志

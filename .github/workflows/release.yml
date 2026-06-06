@@ -170,6 +170,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Prepare Android signing
+        id: prepare-signing
+        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/embytok-release.keystore
+          echo "ANDROID_KEYSTORE=1" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PATH=embytok-release.keystore" >> $GITHUB_ENV
+          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+
       - name: Gradle Build Action
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -182,16 +193,32 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Rename APK
+      - name: Build Release APK (if secrets available)
+        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APKs
         run: |
           VERSION=${{ needs.extract-version.outputs.version }}
           mv android/app/build/outputs/apk/debug/app-debug.apk EmbyTok-v${VERSION}-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            mv android/app/build/outputs/apk/release/app-release.apk EmbyTok-v${VERSION}-release.apk
+          fi
 
-      - name: Upload APK artifact
+      - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
           path: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
+
+      - name: Upload Release APK artifact (if available)
+        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
+          path: EmbyTok-v${{ needs.extract-version.outputs.version }}-release.apk
 
   generate-release-notes:
     name: Generate Release Notes
@@ -230,15 +257,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download APK
+      - name: Download Debug APK
         uses: actions/download-artifact@v4
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
 
+      - name: Download Release APK (if available)
+        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
+          files: |
+            EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
+            EmbyTok-v${{ needs.extract-version.outputs.version }}-release.apk
           tag_name: v${{ needs.extract-version.outputs.version }}
           name: Release v${{ needs.extract-version.outputs.version }}
           body: ${{ needs.generate-release-notes.outputs.release_body }}
