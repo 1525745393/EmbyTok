@@ -72,6 +72,17 @@
 - ✅ `useDeviceDetection.test.ts` - 设备检测 Hook 测试
   - 设备类型检测
   - 横竖屏检测
+- ✅ `useUIState.test.ts` - UI 状态管理 Hook 测试
+  - 菜单开关
+  - 静音设置
+  - 自动播放
+  - 横屏模式
+  - 本地存储持久化
+- ✅ `useVideoList.test.ts` - 视频列表 Hook 测试
+  - 导航堆栈管理
+  - 视图模式切换
+  - 索引管理
+  - 视频选择
 
 ### 组件集成测试 (`components/__tests__/`)
 - ✅ `Login.test.tsx` - 登录组件测试
@@ -127,7 +138,9 @@ npm run test:run
 │   ├── useVideoControls.test.ts
 │   ├── useWatchHistory.test.ts
 │   ├── useTranslation.test.ts
-│   └── useDeviceDetection.test.ts
+│   ├── useDeviceDetection.test.ts
+│   ├── useUIState.test.ts
+│   └── useVideoList.test.ts
 ├── components/__tests__/
 │   ├── Login.test.tsx
 │   └── VideoPlayer.test.tsx
@@ -148,9 +161,7 @@ npm run test:run
    - `useLazyImage`
    - `useSmartVideoPreload`
    - `useSubtitles`
-   - `useUIState`
    - `useUpdateChecker`
-   - `useVideoList`
 
 2. **更多组件测试**：为以下组件添加集成测试
    - `VideoFeed`
