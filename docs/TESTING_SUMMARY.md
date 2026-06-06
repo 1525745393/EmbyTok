@@ -151,6 +151,22 @@
 - ✅ `VideoInfo.test.tsx` - 视频信息组件测试
   - 视频名称、年份、时长、简介显示
   - 简介展开/收起功能
+- ✅ `SearchResults.test.tsx` - 搜索结果组件测试
+  - 加载状态
+  - 空查询状态
+  - 无结果状态
+  - 搜索结果渲染
+  - 视频选择事件
+- ✅ `FavoritesManager.test.tsx` - 收藏管理器组件测试
+  - 基本渲染
+  - 合集列表渲染
+  - 视频项渲染
+  - 关闭功能
+- ✅ `WatchHistoryView.test.tsx` - 观看历史组件测试
+  - 基本渲染
+  - 无历史状态
+  - 历史项渲染
+  - 关闭和删除功能
 
 ## 测试运行命令
 
@@ -177,8 +193,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：32 个
-- 总测试用例：252 个
+- 总测试文件：35 个
+- 总测试用例：268 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -213,7 +229,10 @@ npm run test:run
 │   ├── VideoSkeleton.test.tsx
 │   ├── VideoControls.test.tsx
 │   ├── UpdateNotification.test.tsx
-│   └── VideoInfo.test.tsx
+│   ├── VideoInfo.test.tsx
+│   ├── SearchResults.test.tsx
+│   ├── FavoritesManager.test.tsx
+│   └── WatchHistoryView.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -229,10 +248,14 @@ npm run test:run
    - `VideoFeed`
    - `VideoGrid`
    - `VideoCard`
-   - `FavoritesManager`
-   - `SearchResults`
    - `SubtitleControls`
+   - `SubtitleRenderer`
    - `TVDashboard`
+   - `TVSettings`
+   - `TVVideoGrid`
+   - `TVVideoPlayer`
+   - `MobileRoot`
+   - `StandardRoot`
    - 以及其他所有 UI 组件
 
 2. **E2E 测试**：添加端到端测试
