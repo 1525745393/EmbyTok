@@ -1,35 +1,68 @@
+# ============================================
+# EmbyTok 项目发布工作流
+# 参考 MDCx 项目的设计模式
+# ============================================
 name: Build and Release
 
+# ============================================
+# 触发方式配置
+# ============================================
 on:
+  # 方式1: Release 事件触发（当 Release 被发布时）
   release:
     types: [published]
+  
+  # 方式2: 推送标签触发（格式: v1.0.0, v2.1.3 等）
   push:
     tags:
       - v*
+  
+  # 方式3: 手动触发（workflow_dispatch）
   workflow_dispatch:
     inputs:
+      # 输入: 标签名称（必填）
       tag:
-        description: "Tag"
+        description: "Tag - 版本标签，例如 v1.0.0"
         required: true
+      
+      # 输入: 是否作为预发布版本（可选）
       prerelease:
-        description: "是否作为预发布（pre-release）"
+        description: "是否作为预发布版本（pre-release）"
         required: false
         default: "false"
 
+# ============================================
+# 工作流权限配置
+# ============================================
+permissions:
+  contents: write  # 需要写入权限来创建 Release 和上传文件
+  packages: write  # 如果需要发布到 GitHub Packages
+
+# ============================================
+# 任务定义
+# ============================================
 jobs:
+  # -------------------------------------------
+  # 任务1: 初始化构建矩阵
+  # 定义需要构建的平台和配置
+  # -------------------------------------------
   init-matrix:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Set matrix
+      - name: Set matrix - 设置构建矩阵
         id: set-matrix
         run: |
           items=()
-
+          
+          # 添加 Docker 构建配置
           items+=('{"build": "docker", "os": "ubuntu-latest"}')
+          
+          # 添加 Android 构建配置
           items+=('{"build": "android", "os": "ubuntu-latest"}')
 
+          # 合并为 JSON 数组格式
           matrix="matrix=["
           for ((i=0; i<${#items[@]}; i++)); do
             matrix+=" ${items[i]}"
@@ -38,102 +71,127 @@ jobs:
             fi
           done
           matrix+="]"
-
+          
+          # 输出到 GitHub Actions 环境变量
           echo $matrix >> $GITHUB_OUTPUT
 
+  # -------------------------------------------
+  # 任务2: 运行测试
+  # 在构建前确保代码质量
+  # -------------------------------------------
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout repository - 检出代码
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js - 设置 Node.js 环境
         uses: actions/setup-node@v5
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "npm"  # 缓存 npm 依赖，加速构建
 
-      - name: Install dependencies
+      - name: Install dependencies - 安装依赖
         run: npm ci
 
-      - name: Run TypeScript type check
+      - name: Run TypeScript type check - 运行 TypeScript 类型检查
         run: npx tsc --noEmit
 
-      - name: Run unit and integration tests
+      - name: Run unit and integration tests - 运行单元和集成测试
         run: npm run test:run
 
-      - name: Check Prettier formatting
+      - name: Check Prettier formatting - 检查代码格式
         run: npx prettier --check .
 
+  # -------------------------------------------
+  # 任务3: 构建应用（矩阵并行构建）
+  # 根据矩阵配置在不同平台上构建
+  # -------------------------------------------
   build-app:
-    needs: [init-matrix, test]
+    needs: [init-matrix, test]  # 依赖前两个任务完成
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: false  # 一个平台失败不影响其他平台
       matrix:
         include: ${{fromJson(needs.init-matrix.outputs.matrix)}}
+    
     steps:
-      - name: Checkout code
+      # ========================================
+      # 步骤1: 代码检出
+      # ========================================
+      - name: Checkout code - 检出代码
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          fetch-tags: true
+          fetch-depth: 0  # 获取完整历史，用于 changelog 生成
+          fetch-tags: true  # 获取所有标签
 
-      - name: Set up Node.js
+      # ========================================
+      # 步骤2: 环境设置
+      # ========================================
+      - name: Set up Node.js - 设置 Node.js 环境
         uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Install dependencies - 安装依赖
         run: npm ci
 
-      - name: Build Docker image
+      # ========================================
+      # 步骤3: Docker 构建（仅在 docker 平台执行）
+      # ========================================
+      - name: Build Docker image - 设置 Docker Buildx
         if: ${{ matrix.build == 'docker' }}
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to Docker Hub - 登录 Docker Hub
         if: ${{ matrix.build == 'docker' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image - 构建并推送 Docker 镜像
         if: ${{ matrix.build == 'docker' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64  # 多平台支持
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:${{ github.event.inputs.tag || github.ref_name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build web
+      # ========================================
+      # 步骤4: Android 构建（仅在 android 平台执行）
+      # ========================================
+      - name: Build web - 构建 Web 应用
         if: ${{ matrix.build == 'android' }}
         run: npm run build
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor - 同步 Capacitor
         if: ${{ matrix.build == 'android' }}
         run: npx cap sync android
 
-      - name: Set up JDK 17
+      - name: Set up JDK 17 - 设置 JDK 17
         if: ${{ matrix.build == 'android' }}
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Prepare Android signing
+      - name: Prepare Android signing - 准备 Android 签名
         if: ${{ matrix.build == 'android' }}
         id: prepare-signing
         run: |
           if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            # 从 secrets 解码 keystore 文件
             echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/embytok-release.keystore
+            
+            # 设置环境变量
             echo "ANDROID_KEYSTORE=1" >> $GITHUB_ENV
             echo "ANDROID_KEYSTORE_PATH=embytok-release.keystore" >> $GITHUB_ENV
             echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
@@ -144,21 +202,21 @@ jobs:
             echo "signing_enabled=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Gradle Build Action
+      - name: Gradle Build Action - 设置 Gradle
         if: ${{ matrix.build == 'android' }}
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "8.2.1"
           cache-read-only: false
 
-      - name: Build Debug APK
+      - name: Build Debug APK - 构建 Debug APK
         if: ${{ matrix.build == 'android' }}
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Build Release APK
+      - name: Build Release APK - 构建 Release APK
         if: ${{ matrix.build == 'android' }}
         run: |
           cd android
@@ -166,7 +224,7 @@ jobs:
             ./gradlew assembleRelease --no-daemon --stacktrace
           fi
 
-      - name: Rename APKs
+      - name: Rename APKs - 重命名 APK 文件
         if: ${{ matrix.build == 'android' }}
         run: |
           version="${{ github.event.inputs.tag || github.ref_name }}"
@@ -175,7 +233,7 @@ jobs:
             mv android/app/build/outputs/apk/release/app-release.apk EmbyTok-$version-release.apk
           fi
 
-      - name: Check if release APK exists
+      - name: Check if release APK exists - 检查 Release APK 是否存在
         if: ${{ matrix.build == 'android' }}
         id: check-release
         run: |
@@ -186,21 +244,24 @@ jobs:
             echo "has_release_apk=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload Debug APK artifact
+      - name: Upload Debug APK artifact - 上传 Debug APK 到 Artifacts
         if: ${{ matrix.build == 'android' }}
         uses: actions/upload-artifact@v4
         with:
           name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug
           path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
 
-      - name: Upload Release APK artifact
+      - name: Upload Release APK artifact - 上传 Release APK 到 Artifacts
         if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release
           path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
 
-      - name: Get changelog
+      # ========================================
+      # 步骤5: 获取 Changelog
+      # ========================================
+      - name: Get changelog - 获取发布说明
         id: get-changelog
         shell: bash
         run: |
@@ -208,7 +269,8 @@ jobs:
             echo "CHANGELOG.md 不存在或为空，无法生成 Release 说明。"
             exit 1
           fi
-
+          
+          # 使用分隔符安全处理多行内容
           delimiter="__EMBYTOK_CHANGELOG_EOF__"
           {
             echo "CHANGELOG<<$delimiter"
@@ -217,7 +279,10 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Resolve release type
+      # ========================================
+      # 步骤6: 确定发布类型（正式版/预发布）
+      # ========================================
+      - name: Resolve release type - 确定发布类型
         id: release-type
         shell: bash
         run: |
@@ -229,7 +294,10 @@ jobs:
           fi
           echo "prerelease=$prerelease" >> $GITHUB_OUTPUT
 
-      - name: Create Release - Android
+      # ========================================
+      # 步骤7: 创建 Release 并上传文件（Android）
+      # ========================================
+      - name: Create Release - Android Debug APK
         uses: svenstaro/upload-release-action@v2
         if: ${{ matrix.build == 'android' }}
         with:
@@ -241,7 +309,7 @@ jobs:
           tag: ${{ github.event.inputs.tag || github.ref }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release - Android Release
+      - name: Create Release - Android Release APK
         uses: svenstaro/upload-release-action@v2
         if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
         with:
