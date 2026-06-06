@@ -2,6 +2,23 @@
 
 所有重要的版本变更都会记录在此文件中。
 
+## [2.0.1] - 2026-06-06
+
+### 🔧 修复
+
+#### 工作流与构建
+- **npm 依赖安装**: 使用 `--legacy-peer-deps` 解决 peer dependency 冲突
+- **版本提取**: 使用 grep/sed 替代 CommonJS require，适配 ESM 项目
+- **Dockerfile**: 修复 Docker 构建中的 npm 安装问题
+- **Build and Deploy 工作流**: 优化工作流以确保稳定运行
+
+#### 发布流程
+- **Release 脚本**: 改进版本号提取逻辑
+- **package.json scripts**: 更新发布相关脚本
+- **GitHub Actions**: 确保工作流正确执行
+
+---
+
 ## [2.0.0] - 2026-06-06
 
 ### 🚀 新功能
