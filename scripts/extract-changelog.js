@@ -18,14 +18,14 @@ function readChangelog() {
 }
 
 function extractLatestVersion(content) {
-  // 匹配版本标题格式: ## v1.2.3
-  const versionRegex = /^## v(\d+\.\d+\.\d+)/gm;
+  // 匹配版本标题格式: ## [1.2.3] 或 ## v1.2.3
+  const versionRegex = /^## \[(\d+\.\d+\.\d+)\]|^## v(\d+\.\d+\.\d+)/gm;
   const matches = [];
   let match;
 
   while ((match = versionRegex.exec(content)) !== null) {
     matches.push({
-      version: match[1],
+      version: match[1] || match[2],
       index: match.index,
     });
   }
@@ -39,25 +39,25 @@ function extractLatestVersion(content) {
 }
 
 function extractVersionContent(content, version) {
-  // 查找指定版本的开始位置
-  const startRegex = new RegExp(`^## v${version.replace(/\./g, '\\.')}[\\s\\S]*?`, 'm');
-  const startMatch = content.match(startRegex);
+  // 查找指定版本的开始位置（支持两种格式）
+  const startRegex = new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\]|^## v${version.replace(/\./g, '\\.')}`, 'm');
+  const startMatch = content.search(startRegex);
 
-  if (!startMatch) {
+  if (startMatch === -1) {
     console.error(`Error: Version v${version} not found in CHANGELOG`);
     process.exit(1);
   }
 
-  const startIndex = startMatch.index;
+  const startIndex = startMatch;
 
   // 查找下一个版本的开始位置（作为结束位置）
   const remainingContent = content.slice(startIndex);
-  const nextVersionRegex = /^## v\d+\.\d+\.\d+/m;
-  const nextMatch = remainingContent.match(nextVersionRegex);
+  const nextVersionRegex = /^## \[\d+\.\d+\.\d+\]|^## v\d+\.\d+\.\d+/m;
+  const nextMatch = remainingContent.search(nextVersionRegex);
 
   let endIndex;
-  if (nextMatch && nextMatch.index > 0) {
-    endIndex = startIndex + nextMatch.index;
+  if (nextMatch > 0) {
+    endIndex = startIndex + nextMatch;
   } else {
     endIndex = content.length;
   }

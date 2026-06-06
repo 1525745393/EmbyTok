@@ -53,16 +53,19 @@ function getCurrentDate() {
 
 function generateChangelogEntry(version) {
   const date = getCurrentDate();
-  return `## v${version}
-**日期**: ${date}
+  return `## [${version}] - ${date}
 
-### 🚀 新功能与优化
+### Added
 
-### 🔧 技术改进
+### Changed
 
-### 📁 文件更新
+### Deprecated
 
----
+### Removed
+
+### Fixed
+
+### Security
 
 `;
 }
@@ -77,7 +80,7 @@ function updateChangelog(version) {
   const newEntry = generateChangelogEntry(version);
 
   // 在文件开头（标题之后）插入新条目
-  const title = '# 版本更新日志 (Changelog)\n\n';
+  const title = '# Changelog\n';
   if (currentContent.startsWith(title)) {
     const restContent = currentContent.slice(title.length);
     const newContent = title + newEntry + restContent;
