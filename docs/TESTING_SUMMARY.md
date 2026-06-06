@@ -4,6 +4,7 @@
 - **Vitest** - 单元测试和集成测试框架
 - **Testing Library** - React 组件测试库
 - **Happy DOM** - 轻量级 DOM 环境
+- **Playwright** - 端到端（E2E）测试框架
 
 ## 已完成的测试
 
@@ -216,7 +217,21 @@
 - ✅ `MobileRoot.test.tsx` - 移动模式根组件测试
   - 登录表单渲染
 
+### 端到端（E2E）测试 (`e2e/`)
+- ✅ `app.spec.ts` - 应用基础测试
+  - 首页加载
+  - 页面标题验证
+- ✅ `login.spec.ts` - 登录流程测试
+  - 登录表单渲染
+  - 服务器类型切换
+  - 输入验证
+- ✅ `mobile.spec.ts` - 移动端界面测试
+  - 响应式布局测试
+  - 小屏幕适配
+
 ## 测试运行命令
+
+### 单元测试和集成测试
 
 ```bash
 # 运行测试（监听模式）
@@ -232,6 +247,21 @@ npm run test:coverage
 npm run test:run
 ```
 
+### E2E 测试（Playwright）
+
+```bash
+# 首次使用前，需要安装浏览器
+npm run test:e2e:install
+
+# 运行 E2E 测试（需要先手动启动开发服务器：npm run dev）
+npm run test:e2e
+
+# 运行 E2E 测试并显示 UI 界面
+npm run test:e2e:ui
+```
+
+注意：运行 E2E 测试前，确保开发服务器已在 `http://localhost:5173` 启动。
+
 ## 测试覆盖率目标
 
 当前已覆盖的核心功能：
@@ -241,8 +271,10 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：47 个
-- 总测试用例：305 个
+- 单元/集成测试文件：47 个
+- E2E 测试文件：3 个
+- 总测试文件：50 个
+- 总测试用例：305 个（单元/集成）+ 5 个（E2E）= 310 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -299,39 +331,39 @@ npm run test:run
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
-└── utils/__tests__/
-    ├── device.test.ts
-    ├── media.test.ts
-    └── time.test.ts
+├── utils/__tests__/
+│   ├── device.test.ts
+│   ├── media.test.ts
+│   └── time.test.ts
+└── e2e/
+    ├── app.spec.ts
+    ├── login.spec.ts
+    └── mobile.spec.ts
 ```
 
 ## 后续工作建议
 
-1. **更多组件测试**：为以下组件添加集成测试
-  - `MobileRoot`
-  - `StandardRoot`
-  - 以及其他所有 UI 组件
+1. **更多 E2E 测试**：扩展端到端测试
+   - 添加模拟 API 服务器以测试完整用户流程
+   - 测试登录、浏览、播放等完整场景
+   - 测试电视模式的遥控器导航
+   - 测试移动手势操作
 
-2. **E2E 测试**：添加端到端测试
-   - 使用 Playwright 或 Cypress
-   - 测试完整用户流程
-   - 测试真实网络请求
-
-3. **CI/CD 集成**：配置自动化测试流程
+2. **CI/CD 集成**：配置自动化测试流程
    - GitHub Actions 或类似 CI 工具
-   - 每次提交自动运行测试
+   - 每次提交自动运行测试（单元 + E2E）
    - 测试覆盖率报告
    - 性能回归检测
 
-4. **性能测试**：添加性能基准测试
+3. **性能测试**：添加性能基准测试
    - 视频加载性能
    - 内存使用情况
    - 滚动流畅度
 
-5. **设备特定测试**：为移动和电视模式添加专门测试
-   - 电视遥控器导航
-   - 触摸手势
-   - 不同屏幕尺寸
+4. **更多浏览器测试**：在更多浏览器和设备上运行 E2E 测试
+   - Firefox
+   - WebKit (Safari)
+   - 更多移动设备尺寸
 
 ## 文档
 
