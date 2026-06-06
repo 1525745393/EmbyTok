@@ -9,21 +9,101 @@ on:
       - main
 
 jobs:
-  # Job 1: 构建 Docker 镜像
-  docker:
+  # Job 1: 构建 Web 和 dist.zip（必须成功！）
+  build-web:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build web
+        run: npm run build
+
+      - name: Create dist.zip
+        run: |
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
+
+      - name: Extract version
+        id: extract-version
+        run: |
+          VERSION=$(grep -E '"version":' package.json | head -1 | awk -F': ' '{print $2}' | sed 's/[", ]//g')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check-tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = `v${{ steps.extract-version.outputs.VERSION }}`;
+            try {
+              await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `tags/${tag}`
+              });
+              return { exists: true, tag: tag };
+            } catch (error) {
+              if (error.status === 404) {
+                return { exists: false, tag: tag };
+              }
+              throw error;
+            }
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && !fromJSON(steps.check-tag.outputs.result).exists
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist.zip
+          tag_name: v${{ steps.extract-version.outputs.VERSION }}
+          name: Release v${{ steps.extract-version.outputs.VERSION }}
+          body: |
+            # EmbyTok v${{ steps.extract-version.outputs.VERSION }}
+
+            ## 📦 下载
+            下载下方 dist.zip 部署到 Web 服务器即可使用！
+
+            ## 🎉 更新内容
+            - Emby API 深度集成
+            - TikTok 风格体验
+            - 性能优化
+            - 用户体验提升
+            - 各种 Bug 修复
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 2: 构建 Docker 镜像（可选，允许失败）
+  docker:
+    needs: build-web
+    runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        continue-on-error: true
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        continue-on-error: true
 
       - name: Extract version from package.json
         id: extract-version
@@ -43,12 +123,13 @@ jobs:
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+        continue-on-error: true
 
-  # Job 2: 构建 Android APK
+  # Job 3: 构建 Android APK（可选，允许失败）
   android:
+    needs: build-web
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +137,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install dependencies
@@ -97,63 +178,3 @@ jobs:
         with:
           name: embytok-apk-${{ steps.extract-version.outputs.VERSION }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Check if tag exists
-        id: check-tag
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = `v${{ steps.extract-version.outputs.VERSION }}`;
-            try {
-              await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `tags/${tag}`
-              });
-              return { exists: true, tag: tag };
-            } catch (error) {
-              if (error.status === 404) {
-                return { exists: false, tag: tag };
-              }
-              throw error;
-            }
-
-      - name: Create Release (only on push to main and tag doesn't exist)
-        if: github.event_name == 'push' && !fromJSON(steps.check-tag.outputs.result).exists
-        uses: softprops/action-gh-release@v1
-        with:
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: v${{ steps.extract-version.outputs.VERSION }}
-          name: Release v${{ steps.extract-version.outputs.VERSION }}
-          body: |
-            # EmbyTok v${{ steps.extract-version.outputs.VERSION }} 更新说明
-
-            ## 下载安装
-            - 下载下方 APK 文件安装到 Android 设备
-
-            ## 本次更新
-            ### v${{ steps.extract-version.outputs.VERSION }}
-            - 完善进度条拖动快进功能
-
-            ## 历史更新
-            ### v1.6.2
-            - 进度条显示/隐藏优化
-
-            ### v1.6.1
-            - 修复 Android 登录问题（支持 HTTP 和自签名证书）
-
-            ### v1.6.0
-            - 记忆播放进度
-            - 播放失败自动重试
-            - 更好的错误提示
-            - 播放速度调节功能
-
-            ## 功能特点
-            - TikTok 式竖屏浏览体验
-            - 支持 Emby/Jellyfin 服务器
-            - 双击屏幕显示/隐藏进度条
-            - 长按快进手势
-            - 记忆播放进度
-            - 速度调节 0.5x-5.0x
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
