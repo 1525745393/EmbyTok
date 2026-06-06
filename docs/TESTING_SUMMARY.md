@@ -174,6 +174,18 @@
 - ✅ `VideoCard.test.tsx` - 视频卡片组件测试
   - 基本渲染
   - 收藏状态渲染
+- ✅ `SubtitleRenderer.test.tsx` - 字幕渲染组件测试
+  - 禁用状态不渲染
+  - 无活跃字幕不渲染
+  - 活跃字幕渲染
+  - 多行字幕渲染
+  - 不同字号渲染
+- ✅ `VideoGrid.test.tsx` - 视频网格组件测试
+  - 视频项渲染
+  - 空状态渲染
+  - 视频选择事件
+  - 文件夹导航事件
+  - 刷新事件
 
 ## 测试运行命令
 
@@ -200,8 +212,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：37 个
-- 总测试用例：275 个
+- 总测试文件：39 个
+- 总测试用例：285 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -241,7 +253,9 @@ npm run test:run
 │   ├── FavoritesManager.test.tsx
 │   ├── WatchHistoryView.test.tsx
 │   ├── SubtitleControls.test.tsx
-│   └── VideoCard.test.tsx
+│   ├── VideoCard.test.tsx
+│   ├── SubtitleRenderer.test.tsx
+│   └── VideoGrid.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -255,8 +269,6 @@ npm run test:run
 
 1. **更多组件测试**：为以下组件添加集成测试
   - `VideoFeed`
-  - `VideoGrid`
-  - `SubtitleRenderer`
   - `TVDashboard`
   - `TVSettings`
   - `TVVideoGrid`
