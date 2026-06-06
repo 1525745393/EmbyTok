@@ -118,7 +118,7 @@ jobs:
     name: Build & Push Docker
     runs-on: ubuntu-latest
     needs: [extract-version, check-tag]
-    if: ${{ inputs.push_docker != false && needs.check-tag.outputs.tag_exists == 'false' }}
+    if: ${{ (inputs.push_docker != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -149,7 +149,7 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     needs: [extract-version, check-tag]
-    if: ${{ inputs.build_android != false && needs.check-tag.outputs.tag_exists == 'false' }}
+    if: ${{ (inputs.build_android != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
     outputs:
       has_release_apk: ${{ steps.check-release.outputs.has_release_apk }}
     steps:
@@ -246,7 +246,7 @@ jobs:
     name: Generate Release Notes
     runs-on: ubuntu-latest
     needs: [extract-version, check-tag]
-    if: ${{ inputs.create_release != false && needs.check-tag.outputs.tag_exists == 'false' }}
+    if: ${{ (inputs.create_release != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
     outputs:
       release_body: ${{ steps.generate.outputs.body }}
     steps:
@@ -272,7 +272,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [extract-version, check-tag, docker, android, generate-release-notes]
-    if: ${{ inputs.create_release != false && needs.check-tag.outputs.tag_exists == 'false' }}
+    if: ${{ (inputs.create_release != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
     permissions:
       contents: write
     steps:
