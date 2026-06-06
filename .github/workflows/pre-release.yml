@@ -1,0 +1,165 @@
+name: Pre-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_suffix:
+        description: 'Version suffix (e.g., beta.1, rc.2)'
+        required: true
+        type: string
+        default: 'beta.1'
+      build_android:
+        description: 'Build Android APK'
+        required: true
+        type: boolean
+        default: true
+      create_release:
+        description: 'Create Pre-release'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run unit and integration tests
+        run: npm run test:run
+
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      base_version: ${{ steps.get.outputs.base_version }}
+      full_version: ${{ steps.get.outputs.full_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get version
+        id: get
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          FULL_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}"
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+          echo "Full version: $FULL_VERSION"
+
+  android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: ${{ inputs.build_android }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle Build Action
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2.1
+          cache-read-only: false
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: |
+          VERSION=${{ needs.get-version.outputs.full_version }}
+          mv android/app/build/outputs/apk/debug/app-debug.apk EmbyTok-v${VERSION}-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmbyTok-v${{ needs.get-version.outputs.full_version }}-debug
+          path: EmbyTok-v${{ needs.get-version.outputs.full_version }}-debug.apk
+
+  create-prerelease:
+    name: Create Pre-release
+    runs-on: ubuntu-latest
+    needs: [get-version, android]
+    if: ${{ inputs.create_release }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download APK
+        if: ${{ inputs.build_android }}
+        uses: actions/download-artifact@v4
+        with:
+          name: EmbyTok-v${{ needs.get-version.outputs.full_version }}-debug
+
+      - name: Create Pre-release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ inputs.build_android && 'EmbyTok-v*.apk' || '' }}
+          tag_name: v${{ needs.get-version.outputs.full_version }}
+          name: Pre-release v${{ needs.get-version.outputs.full_version }}
+          body: |
+            # EmbyTok Pre-release v${{ needs.get-version.outputs.full_version }}
+
+            ⚠️ **这是一个预发布版本，仅用于测试！**
+
+            ## 📥 下载安装
+
+            ${{ inputs.build_android && '- **Android**: 下载下方的 APK 文件安装' : '' }}
+
+            ## 🎯 测试重点
+            - 功能是否正常工作
+            - 是否有新的 bug
+            - 性能表现
+
+            ## 📝 反馈
+            如有问题，请提交 Issue。
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
