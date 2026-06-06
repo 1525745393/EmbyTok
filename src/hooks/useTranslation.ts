@@ -20,7 +20,7 @@ export function useTranslation() {
   const t: Translations = translations[language];
 
   const toggleLanguage = useCallback(() => {
-    setLanguage(prev => {
+    setLanguage((prev) => {
       const next: Language = prev === 'zh' ? 'en' : 'zh';
       try {
         localStorage.setItem(LANGUAGE_KEY, next);
@@ -44,7 +44,7 @@ export function useTranslation() {
     language,
     t,
     toggleLanguage,
-    setLanguage: setLanguageDirectly
+    setLanguage: setLanguageDirectly,
   };
 }
 

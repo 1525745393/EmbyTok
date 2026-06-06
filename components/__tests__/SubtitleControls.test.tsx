@@ -18,23 +18,23 @@ vi.mock('../src/hooks', () => ({
         textColor: '文字颜色',
         position: '位置',
         bottom: '底部',
-        top: '顶部'
-      }
-    }
-  })
+        top: '顶部',
+      },
+    },
+  }),
 }));
 
 const mockTracks = [
   {
     id: 'track1',
     label: 'English',
-    language: 'en'
+    language: 'en',
   },
   {
     id: 'track2',
     label: '中文',
-    language: 'zh'
-  }
+    language: 'zh',
+  },
 ];
 
 const mockSettings = {
@@ -42,7 +42,7 @@ const mockSettings = {
   selectedTrackId: 'track1',
   fontSize: 'medium',
   textColor: '#FFFFFF',
-  position: 'bottom'
+  position: 'bottom',
 };
 
 describe('SubtitleControls Component', () => {
@@ -52,7 +52,7 @@ describe('SubtitleControls Component', () => {
     onToggleSubtitles: vi.fn(),
     onSelectTrack: vi.fn(),
     onUpdateSettings: vi.fn(),
-    onClose: vi.fn()
+    onClose: vi.fn(),
   };
 
   it('should render correctly', () => {
@@ -69,7 +69,7 @@ describe('SubtitleControls Component', () => {
   it('should call onClose when close button is clicked', () => {
     render(<SubtitleControls {...defaultProps} />);
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(btn => btn.innerHTML.includes('X'));
+    const closeButton = closeButtons.find((btn) => btn.innerHTML.includes('X'));
     if (closeButton) {
       fireEvent.click(closeButton);
       expect(defaultProps.onClose).toHaveBeenCalled();
@@ -79,7 +79,7 @@ describe('SubtitleControls Component', () => {
   it('should toggle settings view', () => {
     render(<SubtitleControls {...defaultProps} />);
     const settingsButtons = screen.getAllByRole('button');
-    const settingsButton = settingsButtons.find(btn => btn.innerHTML.includes('Settings'));
+    const settingsButton = settingsButtons.find((btn) => btn.innerHTML.includes('Settings'));
     if (settingsButton) {
       fireEvent.click(settingsButton);
       expect(screen.getByText('字体大小')).toBeInTheDocument();

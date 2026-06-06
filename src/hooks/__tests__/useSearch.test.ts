@@ -5,12 +5,12 @@ import { useSearch } from '../useSearch';
 describe('useSearch Hook', () => {
   // Mock MediaClient
   const mockClient = {
-    searchItems: vi.fn()
+    searchItems: vi.fn(),
   };
 
   const mockSearchResults = [
     { Id: 'item1', Name: 'Test Movie', Type: 'Movie' },
-    { Id: 'item2', Name: 'Test Show', Type: 'Series' }
+    { Id: 'item2', Name: 'Test Show', Type: 'Series' },
   ];
 
   beforeEach(() => {

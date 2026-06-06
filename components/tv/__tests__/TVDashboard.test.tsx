@@ -7,31 +7,31 @@ const mockLibraries = [
   {
     Id: '1',
     Name: 'Movies',
-    ImageTags: {}
+    ImageTags: {},
   },
   {
     Id: '2',
     Name: 'TV Shows',
-    ImageTags: { Primary: 'image1' }
-  }
+    ImageTags: { Primary: 'image1' },
+  },
 ];
 
 const mockItems = [
   {
     Id: '1',
     Name: 'First Item',
-    ImageTags: { Primary: 'image1' }
+    ImageTags: { Primary: 'image1' },
   },
   {
     Id: '2',
     Name: 'Second Item',
-    ImageTags: {}
-  }
+    ImageTags: {},
+  },
 ];
 
 const mockClient = {
   getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
-  getVideos: vi.fn().mockResolvedValue({ items: mockItems })
+  getVideos: vi.fn().mockResolvedValue({ items: mockItems }),
 };
 
 describe('TVDashboard Component', () => {
@@ -45,7 +45,7 @@ describe('TVDashboard Component', () => {
         language="zh"
       />
     );
-    
+
     // Loading spinner should be present initially
     expect(document.body).toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe('TVDashboard Component', () => {
         language="zh"
       />
     );
-    
+
     await waitFor(() => {
       expect(screen.getByText('我的媒体库')).toBeInTheDocument();
     });
@@ -77,7 +77,7 @@ describe('TVDashboard Component', () => {
         language="zh"
       />
     );
-    
+
     await waitFor(() => {
       expect(screen.getByText('我的媒体库')).toBeInTheDocument();
     });

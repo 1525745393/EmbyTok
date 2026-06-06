@@ -6,10 +6,7 @@ import { useLocalStorageState } from './useLocalStorageState';
 export function useLibraries(client: MediaClient | null) {
   const [libraries, setLibraries] = useState<EmbyLibrary[]>([]);
   const [selectedLib, setSelectedLib] = useState<EmbyLibrary | null>(null);
-  const [hiddenLibIds, setHiddenLibIds] = useLocalStorageState<string[]>(
-    'embyHiddenLibs',
-    []
-  );
+  const [hiddenLibIds, setHiddenLibIds] = useLocalStorageState<string[]>('embyHiddenLibs', []);
 
   const hiddenLibIdsSet = useMemo(() => new Set(hiddenLibIds), [hiddenLibIds]);
 
@@ -22,7 +19,7 @@ export function useLibraries(client: MediaClient | null) {
 
   const toggleHiddenLib = useCallback(
     (id: string) => {
-      setHiddenLibIds(prev => {
+      setHiddenLibIds((prev) => {
         const set = new Set(prev);
         if (set.has(id)) {
           set.delete(id);

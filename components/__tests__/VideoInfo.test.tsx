@@ -13,7 +13,7 @@ const mockItem = {
   Type: 'Movie',
   ServerId: 'server1',
   ImageTags: {},
-  UserData: {}
+  UserData: {},
 };
 
 describe('VideoInfo Component', () => {
@@ -32,7 +32,7 @@ describe('VideoInfo Component', () => {
     fileNotFound: '视频文件不存在',
     formatNotSupported: '视频格式不支持',
     unknownError: '播放出错，请重试',
-    imageLoadError: '图片加载失败'
+    imageLoadError: '图片加载失败',
   };
 
   const defaultProps = {
@@ -41,7 +41,7 @@ describe('VideoInfo Component', () => {
     renderUI: true,
     isPlaying: false,
     t: defaultT,
-    onToggleInfo: vi.fn()
+    onToggleInfo: vi.fn(),
   };
 
   it('should not render when renderUI is false', () => {
@@ -68,7 +68,7 @@ describe('VideoInfo Component', () => {
   it('should call onToggleInfo when overview is clicked', () => {
     const onToggleInfo = vi.fn();
     render(<VideoInfo {...defaultProps} onToggleInfo={onToggleInfo} />);
-    
+
     const overviewElement = screen.getByText('This is a test video description.');
     fireEvent.click(overviewElement);
     expect(onToggleInfo).toHaveBeenCalled();

@@ -24,7 +24,7 @@ async function generateBannersFromPng() {
   }
 
   const androidResDir = path.join(process.cwd(), 'android/app/src/main/res');
-  
+
   // Define banner sizes for different densities (16:9 aspect ratio)
   const bannerConfigs = [
     { density: 'mdpi', width: 320, height: 180 },
@@ -32,22 +32,22 @@ async function generateBannersFromPng() {
     { density: 'xhdpi', width: 640, height: 360 },
     { density: 'xxhdpi', width: 960, height: 540 },
     { density: 'xxxhdpi', width: 1280, height: 720 },
-    { density: '', width: 640, height: 360 } // Default density
+    { density: '', width: 640, height: 360 }, // Default density
   ];
-  
+
   console.log(`Generating banners from ${sourcePngPath}...`);
-  
+
   // Generate banner for each density
   for (const config of bannerConfigs) {
-    const drawableDir = config.density 
+    const drawableDir = config.density
       ? path.join(androidResDir, `drawable-${config.density}`)
       : path.join(androidResDir, 'drawable');
-    
+
     // Ensure directory exists
     await fs.mkdir(drawableDir, { recursive: true });
-    
+
     const outputPath = path.join(drawableDir, 'banner.png');
-    
+
     try {
       await sharp(sourcePngPath)
         .resize({
@@ -55,17 +55,17 @@ async function generateBannersFromPng() {
           height: config.height,
           fit: 'cover', // Changed from 'contain' to 'cover' to fill the area
           position: 'center', // Center the image
-          background: { r: 0, g: 0, b: 0, alpha: 1 } // Black background if needed
+          background: { r: 0, g: 0, b: 0, alpha: 1 }, // Black background if needed
         })
         .png()
         .toFile(outputPath);
-      
+
       console.log(`✓ Generated ${outputPath}`);
     } catch (error) {
       console.error(`✗ Failed to generate ${outputPath}:`, error.message);
     }
   }
-  
+
   console.log('\nBanner generation completed!');
 }
 

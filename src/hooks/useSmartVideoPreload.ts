@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: PreloadConfig = {
   preloadBuffer: 10,
   nextVideoPreloadSeconds: 5,
   maxCachedVideos: 3,
-  enabled: true
+  enabled: true,
 };
 
 interface CachedVideo {
@@ -29,16 +29,18 @@ interface CachedVideo {
 type ScrollDirection = 'up' | 'down' | 'none';
 
 export function useSmartVideoPreload(
-  videos: EmbyItem[], 
+  videos: EmbyItem[],
   activeIndex: number,
   config: Partial<PreloadConfig> = {}
 ) {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const [cachedVideos, setCachedVideos] = useState<Map<string, CachedVideo>>(new Map());
-  const [networkQuality, setNetworkQuality] = useState<'high' | 'medium' | 'low' | 'unknown'>('unknown');
+  const [networkQuality, setNetworkQuality] = useState<'high' | 'medium' | 'low' | 'unknown'>(
+    'unknown'
+  );
   const [scrollSpeed, setScrollSpeed] = useState<number>(0);
   const [scrollDirection, setScrollDirection] = useState<ScrollDirection>('none');
-  
+
   const currentConfigRef = useRef(mergedConfig);
   const lastScrollTimeRef = useRef<number>(Date.now());
   const lastScrollPositionRef = useRef<number>(0);
@@ -49,18 +51,21 @@ export function useSmartVideoPreload(
     if ('connection' in navigator) {
       const connection = (navigator as any).connection;
       if (connection) {
-        const quality: 'high' | 'medium' | 'low' | 'unknown' = 
-          connection.saveData ? 'low' :
-          connection.effectiveType === '4g' || connection.effectiveType === '5g' ? 'high' :
-          connection.effectiveType === '3g' ? 'medium' : 'low';
-        
+        const quality: 'high' | 'medium' | 'low' | 'unknown' = connection.saveData
+          ? 'low'
+          : connection.effectiveType === '4g' || connection.effectiveType === '5g'
+            ? 'high'
+            : connection.effectiveType === '3g'
+              ? 'medium'
+              : 'low';
+
         setNetworkQuality(quality);
         return {
           effectiveType: connection.effectiveType,
           downlink: connection.downlink,
           rtt: connection.rtt,
           saveData: connection.saveData,
-          quality
+          quality,
         };
       }
     }
@@ -72,24 +77,26 @@ export function useSmartVideoPreload(
     const now = Date.now();
     const timeDelta = now - lastScrollTimeRef.current;
     const positionDelta = currentPosition - lastScrollPositionRef.current;
-    
+
     if (timeDelta > 0) {
       const speed = Math.abs(positionDelta / timeDelta); // 像素/毫秒
-      
+
       // 保存速度历史用于平滑
       scrollSpeedHistoryRef.current.push(speed);
       if (scrollSpeedHistoryRef.current.length > 5) {
         scrollSpeedHistoryRef.current.shift();
       }
-      
+
       // 计算平均速度
-      const avgSpeed = scrollSpeedHistoryRef.current.reduce((a, b) => a + b, 0) / scrollSpeedHistoryRef.current.length;
+      const avgSpeed =
+        scrollSpeedHistoryRef.current.reduce((a, b) => a + b, 0) /
+        scrollSpeedHistoryRef.current.length;
       setScrollSpeed(avgSpeed);
-      
+
       // 确定方向
       setScrollDirection(positionDelta > 0 ? 'down' : positionDelta < 0 ? 'up' : 'none');
     }
-    
+
     lastScrollTimeRef.current = now;
     lastScrollPositionRef.current = currentPosition;
   }, []);
@@ -98,7 +105,7 @@ export function useSmartVideoPreload(
   const getDynamicConfig = useCallback(() => {
     const baseConfig = { ...DEFAULT_CONFIG, ...config };
     const network = checkNetworkQuality();
-    
+
     // 根据网络质量调整
     switch (network.quality) {
       case 'high':
@@ -115,7 +122,7 @@ export function useSmartVideoPreload(
         baseConfig.maxCachedVideos = 1;
         break;
     }
-    
+
     // 根据滚动速度进一步调整
     if (scrollSpeed > 2) {
       // 快速滚动 - 减少预加载
@@ -124,7 +131,7 @@ export function useSmartVideoPreload(
       // 慢速滚动或停止 - 增加预加载
       baseConfig.maxCachedVideos = Math.min(5, baseConfig.maxCachedVideos + 1);
     }
-    
+
     return baseConfig;
   }, [config, scrollSpeed, checkNetworkQuality]);
 
@@ -137,37 +144,36 @@ export function useSmartVideoPreload(
   const manageCache = useCallback((itemId: string, status: CachedVideo['status'] = 'idle') => {
     if (!currentConfigRef.current.enabled) return;
 
-    setCachedVideos(prev => {
+    setCachedVideos((prev) => {
       const newCache = new Map(prev);
       const now = Date.now();
-      
+
       // 更新使用时间
       if (newCache.has(itemId)) {
         const existing = newCache.get(itemId)!;
-        newCache.set(itemId, { 
-          ...existing, 
+        newCache.set(itemId, {
+          ...existing,
           lastUsed: now,
-          status: status !== 'idle' ? status : existing.status
+          status: status !== 'idle' ? status : existing.status,
         });
       } else {
         newCache.set(itemId, {
           itemId,
           lastUsed: now,
-          status
+          status,
         });
       }
-      
+
       // 移除旧的缓存
       if (newCache.size > currentConfigRef.current.maxCachedVideos) {
-        const sorted = [...newCache.entries()]
-          .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
-        
+        const sorted = [...newCache.entries()].sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+
         const toRemove = sorted.slice(0, sorted.length - currentConfigRef.current.maxCachedVideos);
         toRemove.forEach(([id]) => {
           newCache.delete(id);
         });
       }
-      
+
       return newCache;
     });
   }, []);
@@ -178,10 +184,10 @@ export function useSmartVideoPreload(
 
     const config = currentConfigRef.current;
     const indicesToPreload: number[] = [];
-    
+
     // 当前视频始终最高优先级
     indicesToPreload.push(activeIndex);
-    
+
     // 根据滚动方向和速度确定预加载数量
     let preloadCount = 1;
     if (scrollSpeed < 0.5) {
@@ -189,7 +195,7 @@ export function useSmartVideoPreload(
     } else if (scrollSpeed > 2) {
       preloadCount = 1; // 快速时减少预加载
     }
-    
+
     // 根据滚动方向预加载
     if (scrollDirection === 'down') {
       // 向下滚动 - 预加载后面的视频
@@ -214,7 +220,7 @@ export function useSmartVideoPreload(
         indicesToPreload.push(activeIndex - 1);
       }
     }
-    
+
     // 执行预加载
     indicesToPreload.forEach((index, priority) => {
       const item = videos[index];
@@ -231,12 +237,13 @@ export function useSmartVideoPreload(
   }, [activeIndex, preloadVideos]);
 
   return {
-    isPreloaded: (itemId: string) => cachedVideos.has(itemId) && cachedVideos.get(itemId)?.status === 'ready',
+    isPreloaded: (itemId: string) =>
+      cachedVideos.has(itemId) && cachedVideos.get(itemId)?.status === 'ready',
     getCacheStatus: (itemId: string) => cachedVideos.get(itemId)?.status || 'idle',
     networkQuality,
     scrollSpeed,
     scrollDirection,
     updateScrollSpeed,
-    config: currentConfigRef.current
+    config: currentConfigRef.current,
   };
 }

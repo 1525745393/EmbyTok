@@ -100,14 +100,14 @@ describe('media utils', () => {
       vi.restoreAllMocks();
       Object.defineProperty(window.navigator, 'userAgent', {
         value: originalUserAgent,
-        configurable: true
+        configurable: true,
       });
     });
 
     it('should return true when userAgent contains tv', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'SmartTV/1.0',
-        configurable: true
+        configurable: true,
       });
       expect(isTVDevice()).toBe(true);
     });
@@ -115,7 +115,7 @@ describe('media utils', () => {
     it('should return true when userAgent contains googletv', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'GoogleTV/1.0',
-        configurable: true
+        configurable: true,
       });
       expect(isTVDevice()).toBe(true);
     });
@@ -123,7 +123,7 @@ describe('media utils', () => {
     it('should return true when userAgent contains smarttv', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'SmartTV/1.0',
-        configurable: true
+        configurable: true,
       });
       expect(isTVDevice()).toBe(true);
     });
@@ -131,7 +131,7 @@ describe('media utils', () => {
     it('should return false for regular browser userAgent', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        configurable: true
+        configurable: true,
       });
       expect(isTVDevice()).toBe(false);
     });
@@ -139,7 +139,7 @@ describe('media utils', () => {
     it('should be case insensitive', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'TV-Browser/1.0',
-        configurable: true
+        configurable: true,
       });
       expect(isTVDevice()).toBe(true);
     });
@@ -153,39 +153,43 @@ describe('media utils', () => {
       vi.restoreAllMocks();
       Object.defineProperty(window.navigator, 'userAgent', {
         value: originalUserAgent,
-        configurable: true
+        configurable: true,
       });
       (window as any).MSStream = undefined;
     });
 
     it('should return true for iPhone Safari userAgent', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-        configurable: true
+        value:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        configurable: true,
       });
       expect(isIOSSafari()).toBe(true);
     });
 
     it('should return true for iPad Safari userAgent', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-        configurable: true
+        value:
+          'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        configurable: true,
       });
       expect(isIOSSafari()).toBe(true);
     });
 
     it('should return false for Chrome on iOS', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.83 Mobile/15E148 Safari/604.1',
-        configurable: true
+        value:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/120.0.6099.83 Mobile/15E148 Safari/604.1',
+        configurable: true,
       });
       expect(isIOSSafari()).toBe(false);
     });
 
     it('should return false for Windows browser', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        configurable: true
+        value:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        configurable: true,
       });
       expect(isIOSSafari()).toBe(false);
     });
@@ -193,7 +197,7 @@ describe('media utils', () => {
     it('should return false when MSStream is present', () => {
       Object.defineProperty(window.navigator, 'userAgent', {
         value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
-        configurable: true
+        configurable: true,
       });
       (window as any).MSStream = {};
       expect(isIOSSafari()).toBe(false);

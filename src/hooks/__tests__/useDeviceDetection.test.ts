@@ -5,7 +5,7 @@ import * as utils from '../../../utils';
 vi.mock('../../../utils', () => ({
   isMobile: vi.fn(),
   isLandscape: vi.fn(),
-  isIOSSafari: vi.fn()
+  isIOSSafari: vi.fn(),
 }));
 
 describe('useDeviceDetection', () => {

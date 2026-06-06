@@ -5,13 +5,13 @@ import { useLibraries } from '../useLibraries';
 describe('useLibraries Hook', () => {
   // Mock MediaClient
   const mockClient = {
-    getLibraries: vi.fn()
+    getLibraries: vi.fn(),
   };
 
   const mockLibraries = [
     { Id: 'lib1', Name: 'Movies', CollectionType: 'movies' },
     { Id: 'lib2', Name: 'TV Shows', CollectionType: 'tvshows' },
-    { Id: 'lib3', Name: 'Music', CollectionType: 'music' }
+    { Id: 'lib3', Name: 'Music', CollectionType: 'music' },
   ];
 
   beforeEach(() => {
@@ -30,13 +30,11 @@ describe('useLibraries Hook', () => {
   it('fetches libraries when client is available', async () => {
     mockClient.getLibraries.mockResolvedValue(mockLibraries);
 
-    const { result } = renderHook(() => 
-      useLibraries(mockClient as any)
-    );
+    const { result } = renderHook(() => useLibraries(mockClient as any));
 
     // Wait for the async fetch to complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     expect(result.current.libraries).toEqual(mockLibraries);
@@ -88,19 +86,17 @@ describe('useLibraries Hook', () => {
   it('allows manually fetching libraries', async () => {
     mockClient.getLibraries.mockResolvedValue(mockLibraries);
 
-    const { result } = renderHook(() => 
-      useLibraries(mockClient as any)
-    );
+    const { result } = renderHook(() => useLibraries(mockClient as any));
 
     // Wait for initial fetch
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     // Call fetchLibraries again
     const updatedLibraries = [
       ...mockLibraries,
-      { Id: 'lib4', Name: 'Photos', CollectionType: 'photos' }
+      { Id: 'lib4', Name: 'Photos', CollectionType: 'photos' },
     ];
     mockClient.getLibraries.mockResolvedValue(updatedLibraries);
 

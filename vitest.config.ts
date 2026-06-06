@@ -17,17 +17,17 @@ export default defineConfig({
         'components/**/*.{ts,tsx}',
         'services/**/*.{ts,tsx}',
         'src/hooks/**/*.{ts,tsx}',
-        'utils/**/*.{ts,tsx}'
+        'utils/**/*.{ts,tsx}',
       ],
-      exclude: ['**/*.d.ts', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}']
+      exclude: ['**/*.d.ts', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     },
     benchmark: {
-      include: ['**/*.{bench,benchmark}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}']
-    }
+      include: ['**/*.{bench,benchmark}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    },
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, '.')
-    }
-  }
+      '@': resolve(__dirname, '.'),
+    },
+  },
 });

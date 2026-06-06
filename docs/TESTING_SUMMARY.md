@@ -1,6 +1,7 @@
 # EmbyTok 测试体系总结
 
 ## 测试框架
+
 - **Vitest** - 单元测试和集成测试框架
 - **Testing Library** - React 组件测试库
 - **Happy DOM** - 轻量级 DOM 环境
@@ -10,6 +11,7 @@
 ## 已完成的测试
 
 ### 工具函数测试 (`utils/__tests__/`)
+
 - ✅ `media.test.ts` - 媒体工具函数测试
   - 文件夹类型检测
   - 播放进度计算
@@ -23,6 +25,7 @@
   - 横竖屏检测
 
 ### 服务层测试 (`services/__tests__/`)
+
 - ✅ `EmbyClient.test.ts` - Emby 客户端测试
   - 认证流程
   - 视频获取
@@ -38,6 +41,7 @@
   - 字幕获取
 
 ### 自定义 Hooks 测试 (`src/hooks/__tests__/`)
+
 - ✅ `useLocalStorageState.test.ts` - 本地存储 Hook 测试
   - 初始化
   - 状态更新
@@ -110,6 +114,7 @@
   - 网络质量检测
 
 ### 组件集成测试 (`components/__tests__/`)
+
 - ✅ `Login.test.tsx` - 登录组件测试
   - 表单渲染
   - 服务器类型切换
@@ -219,6 +224,7 @@
   - 登录表单渲染
 
 ### 端到端（E2E）测试 (`e2e/`)
+
 - ✅ `app.spec.ts` - 应用基础测试
   - 首页加载
   - 页面标题验证
@@ -231,6 +237,7 @@
   - 小屏幕适配
 
 ### 性能测试 (`e2e/` 和 `utils/__tests__/`)
+
 - ✅ `performance.spec.ts` - 应用整体性能测试
   - 页面加载性能测试
   - 资源加载测试
@@ -287,6 +294,7 @@ npm run test:performance
 ### 自动化测试工作流
 
 项目已配置 GitHub Actions 工作流，在以下情况下自动运行：
+
 - 代码推送到 `main` 分支时
 - 提交 PR 到 `main` 分支时
 - 手动触发（workflow_dispatch）
@@ -313,12 +321,14 @@ CI 运行测试后会自动上传覆盖率报告作为 artifacts，可在 Action
 ## 测试覆盖率目标
 
 当前已覆盖的核心功能：
+
 - 工具函数：100%
 - API 客户端：90%+
 - 自定义 Hooks：100% (所有 Hooks 已全部覆盖！)
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
+
 - 单元/集成测试文件：47 个
 - E2E 测试文件：3 个
 - 性能测试文件：2 个

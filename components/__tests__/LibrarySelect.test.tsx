@@ -6,9 +6,9 @@ import LibrarySelect from '../LibrarySelect';
 describe('LibrarySelect Component', () => {
   const mockLibraries = [
     { Id: 'lib1', Name: 'Movies', CollectionType: 'movies' },
-    { Id: 'lib2', Name: 'TV Shows', CollectionType: 'tvshows' }
+    { Id: 'lib2', Name: 'TV Shows', CollectionType: 'tvshows' },
   ];
-  
+
   const defaultProps = {
     libraries: mockLibraries,
     onSelect: vi.fn(),
@@ -25,7 +25,7 @@ describe('LibrarySelect Component', () => {
     onToggleMode: vi.fn(),
     language: 'zh' as const,
     onToggleLanguage: vi.fn(),
-    version: '1.0.0'
+    version: '1.0.0',
   };
 
   it('should not render when isOpen is false', () => {
@@ -42,7 +42,7 @@ describe('LibrarySelect Component', () => {
   it('should call onSelect when a library is clicked', () => {
     const onSelect = vi.fn();
     render(<LibrarySelect {...defaultProps} onSelect={onSelect} />);
-    
+
     fireEvent.click(screen.getByText('Movies'));
     expect(onSelect).toHaveBeenCalled();
     expect(defaultProps.onClose).toHaveBeenCalled();
@@ -51,9 +51,9 @@ describe('LibrarySelect Component', () => {
   it('should call onClose when close button is clicked', () => {
     const onClose = vi.fn();
     render(<LibrarySelect {...defaultProps} onClose={onClose} />);
-    
+
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(btn => btn.innerHTML.includes('lucide-x'));
+    const closeButton = closeButtons.find((btn) => btn.innerHTML.includes('lucide-x'));
     if (closeButton) {
       fireEvent.click(closeButton);
       expect(onClose).toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe('LibrarySelect Component', () => {
 
   it('should switch to settings mode when settings button is clicked', () => {
     render(<LibrarySelect {...defaultProps} />);
-    
+
     const settingsButton = screen.getByText('设置');
     fireEvent.click(settingsButton);
     expect(screen.getByText('设置')).toBeInTheDocument();

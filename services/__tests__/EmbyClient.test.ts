@@ -12,7 +12,7 @@ describe('EmbyClient', () => {
       username: 'testuser',
       token: 'testtoken123',
       userId: 'user123',
-      serverType: 'emby' as const
+      serverType: 'emby' as const,
     };
     client = new EmbyClient(config);
   });
@@ -27,11 +27,11 @@ describe('EmbyClient', () => {
     it('should return a valid video URL for an item', () => {
       const item = {
         Id: 'video123',
-        Name: 'Test Video'
+        Name: 'Test Video',
       } as EmbyItem;
-      
+
       const url = client.getVideoUrl(item);
-      
+
       expect(url).toContain('http://localhost:8096');
       expect(url).toContain('video123');
       expect(url).toContain('testtoken123');
@@ -41,17 +41,19 @@ describe('EmbyClient', () => {
       const item = {
         Id: 'video123',
         Name: 'Test Video',
-        MediaSources: [{
-          Id: 'source456',
-          Container: 'mp4',
-          Path: '/path/to/video.mp4',
-          Protocol: 'File',
-          SupportsDirectPlay: true
-        }]
+        MediaSources: [
+          {
+            Id: 'source456',
+            Container: 'mp4',
+            Path: '/path/to/video.mp4',
+            Protocol: 'File',
+            SupportsDirectPlay: true,
+          },
+        ],
       } as EmbyItem;
-      
+
       const url = client.getVideoUrl(item);
-      
+
       expect(url).toContain('MediaSourceId=source456');
     });
   });
@@ -59,7 +61,7 @@ describe('EmbyClient', () => {
   describe('getImageUrl', () => {
     it('should return a valid image URL', () => {
       const url = client.getImageUrl('item123', 'tag456', 'Primary');
-      
+
       expect(url).toContain('http://localhost:8096');
       expect(url).toContain('item123');
       expect(url).toContain('tag456');
@@ -87,18 +89,18 @@ describe('EmbyClient', () => {
       const mockResponse = {
         User: {
           Id: 'newuserid',
-          Name: 'testuser'
+          Name: 'testuser',
         },
-        AccessToken: 'newaccesstoken'
+        AccessToken: 'newaccesstoken',
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.authenticate('testuser', 'password123');
-      
+
       expect(result.userId).toBe('newuserid');
       expect(result.token).toBe('newaccesstoken');
       expect(result.username).toBe('testuser');
@@ -107,7 +109,7 @@ describe('EmbyClient', () => {
 
     it('authenticate should throw error on failed auth', async () => {
       global.fetch = vi.fn().mockResolvedValue({
-        ok: false
+        ok: false,
       });
 
       await expect(client.authenticate('testuser', 'wrongpassword')).rejects.toThrow();
@@ -117,17 +119,17 @@ describe('EmbyClient', () => {
       const mockLibraries = {
         Items: [
           { Id: 'lib1', Name: 'Movies', CollectionType: 'movies' },
-          { Id: 'lib2', Name: 'TV Shows', CollectionType: 'tvshows' }
-        ]
+          { Id: 'lib2', Name: 'TV Shows', CollectionType: 'tvshows' },
+        ],
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockLibraries
+        json: async () => mockLibraries,
       });
 
       const result = await client.getLibraries();
-      
+
       expect(result).toHaveLength(2);
       expect(result[0].Name).toBe('Movies');
     });
@@ -136,43 +138,34 @@ describe('EmbyClient', () => {
       const mockResponse = {
         Items: [
           { Id: 'video1', Name: 'Video 1', Type: 'Movie' },
-          { Id: 'video2', Name: 'Video 2', Type: 'Movie' }
+          { Id: 'video2', Name: 'Video 2', Type: 'Movie' },
         ],
-        TotalRecordCount: 2
+        TotalRecordCount: 2,
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
-      const result = await client.getVideos(
-        undefined,
-        null,
-        'latest',
-        0,
-        10,
-        'both'
-      );
-      
+      const result = await client.getVideos(undefined, null, 'latest', 0, 10, 'both');
+
       expect(result.items).toHaveLength(2);
       expect(result.totalCount).toBe(2);
     });
 
     it('searchItems should return search results', async () => {
       const mockResponse = {
-        Items: [
-          { Id: 'video1', Name: 'Test Movie', Type: 'Movie' }
-        ]
+        Items: [{ Id: 'video1', Name: 'Test Movie', Type: 'Movie' }],
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.searchItems('test');
-      
+
       expect(result).toHaveLength(1);
       expect(result[0].Name).toBe('Test Movie');
     });

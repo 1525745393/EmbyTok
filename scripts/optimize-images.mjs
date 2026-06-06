@@ -11,35 +11,29 @@ import { glob } from 'glob';
  */
 async function optimizeImage(inputPath, outputPath, quality = 80) {
   console.log(`Optimizing ${inputPath}...`);
-  
+
   // 确保输出目录存在
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  
+
   const ext = path.extname(inputPath).slice(1).toLowerCase();
-  
+
   try {
     if (ext === 'png') {
-      await sharp(inputPath)
-        .png({ quality })
-        .toFile(outputPath);
+      await sharp(inputPath).png({ quality }).toFile(outputPath);
     } else if (ext === 'jpg' || ext === 'jpeg') {
-      await sharp(inputPath)
-        .jpeg({ quality })
-        .toFile(outputPath);
+      await sharp(inputPath).jpeg({ quality }).toFile(outputPath);
     } else if (ext === 'webp') {
-      await sharp(inputPath)
-        .webp({ quality })
-        .toFile(outputPath);
+      await sharp(inputPath).webp({ quality }).toFile(outputPath);
     } else {
       console.log(`Skipping ${inputPath} (unsupported format)`);
       return;
     }
-    
+
     // 获取文件大小信息
     const inputStats = await fs.stat(inputPath);
     const outputStats = await fs.stat(outputPath);
-    const reduction = ((inputStats.size - outputStats.size) / inputStats.size * 100).toFixed(1);
-    
+    const reduction = (((inputStats.size - outputStats.size) / inputStats.size) * 100).toFixed(1);
+
     console.log(`Optimized ${outputPath} (${reduction}% smaller)`);
   } catch (error) {
     console.error(`Failed to optimize ${inputPath}: ${error.message}`);
@@ -54,15 +48,15 @@ async function optimizeImage(inputPath, outputPath, quality = 80) {
  */
 async function batchOptimizeImages(inputPattern, outputDir, quality = 80) {
   console.log(`Batch optimizing images with pattern: ${inputPattern}`);
-  
+
   const files = await glob(inputPattern);
-  
+
   for (const file of files) {
     const fileName = path.basename(file);
     const outputPath = path.join(outputDir, fileName);
     await optimizeImage(file, outputPath, quality);
   }
-  
+
   console.log('Batch optimization completed!');
 }
 

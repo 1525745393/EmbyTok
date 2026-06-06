@@ -19,7 +19,7 @@ describe('VideoControls Component', () => {
     fileNotFound: '视频文件不存在',
     formatNotSupported: '视频格式不支持',
     unknownError: '播放出错，请重试',
-    imageLoadError: '图片加载失败'
+    imageLoadError: '图片加载失败',
   };
 
   const defaultProps = {
@@ -34,7 +34,7 @@ describe('VideoControls Component', () => {
     onToggleInfo: vi.fn(),
     onDeleteClick: vi.fn(),
     onToggleMute: vi.fn(),
-    onToggleAutoPlay: vi.fn()
+    onToggleAutoPlay: vi.fn(),
   };
 
   it('should render correctly', () => {
@@ -51,23 +51,25 @@ describe('VideoControls Component', () => {
   it('should call onToggleFavorite when favorite button is clicked', () => {
     const onToggleFavorite = vi.fn();
     render(<VideoControls {...defaultProps} onToggleFavorite={onToggleFavorite} />);
-    
+
     const buttons = screen.getAllByRole('button');
-    buttons.forEach(btn => {
+    buttons.forEach((btn) => {
       if (btn.innerHTML.includes('lucide-heart')) {
         fireEvent.click(btn);
       }
     });
-    
+
     expect(onToggleFavorite).toHaveBeenCalled();
   });
 
   it('should call onToggleMute when mute button is clicked', () => {
     const onToggleMute = vi.fn();
     render(<VideoControls {...defaultProps} onToggleMute={onToggleMute} />);
-    
+
     const buttons = screen.getAllByRole('button');
-    const muteButton = buttons.find(btn => btn.innerHTML.includes('lucide-disc') || btn.innerHTML.includes('object-cover'));
+    const muteButton = buttons.find(
+      (btn) => btn.innerHTML.includes('lucide-disc') || btn.innerHTML.includes('object-cover')
+    );
     if (muteButton) {
       fireEvent.click(muteButton);
       expect(onToggleMute).toHaveBeenCalled();
@@ -77,9 +79,9 @@ describe('VideoControls Component', () => {
   it('should call onToggleAutoPlay when autoplay button is clicked', () => {
     const onToggleAutoPlay = vi.fn();
     render(<VideoControls {...defaultProps} onToggleAutoPlay={onToggleAutoPlay} />);
-    
+
     const buttons = screen.getAllByRole('button');
-    const autoPlayButton = buttons.find(btn => btn.innerHTML.includes('lucide-infinity'));
+    const autoPlayButton = buttons.find((btn) => btn.innerHTML.includes('lucide-infinity'));
     if (autoPlayButton) {
       fireEvent.click(autoPlayButton);
       expect(onToggleAutoPlay).toHaveBeenCalled();

@@ -22,19 +22,19 @@ function extractLatestVersion(content) {
   const versionRegex = /^## v(\d+\.\d+\.\d+)/gm;
   const matches = [];
   let match;
-  
+
   while ((match = versionRegex.exec(content)) !== null) {
     matches.push({
       version: match[1],
-      index: match.index
+      index: match.index,
     });
   }
-  
+
   if (matches.length === 0) {
     console.error('Error: No versions found in CHANGELOG');
     process.exit(1);
   }
-  
+
   return matches[0].version;
 }
 
@@ -42,26 +42,26 @@ function extractVersionContent(content, version) {
   // 查找指定版本的开始位置
   const startRegex = new RegExp(`^## v${version.replace(/\./g, '\\.')}[\\s\\S]*?`, 'm');
   const startMatch = content.match(startRegex);
-  
+
   if (!startMatch) {
     console.error(`Error: Version v${version} not found in CHANGELOG`);
     process.exit(1);
   }
-  
+
   const startIndex = startMatch.index;
-  
+
   // 查找下一个版本的开始位置（作为结束位置）
   const remainingContent = content.slice(startIndex);
   const nextVersionRegex = /^## v\d+\.\d+\.\d+/m;
   const nextMatch = remainingContent.match(nextVersionRegex);
-  
+
   let endIndex;
   if (nextMatch && nextMatch.index > 0) {
     endIndex = startIndex + nextMatch.index;
   } else {
     endIndex = content.length;
   }
-  
+
   return content.slice(startIndex, endIndex).trim();
 }
 
@@ -99,27 +99,27 @@ ${changelogContent}
 function main() {
   const args = process.argv.slice(2);
   const content = readChangelog();
-  
+
   let version;
   if (args.length > 0) {
     version = args[0].replace(/^v/, '');
   } else {
     version = extractLatestVersion(content);
   }
-  
+
   const versionContent = extractVersionContent(content, version);
   const releaseBody = generateReleaseBody(version, versionContent);
-  
+
   // 输出到 stdout，供 GitHub Actions 使用
   console.log(releaseBody);
-  
+
   // 也可以保存到文件
   if (args.includes('--save') || args.includes('-s')) {
     const outputPath = path.join(__dirname, '..', 'RELEASE_BODY.md');
     fs.writeFileSync(outputPath, releaseBody);
     console.log(`\n✅ Release body saved to ${outputPath}`);
   }
-  
+
   // 只输出版本号
   if (args.includes('--version-only') || args.includes('-v')) {
     console.log(`\nVERSION:${version}`);

@@ -6,8 +6,8 @@ import StandardRoot from '../StandardRoot';
 // 模拟 capacitor/app
 vi.mock('@capacitor/app', () => ({
   App: {
-    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() })
-  }
+    addListener: vi.fn().mockResolvedValue({ remove: vi.fn() }),
+  },
 }));
 
 // 模拟 clientFactory
@@ -16,9 +16,9 @@ vi.mock('../../../services/clientFactory', () => ({
     create: vi.fn().mockReturnValue({
       getLibraries: vi.fn().mockResolvedValue([]),
       getVideos: vi.fn().mockResolvedValue({ items: [] }),
-      getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
-    })
-  }
+      getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
+    }),
+  },
 }));
 
 // 模拟 hooks
@@ -30,7 +30,7 @@ vi.mock('../../../src/hooks', () => ({
     searchHistory: [],
     debouncedSearch: vi.fn(),
     performSearch: vi.fn(),
-    clearHistory: vi.fn()
+    clearHistory: vi.fn(),
   }),
   useSubtitles: () => ({
     settings: { enabled: true },
@@ -38,7 +38,7 @@ vi.mock('../../../src/hooks', () => ({
     toggleSubtitles: vi.fn(),
     selectTrack: vi.fn(),
     loadSubtitles: vi.fn(),
-    cues: []
+    cues: [],
   }),
   useFavorites: () => ({
     collections: [],
@@ -49,7 +49,7 @@ vi.mock('../../../src/hooks', () => ({
     removeFromFavorites: vi.fn(),
     isFavorite: vi.fn().mockReturnValue(false),
     getCollection: vi.fn(),
-    getItemCollections: vi.fn()
+    getItemCollections: vi.fn(),
   }),
   useWatchHistory: () => ({
     history: [],
@@ -57,22 +57,22 @@ vi.mock('../../../src/hooks', () => ({
     removeFromHistory: vi.fn(),
     clearHistory: vi.fn(),
     getHistoryItem: vi.fn(),
-    getProgress: vi.fn()
+    getProgress: vi.fn(),
   }),
   useUpdateChecker: () => ({
     currentVersion: '1.0.0',
     isChecking: false,
-    checkForUpdates: vi.fn().mockResolvedValue({ hasUpdate: false })
-  })
+    checkForUpdates: vi.fn().mockResolvedValue({ hasUpdate: false }),
+  }),
 }));
 
 describe('StandardRoot Component', () => {
   it('should render loading fallback initially', () => {
     // 清空 localStorage 模拟未登录状态
     Storage.prototype.getItem = vi.fn().mockReturnValue(null);
-    
+
     render(<StandardRoot />);
-    
+
     // 应该显示加载状态
     expect(document.body).toBeInTheDocument();
   });

@@ -27,7 +27,7 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
   onRenameCollection,
   onAddToCollection,
   onRemoveFromCollection,
-  onClose
+  onClose,
 }) => {
   const { t } = useTranslation();
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -37,16 +37,14 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
   const [newCollectionName, setNewCollectionName] = useState('');
   const [renameCollectionName, setRenameCollectionName] = useState('');
 
-  const allFavorites = collections.flatMap(c => c.itemIds);
+  const allFavorites = collections.flatMap((c) => c.itemIds);
   const uniqueFavorites = [...new Set(allFavorites)];
 
   const currentCollection = selectedCollectionId
-    ? collections.find(c => c.id === selectedCollectionId)
+    ? collections.find((c) => c.id === selectedCollectionId)
     : null;
 
-  const displayItems = currentCollection
-    ? currentCollection.itemIds
-    : uniqueFavorites;
+  const displayItems = currentCollection ? currentCollection.itemIds : uniqueFavorites;
 
   const handleCreateCollection = useCallback(() => {
     if (newCollectionName.trim()) {
@@ -74,9 +72,7 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
           >
             <X size={24} />
           </button>
-          <h2 className="text-xl font-bold text-white">
-            {t.favorites?.title || '收藏'}
-          </h2>
+          <h2 className="text-xl font-bold text-white">{t.favorites?.title || '收藏'}</h2>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -114,7 +110,10 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
                         : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
                     }`}
                   >
-                    <Folder size={20} className={selectedCollectionId === collection.id ? 'text-indigo-500' : ''} />
+                    <Folder
+                      size={20}
+                      className={selectedCollectionId === collection.id ? 'text-indigo-500' : ''}
+                    />
                     <span className="truncate">{collection.name}</span>
                     <span className="ml-auto text-zinc-500">{collection.itemIds.length}</span>
                   </button>
@@ -167,7 +166,11 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
                   const item = items.get(itemId);
                   if (!item) return null;
 
-                  const imageUrl = client?.getImageUrl(item.Id, item.ImageTags?.Primary || '', 'Primary');
+                  const imageUrl = client?.getImageUrl(
+                    item.Id,
+                    item.ImageTags?.Primary || '',
+                    'Primary'
+                  );
 
                   return (
                     <div
@@ -196,9 +199,7 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
                         </div>
                       </div>
                       <div className="p-3">
-                        <h3 className="text-white font-medium text-sm truncate">
-                          {item.Name}
-                        </h3>
+                        <h3 className="text-white font-medium text-sm truncate">{item.Name}</h3>
                         {currentCollection && (
                           <button
                             onClick={() => onRemoveFromCollection(itemId, currentCollection.id)}
@@ -258,9 +259,7 @@ const FavoritesManager: React.FC<FavoritesManagerProps> = ({
       {showRenameModal && (
         <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-60">
           <div className="bg-zinc-900 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <h3 className="text-white text-xl font-bold mb-4">
-              {t.favorites?.rename || '重命名'}
-            </h3>
+            <h3 className="text-white text-xl font-bold mb-4">{t.favorites?.rename || '重命名'}</h3>
             <input
               type="text"
               value={renameCollectionName}

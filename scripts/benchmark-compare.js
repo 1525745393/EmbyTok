@@ -27,8 +27,8 @@ if (command === 'save-baseline') {
     timestamp: Date.now(),
     benchmarks: {
       'isFolderType - 大量数据测试': { hz: 5000, mean: 0.2 },
-      'calculatePlaybackProgress - 性能测试': { hz: 8000, mean: 0.125 }
-    }
+      'calculatePlaybackProgress - 性能测试': { hz: 8000, mean: 0.125 },
+    },
   };
   fs.writeFileSync(BASELINE_FILE, JSON.stringify(baseline, null, 2));
   console.log('✅ 基准线已保存到:', BASELINE_FILE);
@@ -38,7 +38,7 @@ if (command === 'save-baseline') {
     console.log('⚠️ 未找到基准线文件，将保存当前结果为基准线');
     process.exit(0);
   }
-  
+
   console.log('✅ 性能对比逻辑已准备好');
   console.log('📊 在完整实现中，这里会读取 Vitest 输出的 JSON 结果与基准线进行比较');
 } else {

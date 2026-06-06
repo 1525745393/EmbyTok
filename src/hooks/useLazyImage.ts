@@ -20,12 +20,14 @@ export function useLazyImage({
   retryCount = 3,
   retryDelay = 1000,
   progressive = true,
-  priority = 'medium'
+  priority = 'medium',
 }: UseLazyImageOptions = {}) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isError, setIsError] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [loadingStage, setLoadingStage] = useState<'placeholder' | 'low-res' | 'high-res'>('placeholder');
+  const [loadingStage, setLoadingStage] = useState<'placeholder' | 'low-res' | 'high-res'>(
+    'placeholder'
+  );
   const imgRef = useRef<HTMLImageElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,7 +50,7 @@ export function useLazyImage({
     if (!imgRef.current || attempts >= retryCount) return;
 
     setIsError(false);
-    setAttempts(prev => prev + 1);
+    setAttempts((prev) => prev + 1);
 
     retryTimerRef.current = setTimeout(() => {
       if (imgRef.current) {
@@ -64,64 +66,83 @@ export function useLazyImage({
     onLoad?.();
   }, [onLoad]);
 
-  const handleLoad = useCallback((e: Event) => {
-    const img = e.target as HTMLImageElement;
-    
-    if (progressive) {
-      // 渐进式加载逻辑
-      if (loadingStage === 'placeholder') {
-        setLoadingStage('low-res');
-      } else if (loadingStage === 'low-res') {
-        handleLoadComplete();
+  const handleLoad = useCallback(
+    (e: Event) => {
+      const img = e.target as HTMLImageElement;
+
+      if (progressive) {
+        // 渐进式加载逻辑
+        if (loadingStage === 'placeholder') {
+          setLoadingStage('low-res');
+        } else if (loadingStage === 'low-res') {
+          handleLoadComplete();
+        } else {
+          handleLoadComplete();
+        }
       } else {
         handleLoadComplete();
       }
-    } else {
-      handleLoadComplete();
-    }
-  }, [progressive, loadingStage, handleLoadComplete]);
+    },
+    [progressive, loadingStage, handleLoadComplete]
+  );
 
-  const handleError = useCallback((error: Event) => {
-    setIsError(true);
-    onError?.(error);
-  }, [onError]);
+  const handleError = useCallback(
+    (error: Event) => {
+      setIsError(true);
+      onError?.(error);
+    },
+    [onError]
+  );
 
-  const setRef = useCallback((node: HTMLImageElement | null) => {
-    if (imgRef.current) {
-      observerRef.current?.unobserve(imgRef.current);
-      imgRef.current.removeEventListener('load', handleLoad);
-      imgRef.current.removeEventListener('error', handleError);
-    }
+  const setRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      if (imgRef.current) {
+        observerRef.current?.unobserve(imgRef.current);
+        imgRef.current.removeEventListener('load', handleLoad);
+        imgRef.current.removeEventListener('error', handleError);
+      }
 
-    imgRef.current = node;
+      imgRef.current = node;
 
-    if (node) {
-      // 添加事件监听器
-      node.addEventListener('load', handleLoad);
-      node.addEventListener('error', handleError);
-      
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const img = entry.target as HTMLImageElement;
-              
-              // 渐进式加载：先加载低质量版本
-              if (progressive && img.dataset.placeholder) {
-                // 先加载占位图
-                img.src = img.dataset.placeholder;
-                setLoadingStage('placeholder');
-                
-                // 然后加载低分辨率版本
-                setTimeout(() => {
-                  if (img.dataset.lowRes) {
-                    img.src = img.dataset.lowRes;
-                    setLoadingStage('low-res');
-                  }
-                }, 100);
-                
-                // 最后加载高分辨率版本
-                setTimeout(() => {
+      if (node) {
+        // 添加事件监听器
+        node.addEventListener('load', handleLoad);
+        node.addEventListener('error', handleError);
+
+        observerRef.current = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const img = entry.target as HTMLImageElement;
+
+                // 渐进式加载：先加载低质量版本
+                if (progressive && img.dataset.placeholder) {
+                  // 先加载占位图
+                  img.src = img.dataset.placeholder;
+                  setLoadingStage('placeholder');
+
+                  // 然后加载低分辨率版本
+                  setTimeout(() => {
+                    if (img.dataset.lowRes) {
+                      img.src = img.dataset.lowRes;
+                      setLoadingStage('low-res');
+                    }
+                  }, 100);
+
+                  // 最后加载高分辨率版本
+                  setTimeout(() => {
+                    if (img.dataset.src) {
+                      img.src = img.dataset.src;
+                      if (img.dataset.srcset) {
+                        img.srcset = img.dataset.srcset;
+                      }
+                      if (img.dataset.sizes) {
+                        img.sizes = img.dataset.sizes;
+                      }
+                    }
+                  }, 300);
+                } else {
+                  // 普通加载
                   if (img.dataset.src) {
                     img.src = img.dataset.src;
                     if (img.dataset.srcset) {
@@ -131,34 +152,24 @@ export function useLazyImage({
                       img.sizes = img.dataset.sizes;
                     }
                   }
-                }, 300);
-              } else {
-                // 普通加载
-                if (img.dataset.src) {
-                  img.src = img.dataset.src;
-                  if (img.dataset.srcset) {
-                    img.srcset = img.dataset.srcset;
-                  }
-                  if (img.dataset.sizes) {
-                    img.sizes = img.dataset.sizes;
-                  }
+                  setLoadingStage('high-res');
                 }
-                setLoadingStage('high-res');
-              }
-              
-              observerRef.current?.unobserve(img);
-            }
-          });
-        },
-        { 
-          rootMargin: getDynamicRootMargin(), 
-          threshold 
-        }
-      );
 
-      observerRef.current.observe(node);
-    }
-  }, [getDynamicRootMargin, threshold, progressive, handleLoad, handleError]);
+                observerRef.current?.unobserve(img);
+              }
+            });
+          },
+          {
+            rootMargin: getDynamicRootMargin(),
+            threshold,
+          }
+        );
+
+        observerRef.current.observe(node);
+      }
+    },
+    [getDynamicRootMargin, threshold, progressive, handleLoad, handleError]
+  );
 
   useEffect(() => {
     return () => {
@@ -182,6 +193,6 @@ export function useLazyImage({
     retryLoad,
     attempts,
     canRetry: attempts < retryCount,
-    loadingStage
+    loadingStage,
   };
 }

@@ -20,11 +20,11 @@ vi.mock('../src/hooks', () => ({
     isLoaded: true,
     isError: false,
     retryLoad: vi.fn(),
-    canRetry: true
+    canRetry: true,
   }),
   useTranslation: () => ({
-    t: {}
-  })
+    t: {},
+  }),
 }));
 
 const mockItem = {
@@ -39,12 +39,12 @@ const mockItem = {
   ImageTags: { Primary: 'image1' },
   UserData: {},
   Width: 1920,
-  Height: 1080
+  Height: 1080,
 };
 
 const mockClient = {
   getVideoUrl: vi.fn().mockReturnValue('https://example.com/video.mp4'),
-  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
+  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
 };
 
 describe('VideoCard Component', () => {
@@ -60,7 +60,7 @@ describe('VideoCard Component', () => {
         onToggleMute={vi.fn()}
       />
     );
-    
+
     expect(screen.getByText('Test Video')).toBeInTheDocument();
     expect(screen.getByText('2024')).toBeInTheDocument();
   });
@@ -77,7 +77,7 @@ describe('VideoCard Component', () => {
         onToggleMute={vi.fn()}
       />
     );
-    
+
     expect(screen.getByText('Test Video')).toBeInTheDocument();
   });
 });

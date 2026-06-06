@@ -17,7 +17,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   loading,
   query,
   client,
-  onSelectVideo
+  onSelectVideo,
 }) => {
   const { t } = useTranslation();
 
@@ -66,7 +66,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {results.map((item) => {
             const imageUrl = client?.getImageUrl(item.Id, item.ImageTags?.Primary || '', 'Primary');
-            
+
             return (
               <div
                 key={item.Id}
@@ -75,11 +75,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
               >
                 <div className="relative aspect-video">
                   {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={item.Name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={imageUrl} alt={item.Name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
                       <Play className="w-10 h-10 text-zinc-700" />
@@ -92,13 +88,9 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                   </div>
                 </div>
                 <div className="p-3">
-                  <h3 className="text-white font-medium text-sm truncate">
-                    {item.Name}
-                  </h3>
+                  <h3 className="text-white font-medium text-sm truncate">{item.Name}</h3>
                   {item.ProductionYear && (
-                    <p className="text-zinc-500 text-xs mt-1">
-                      {item.ProductionYear}
-                    </p>
+                    <p className="text-zinc-500 text-xs mt-1">{item.ProductionYear}</p>
                   )}
                 </div>
               </div>

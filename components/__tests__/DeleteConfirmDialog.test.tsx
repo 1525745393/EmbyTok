@@ -9,14 +9,14 @@ describe('DeleteConfirmDialog Component', () => {
     deleteWarning: '警告：这将删除媒体库中的原文件！',
     deleteConfirm: '确定要删除此视频吗？',
     cancel: '取消',
-    confirmDelete: '确定删除'
+    confirmDelete: '确定删除',
   };
 
   const defaultProps = {
     show: false,
     onCancel: vi.fn(),
     onConfirm: vi.fn(),
-    t: defaultT
+    t: defaultT,
   };
 
   it('should not render when show is false', () => {
@@ -34,7 +34,7 @@ describe('DeleteConfirmDialog Component', () => {
   it('should call onCancel when cancel button is clicked', () => {
     const onCancel = vi.fn();
     render(<DeleteConfirmDialog {...defaultProps} show={true} onCancel={onCancel} />);
-    
+
     fireEvent.click(screen.getByText(defaultT.cancel));
     expect(onCancel).toHaveBeenCalled();
   });
@@ -42,7 +42,7 @@ describe('DeleteConfirmDialog Component', () => {
   it('should call onConfirm when confirm button is clicked', () => {
     const onConfirm = vi.fn();
     render(<DeleteConfirmDialog {...defaultProps} show={true} onConfirm={onConfirm} />);
-    
+
     fireEvent.click(screen.getByText(defaultT.confirmDelete));
     expect(onConfirm).toHaveBeenCalled();
   });

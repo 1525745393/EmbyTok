@@ -21,16 +21,20 @@
 
 ```markdown
 ## v1.11.0
+
 **日期**: 2024-01-15
 
 ### 🚀 新功能与优化
+
 - 功能 1
 - 功能 2
 
 ### 🔧 技术改进
+
 - 改进 1
 
 ### 📁 文件更新
+
 - 文件 1
 ```
 
@@ -41,6 +45,7 @@ npm run release:check
 ```
 
 这将检查：
+
 - 版本号格式
 - CHANGELOG 是否已更新
 - Git 工作区是否干净
@@ -83,6 +88,7 @@ npm run version:major
 ```
 
 这些命令会自动：
+
 - 更新 `package.json` 中的版本号
 - 在 `CHANGELOG.md` 中添加新版本条目模板
 
@@ -223,6 +229,7 @@ cd android
 ### Q: 发布失败了怎么办？
 
 A: 检查 GitHub Actions 日志，根据错误信息修复问题。常见原因：
+
 - 测试失败
 - Docker Hub 认证失败
 - CHANGELOG 格式错误
@@ -246,6 +253,7 @@ A: 不会。预发布工作流不会推送 Docker 镜像，也不会覆盖 lates
 ### 配置步骤
 
 1. **获取 keystore 文件的 Base64 编码**
+
    ```bash
    # 在项目根目录执行
    base64 -w 0 android/app/embytok-release.keystore
@@ -255,12 +263,12 @@ A: 不会。预发布工作流不会推送 Docker 镜像，也不会覆盖 lates
    - 进入仓库的 **Settings** → **Secrets and variables** → **Actions**
    - 点击 **New repository secret** 添加以下 Secrets：
 
-     | Secret 名称 | 说明 | 示例值 |
-     |------------|------|--------|
-     | `ANDROID_KEYSTORE` | keystore 文件的 Base64 编码 | (长字符串) |
-     | `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 | embytok123 |
-     | `ANDROID_KEY_ALIAS` | key 别名 | embytok |
-     | `ANDROID_KEY_PASSWORD` | key 密码 | embytok123 |
+     | Secret 名称                 | 说明                        | 示例值     |
+     | --------------------------- | --------------------------- | ---------- |
+     | `ANDROID_KEYSTORE`          | keystore 文件的 Base64 编码 | (长字符串) |
+     | `ANDROID_KEYSTORE_PASSWORD` | keystore 密码               | embytok123 |
+     | `ANDROID_KEY_ALIAS`         | key 别名                    | embytok    |
+     | `ANDROID_KEY_PASSWORD`      | key 密码                    | embytok123 |
 
 ### 签名说明
 

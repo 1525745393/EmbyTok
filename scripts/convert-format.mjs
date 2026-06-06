@@ -9,18 +9,16 @@ import path from 'path';
  */
 async function convertFormat(inputPath, outputPath) {
   console.log(`Converting ${inputPath} to ${outputPath}...`);
-  
+
   // 确保输出目录存在
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  
+
   // 获取输出格式
   const outputFormat = path.extname(outputPath).slice(1).toLowerCase();
-  
+
   try {
-    await sharp(inputPath)
-      [outputFormat]()
-      .toFile(outputPath);
-    
+    await sharp(inputPath)[outputFormat]().toFile(outputPath);
+
     console.log(`Successfully converted to ${outputPath}`);
   } catch (error) {
     console.error(`Failed to convert: ${error.message}`);

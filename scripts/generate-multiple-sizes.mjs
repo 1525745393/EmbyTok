@@ -12,23 +12,23 @@ import path from 'path';
 async function generateMultipleSizes(inputPath, outputDir, sizes, format = 'png') {
   // 确保输出目录存在
   await fs.mkdir(outputDir, { recursive: true });
-  
+
   console.log(`Generating ${format} icons from ${inputPath}...`);
-  
+
   for (const size of sizes) {
     const outputPath = path.join(outputDir, `icon-${size}x${size}.${format}`);
-    
+
     await sharp(inputPath)
       .resize(size, size, {
         fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 } // 透明背景
+        background: { r: 0, g: 0, b: 0, alpha: 0 }, // 透明背景
       })
       [format]()
       .toFile(outputPath);
-    
+
     console.log(`Generated ${outputPath}`);
   }
-  
+
   console.log('All icons generated successfully!');
 }
 

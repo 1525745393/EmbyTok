@@ -12,7 +12,7 @@ describe('PlexClient', () => {
       username: 'testuser',
       token: 'plex-token-123',
       userId: 'user123',
-      serverType: 'plex' as const
+      serverType: 'plex' as const,
     };
     client = new PlexClient(config);
   });
@@ -28,11 +28,11 @@ describe('PlexClient', () => {
       const item = {
         Id: 'video123',
         Name: 'Test Video',
-        _PlexKey: '/library/parts/123'
+        _PlexKey: '/library/parts/123',
       } as any;
-      
+
       const url = client.getVideoUrl(item);
-      
+
       expect(url).toContain('http://localhost:32400');
       expect(url).toContain('123');
       expect(url).toContain('plex-token-123');
@@ -41,11 +41,11 @@ describe('PlexClient', () => {
     it('should return transcoded URL if no direct key', () => {
       const item = {
         Id: 'video123',
-        Name: 'Test Video'
+        Name: 'Test Video',
       } as any;
-      
+
       const url = client.getVideoUrl(item);
-      
+
       expect(url).toContain('/video/:/transcode/universal/start');
       expect(url).toContain('video123');
     });
@@ -54,7 +54,7 @@ describe('PlexClient', () => {
   describe('getImageUrl', () => {
     it('should return a valid image URL', () => {
       const url = client.getImageUrl('item123', 'tag456', 'Primary');
-      
+
       expect(url).toContain('http://localhost:32400');
       expect(url).toContain('item123');
       expect(url).toContain('plex-token-123');
@@ -69,17 +69,17 @@ describe('PlexClient', () => {
     it('authenticate should return server config on successful auth', async () => {
       const mockResponse = {
         MediaContainer: {
-          machineIdentifier: 'machine-123'
-        }
+          machineIdentifier: 'machine-123',
+        },
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.authenticate('testuser', 'plex-token');
-      
+
       expect(result.userId).toBe('machine-123');
       expect(result.token).toBe('plex-token');
       expect(result.username).toBe('testuser');
@@ -87,7 +87,7 @@ describe('PlexClient', () => {
 
     it('authenticate should throw error on failed auth', async () => {
       global.fetch = vi.fn().mockResolvedValue({
-        ok: false
+        ok: false,
       });
 
       await expect(client.authenticate('testuser', 'wrong-token')).rejects.toThrow();
@@ -98,18 +98,18 @@ describe('PlexClient', () => {
         MediaContainer: {
           Directory: [
             { key: '1', title: 'Movies', type: 'movie' },
-            { key: '2', title: 'TV Shows', type: 'show' }
-          ]
-        }
+            { key: '2', title: 'TV Shows', type: 'show' },
+          ],
+        },
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.getLibraries();
-      
+
       expect(result).toHaveLength(2);
       expect(result[0].Name).toBe('Movies');
     });
@@ -119,15 +119,15 @@ describe('PlexClient', () => {
         MediaContainer: {
           Metadata: [
             { ratingKey: '1', title: 'Video 1', type: 'movie', duration: 100000 },
-            { ratingKey: '2', title: 'Video 2', type: 'movie', duration: 200000 }
+            { ratingKey: '2', title: 'Video 2', type: 'movie', duration: 200000 },
           ],
-          totalSize: 2
-        }
+          totalSize: 2,
+        },
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.getVideos(
@@ -138,7 +138,7 @@ describe('PlexClient', () => {
         10,
         'both'
       );
-      
+
       expect(result.items).toHaveLength(2);
       expect(result.totalCount).toBe(2);
     });
@@ -146,19 +146,17 @@ describe('PlexClient', () => {
     it('searchItems should return search results', async () => {
       const mockResponse = {
         MediaContainer: {
-          Metadata: [
-            { ratingKey: '1', title: 'Test Movie', type: 'movie' }
-          ]
-        }
+          Metadata: [{ ratingKey: '1', title: 'Test Movie', type: 'movie' }],
+        },
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.searchItems('test');
-      
+
       expect(result).toHaveLength(1);
       expect(result[0].Name).toBe('Test Movie');
     });
@@ -177,25 +175,31 @@ describe('PlexClient', () => {
                   Part: [
                     {
                       Stream: [
-                        { id: 's1', streamType: 3, displayTitle: 'English', languageCode: 'eng', default: true },
-                        { id: 's2', streamType: 3, displayTitle: 'Chinese', languageCode: 'chi' }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                        {
+                          id: 's1',
+                          streamType: 3,
+                          displayTitle: 'English',
+                          languageCode: 'eng',
+                          default: true,
+                        },
+                        { id: 's2', streamType: 3, displayTitle: 'Chinese', languageCode: 'chi' },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       };
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       const result = await client.getSubtitleTracks('item123');
-      
+
       expect(result).toHaveLength(2);
       expect(result[0].label).toBe('English');
     });

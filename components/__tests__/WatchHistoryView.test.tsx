@@ -15,10 +15,10 @@ vi.mock('../src/hooks', () => ({
         cancel: '取消',
         clear: '清空',
         watched: '刚刚观看',
-        continue: '继续观看'
-      }
-    }
-  })
+        continue: '继续观看',
+      },
+    },
+  }),
 }));
 
 const mockHistory = [
@@ -29,7 +29,7 @@ const mockHistory = [
     imageUrl: 'https://example.com/image1.jpg',
     positionTicks: 1000000000,
     totalTicks: 36000000000,
-    watchedAt: Date.now() - 3600000
+    watchedAt: Date.now() - 3600000,
   },
   {
     id: '2',
@@ -38,12 +38,12 @@ const mockHistory = [
     imageUrl: null,
     positionTicks: 0,
     totalTicks: 36000000000,
-    watchedAt: Date.now() - 86400000
-  }
+    watchedAt: Date.now() - 86400000,
+  },
 ];
 
 const mockClient = {
-  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
+  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
 };
 
 describe('WatchHistoryView Component', () => {
@@ -53,7 +53,7 @@ describe('WatchHistoryView Component', () => {
     onSelectVideo: vi.fn(),
     onRemoveFromHistory: vi.fn(),
     onClearHistory: vi.fn(),
-    onClose: vi.fn()
+    onClose: vi.fn(),
   };
 
   it('should render correctly', () => {
@@ -75,7 +75,7 @@ describe('WatchHistoryView Component', () => {
   it('should call onClose when close button is clicked', () => {
     render(<WatchHistoryView {...defaultProps} />);
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(btn => btn.innerHTML.includes('X'));
+    const closeButton = closeButtons.find((btn) => btn.innerHTML.includes('X'));
     if (closeButton) {
       fireEvent.click(closeButton);
       expect(defaultProps.onClose).toHaveBeenCalled();
@@ -93,7 +93,7 @@ describe('WatchHistoryView Component', () => {
     const onRemoveFromHistory = vi.fn();
     render(<WatchHistoryView {...defaultProps} onRemoveFromHistory={onRemoveFromHistory} />);
     const trashButtons = screen.getAllByRole('button');
-    const trashButton = trashButtons.find(btn => btn.innerHTML.includes('Trash2'));
+    const trashButton = trashButtons.find((btn) => btn.innerHTML.includes('Trash2'));
     if (trashButton) {
       fireEvent.click(trashButton);
       expect(onRemoveFromHistory).toHaveBeenCalled();

@@ -9,7 +9,7 @@ describe('useLazyImage Hook', () => {
 
   it('should initialize with default state', () => {
     const { result } = renderHook(() => useLazyImage());
-    
+
     expect(result.current.isLoaded).toBe(false);
     expect(result.current.isError).toBe(false);
     expect(result.current.attempts).toBe(0);
@@ -26,43 +26,37 @@ describe('useLazyImage Hook', () => {
         retryCount: 5,
         retryDelay: 2000,
         progressive: false,
-        priority: 'high'
+        priority: 'high',
       })
     );
-    
+
     expect(result.current.canRetry).toBe(true);
   });
 
   it('should handle load events', () => {
     const mockOnLoad = vi.fn();
-    const { result } = renderHook(() =>
-      useLazyImage({ onLoad: mockOnLoad })
-    );
-    
+    const { result } = renderHook(() => useLazyImage({ onLoad: mockOnLoad }));
+
     expect(typeof result.current.setRef).toBe('function');
   });
 
   it('should handle error events', () => {
     const mockOnError = vi.fn();
-    const { result } = renderHook(() =>
-      useLazyImage({ onError: mockOnError })
-    );
-    
+    const { result } = renderHook(() => useLazyImage({ onError: mockOnError }));
+
     expect(typeof result.current.setRef).toBe('function');
   });
 
   it('should track retry attempts', () => {
-    const { result } = renderHook(() =>
-      useLazyImage({ retryCount: 3 })
-    );
-    
+    const { result } = renderHook(() => useLazyImage({ retryCount: 3 }));
+
     expect(result.current.attempts).toBe(0);
     expect(result.current.canRetry).toBe(true);
   });
 
   it('should return correct loading stages', () => {
     const { result } = renderHook(() => useLazyImage());
-    
+
     expect(result.current.loadingStage).toBe('placeholder');
   });
 });

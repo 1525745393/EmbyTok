@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ServerConfig, ServerType } from '../types';
 import { ClientFactory } from '../services/clientFactory';
@@ -10,19 +9,26 @@ interface LoginProps {
 
 const CyberRabbitIcon = ({ type }: { type: ServerType }) => {
   const isEmby = type === 'emby';
-  const colorLeft = isEmby ? "#25F4EE" : "#FF9500"; 
-  const colorRight = isEmby ? "#6366F1" : "#FE2C55";
+  const colorLeft = isEmby ? '#25F4EE' : '#FF9500';
+  const colorRight = isEmby ? '#6366F1' : '#FE2C55';
 
   return (
     <svg viewBox="0 0 512 512" className="w-full h-full">
       <defs>
-        <path id="rabbit-cute-path" d="
+        <path
+          id="rabbit-cute-path"
+          d="
           M 110 512 
           C 110 380, 120 60, 200 60 
           C 230 60, 240 160, 256 160 
           C 272 160, 282 60, 312 60 
           C 392 60, 402 380, 402 512
-        " fill="none" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" />
+        "
+          fill="none"
+          strokeWidth="24"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </defs>
       <g transform="translate(-8, -3)" stroke={colorLeft} opacity="0.85">
         <use href="#rabbit-cute-path" />
@@ -46,8 +52,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
   const [isTV, setIsTV] = useState(false);
-  const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
-  
+  const [language, setLanguage] = useState<'zh' | 'en'>(
+    () => (localStorage.getItem('embyLanguage') as any) || 'zh'
+  );
+
   // 扫码登录相关状态
   const [deviceId] = useState(() => Math.random().toString(36).substring(2, 8).toUpperCase());
   const [syncStatus, setSyncStatus] = useState<'idle' | 'waiting' | 'success'>('idle');
@@ -62,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const ua = window.navigator.userAgent.toLowerCase();
     const tvMode = ua.includes('tv') || ua.includes('googletv') || ua.includes('smarttv');
     setIsTV(tvMode);
-    
+
     const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -75,30 +83,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const controller = new AbortController();
     const TOPIC = `embytok_sync_${deviceId}`;
     const listenToSync = async () => {
-        try {
-            const response = await fetch(`https://ntfy.sh/${TOPIC}/json`, { signal: controller.signal });
-            const reader = response.body?.getReader();
-            if (!reader) return;
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = new TextDecoder().decode(value).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    const event = JSON.parse(line);
-                    if (event.event === 'message') {
-                        const config = JSON.parse(event.message);
-                        setServerUrl(config.url);
-                        setUsername(config.username);
-                        setPassword(config.password || '');
-                        setServerType(config.type || 'emby');
-                        setSyncStatus('success');
-                        setTimeout(() => document.getElementById('login-submit-btn')?.click(), 1000);
-                    }
-                }
+      try {
+        const response = await fetch(`https://ntfy.sh/${TOPIC}/json`, {
+          signal: controller.signal,
+        });
+        const reader = response.body?.getReader();
+        if (!reader) return;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const lines = new TextDecoder().decode(value).split('\n').filter(Boolean);
+          for (const line of lines) {
+            const event = JSON.parse(line);
+            if (event.event === 'message') {
+              const config = JSON.parse(event.message);
+              setServerUrl(config.url);
+              setUsername(config.username);
+              setPassword(config.password || '');
+              setServerType(config.type || 'emby');
+              setSyncStatus('success');
+              setTimeout(() => document.getElementById('login-submit-btn')?.click(), 1000);
             }
-        } catch (e) {
-            if (e.name !== 'AbortError') setTimeout(listenToSync, 3000);
+          }
         }
+      } catch (e) {
+        if (e.name !== 'AbortError') setTimeout(listenToSync, 3000);
+      }
     };
     listenToSync();
     return () => controller.abort();
@@ -110,7 +120,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     let formattedUrl = serverUrl.trim();
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-        formattedUrl = `http://${formattedUrl}`;
+      formattedUrl = `http://${formattedUrl}`;
     }
     try {
       const config = await ClientFactory.authenticate(serverType, formattedUrl, username, password);
@@ -134,7 +144,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       plexError: 'Plex 登录失败',
       language: '语言',
       chinese: '中文',
-      english: 'English'
+      english: 'English',
     },
     en: {
       serverAddress: 'Server Address',
@@ -147,71 +157,133 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       plexError: 'Plex login failed',
       language: 'Language',
       chinese: '中文',
-      english: 'English'
-    }
+      english: 'English',
+    },
   }[language];
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`https://embytok.vercel.app/setup?id=${deviceId}`)}`;
 
   return (
-    <div className={`h-[100dvh] w-full ${serverType === 'emby' ? 'bg-[#080810]' : 'bg-[#0a0908]'} flex flex-col items-center justify-center p-4 text-white overflow-hidden relative transition-colors duration-700`}>
-      <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] ${serverType === 'emby' ? 'bg-indigo-600/20' : 'bg-orange-600/20'} blur-[120px] rounded-full`}></div>
-      
-      <div className={`w-full max-w-6xl flex ${isLandscape ? 'flex-row items-center gap-16' : 'flex-col items-center'} animate-in fade-in zoom-in duration-700 relative z-10 flex-1`}>
+    <div
+      className={`h-[100dvh] w-full ${serverType === 'emby' ? 'bg-[#080810]' : 'bg-[#0a0908]'} flex flex-col items-center justify-center p-4 text-white overflow-hidden relative transition-colors duration-700`}
+    >
+      <div
+        className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] ${serverType === 'emby' ? 'bg-indigo-600/20' : 'bg-orange-600/20'} blur-[120px] rounded-full`}
+      ></div>
+
+      <div
+        className={`w-full max-w-6xl flex ${isLandscape ? 'flex-row items-center gap-16' : 'flex-col items-center'} animate-in fade-in zoom-in duration-700 relative z-10 flex-1`}
+      >
         <div className={`flex flex-col items-center ${isLandscape ? 'w-2/5' : 'mb-8 text-center'}`}>
-            <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-[30px] bg-black border border-white/20 shadow-2xl flex items-end justify-center overflow-hidden mb-6">
-                <CyberRabbitIcon type={serverType} />
+          <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-[30px] bg-black border border-white/20 shadow-2xl flex items-end justify-center overflow-hidden mb-6">
+            <CyberRabbitIcon type={serverType} />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black mb-2">EmbyTok</h1>
+          {isLandscape && isTV && (
+            <div className="mt-8 p-6 bg-white/5 border border-white/10 rounded-[40px] flex flex-col items-center gap-4">
+              <div className="w-40 h-40 bg-white rounded-3xl p-3">
+                {syncStatus === 'success' ? (
+                  <CheckCircle2 className="w-full h-full text-green-500" />
+                ) : (
+                  <img src={qrCodeUrl} className="w-full h-full" />
+                )}
+              </div>
+              <div className="bg-white/10 px-3 py-1 rounded-full text-[12px] font-mono text-indigo-300">
+                CODE: {deviceId}
+              </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-2">EmbyTok</h1>
-            {isLandscape && isTV && (
-                <div className="mt-8 p-6 bg-white/5 border border-white/10 rounded-[40px] flex flex-col items-center gap-4">
-                    <div className="w-40 h-40 bg-white rounded-3xl p-3">
-                        {syncStatus === 'success' ? <CheckCircle2 className="w-full h-full text-green-500" /> : <img src={qrCodeUrl} className="w-full h-full" />}
-                    </div>
-                    <div className="bg-white/10 px-3 py-1 rounded-full text-[12px] font-mono text-indigo-300">CODE: {deviceId}</div>
-                </div>
-            )}
+          )}
         </div>
 
-        <form onSubmit={handleLogin} className={`${isLandscape ? 'w-3/5 max-w-md' : 'w-full max-w-sm'} space-y-4 bg-white/[0.04] backdrop-blur-3xl p-8 rounded-[40px] border border-white/10 shadow-2xl`}>
+        <form
+          onSubmit={handleLogin}
+          className={`${isLandscape ? 'w-3/5 max-w-md' : 'w-full max-w-sm'} space-y-4 bg-white/[0.04] backdrop-blur-3xl p-8 rounded-[40px] border border-white/10 shadow-2xl`}
+        >
           <div className="flex bg-black/60 rounded-2xl p-1.5 border border-white/5">
-              {['emby', 'plex'].map((type) => (
-                  <button key={type} type="button" onClick={() => setServerType(type as ServerType)} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${serverType === type ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500'}`}>
-                      {type.toUpperCase()}
-                  </button>
-              ))}
+            {['emby', 'plex'].map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setServerType(type as ServerType)}
+                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${serverType === type ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500'}`}
+              >
+                {type.toUpperCase()}
+              </button>
+            ))}
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.serverAddress}</label>
-            <input type="text" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} placeholder="https://..." className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+              {t.serverAddress}
+            </label>
+            <input
+              type="text"
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              placeholder="https://..."
+              className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500"
+            />
           </div>
           {serverType === 'emby' ? (
-              <div className={`grid gap-4 ${isLandscape ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.username}</label>
-                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.password}</label>
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
-                  </div>
-              </div>
-          ) : (
+            <div className={`grid gap-4 ${isLandscape ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.plexToken}</label>
-                <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.plexTokenPlaceholder} className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500" />
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  {t.username}
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500"
+                />
               </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                  {t.password}
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                {t.plexToken}
+              </label>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t.plexTokenPlaceholder}
+                className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-indigo-500"
+              />
+            </div>
           )}
-          {error && <div className="text-red-400 text-xs">{serverType === 'plex' ? t.plexError : t.embyError}</div>}
-          <button id="login-submit-btn" type="submit" disabled={loading} className="w-full bg-indigo-600 text-white text-sm font-black py-5 rounded-2xl active:scale-95 transition-all">
+          {error && (
+            <div className="text-red-400 text-xs">
+              {serverType === 'plex' ? t.plexError : t.embyError}
+            </div>
+          )}
+          <button
+            id="login-submit-btn"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white text-sm font-black py-5 rounded-2xl active:scale-95 transition-all"
+          >
             {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : t.submit}
           </button>
         </form>
       </div>
-      
+
       {/* 语言切换按钮 */}
       <div className="absolute bottom-8 left-0 right-0 flex justify-center z-10">
-        <button onClick={toggleLanguage} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold transition-all hover:bg-white/10">
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold transition-all hover:bg-white/10"
+        >
           <Globe size={16} />
           <span>{language === 'zh' ? t.english : t.chinese}</span>
         </button>

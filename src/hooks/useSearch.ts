@@ -17,67 +17,79 @@ export function useSearch(client: MediaClient | null) {
   );
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const addToHistory = useCallback((searchQuery: string) => {
-    if (!searchQuery.trim()) return;
+  const addToHistory = useCallback(
+    (searchQuery: string) => {
+      if (!searchQuery.trim()) return;
 
-    setSearchHistory(prev => {
-      const filtered = prev.filter(item => item.query.toLowerCase() !== searchQuery.toLowerCase());
-      const newItem: SearchHistoryItem = {
-        query: searchQuery.trim(),
-        timestamp: Date.now()
-      };
-      const newHistory = [newItem, ...filtered];
-      return newHistory.slice(0, MAX_SEARCH_HISTORY);
-    });
-  }, [setSearchHistory]);
+      setSearchHistory((prev) => {
+        const filtered = prev.filter(
+          (item) => item.query.toLowerCase() !== searchQuery.toLowerCase()
+        );
+        const newItem: SearchHistoryItem = {
+          query: searchQuery.trim(),
+          timestamp: Date.now(),
+        };
+        const newHistory = [newItem, ...filtered];
+        return newHistory.slice(0, MAX_SEARCH_HISTORY);
+      });
+    },
+    [setSearchHistory]
+  );
 
-  const removeFromHistory = useCallback((searchQuery: string) => {
-    setSearchHistory(prev => 
-      prev.filter(item => item.query !== searchQuery)
-    );
-  }, [setSearchHistory]);
+  const removeFromHistory = useCallback(
+    (searchQuery: string) => {
+      setSearchHistory((prev) => prev.filter((item) => item.query !== searchQuery));
+    },
+    [setSearchHistory]
+  );
 
   const clearHistory = useCallback(() => {
     setSearchHistory([]);
   }, [setSearchHistory]);
 
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (!client || !searchQuery.trim()) {
-      setResults({ items: [], totalRecordCount: 0 });
-      return;
-    }
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!client || !searchQuery.trim()) {
+        setResults({ items: [], totalRecordCount: 0 });
+        return;
+      }
 
-    setLoading(true);
-    try {
-      const items = await client.searchItems(searchQuery);
-      setResults({
-        items,
-        totalRecordCount: items.length
-      });
-      addToHistory(searchQuery);
-    } catch (error) {
-      console.error('Search error:', error);
-      setResults({ items: [], totalRecordCount: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, [client, addToHistory]);
+      setLoading(true);
+      try {
+        const items = await client.searchItems(searchQuery);
+        setResults({
+          items,
+          totalRecordCount: items.length,
+        });
+        addToHistory(searchQuery);
+      } catch (error) {
+        console.error('Search error:', error);
+        setResults({ items: [], totalRecordCount: 0 });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [client, addToHistory]
+  );
 
-  const debouncedSearch = useCallback((searchQuery: string) => {
-    setQuery(searchQuery);
-    
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  const debouncedSearch = useCallback(
+    (searchQuery: string) => {
+      setQuery(searchQuery);
 
-    if (searchQuery.trim()) {
-      debounceTimerRef.current = setTimeout(() => {
-        performSearch(searchQuery);
-      }, DEBOUNCE_DELAY);
-    } else {
-      setResults({ items: [], totalRecordCount: 0 });
-    }
-  }, [performSearch]);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      if (searchQuery.trim()) {
+        debounceTimerRef.current = setTimeout(() => {
+          performSearch(searchQuery);
+        }, DEBOUNCE_DELAY);
+      } else {
+        setResults({ items: [], totalRecordCount: 0 });
+      }
+    },
+    [performSearch]
+  );
 
   useEffect(() => {
     return () => {
@@ -97,6 +109,6 @@ export function useSearch(client: MediaClient | null) {
     performSearch,
     addToHistory,
     removeFromHistory,
-    clearHistory
+    clearHistory,
   };
 }

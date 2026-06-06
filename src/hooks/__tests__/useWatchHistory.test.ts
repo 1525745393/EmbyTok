@@ -3,7 +3,7 @@ import { useWatchHistory } from '../useWatchHistory';
 import { useLocalStorageState } from '../useLocalStorageState';
 
 vi.mock('../useLocalStorageState', () => ({
-  useLocalStorageState: vi.fn()
+  useLocalStorageState: vi.fn(),
 }));
 
 describe('useWatchHistory', () => {
@@ -14,7 +14,7 @@ describe('useWatchHistory', () => {
     vi.clearAllMocks();
     mockUseLocalStorageState.mockReturnValue([
       { items: [], lastUpdated: 1234567890 },
-      mockSetHistory
+      mockSetHistory,
     ]);
   });
 
@@ -36,7 +36,7 @@ describe('useWatchHistory', () => {
       itemId: 'video123',
       name: 'Test Video',
       positionTicks: 12345,
-      totalTicks: 60000
+      totalTicks: 60000,
     };
 
     act(() => {
@@ -60,12 +60,12 @@ describe('useWatchHistory', () => {
       name: 'Old Name',
       positionTicks: 5000,
       totalTicks: 60000,
-      watchedAt: 1234567890
+      watchedAt: 1234567890,
     };
 
     mockUseLocalStorageState.mockReturnValue([
       { items: [existingItem], lastUpdated: 1234567890 },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());
@@ -74,7 +74,7 @@ describe('useWatchHistory', () => {
       itemId: 'video123',
       name: 'Updated Video',
       positionTicks: 10000,
-      totalTicks: 60000
+      totalTicks: 60000,
     };
 
     act(() => {
@@ -96,12 +96,12 @@ describe('useWatchHistory', () => {
       name: `Video ${i}`,
       positionTicks: 0,
       totalTicks: 60000,
-      watchedAt: Date.now() - i
+      watchedAt: Date.now() - i,
     }));
 
     mockUseLocalStorageState.mockReturnValue([
       { items: manyItems, lastUpdated: Date.now() },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());
@@ -110,7 +110,7 @@ describe('useWatchHistory', () => {
       itemId: 'new_video',
       name: 'New Video',
       positionTicks: 0,
-      totalTicks: 60000
+      totalTicks: 60000,
     };
 
     act(() => {
@@ -130,12 +130,12 @@ describe('useWatchHistory', () => {
       name: 'Test Video',
       positionTicks: 12345,
       totalTicks: 60000,
-      watchedAt: 1234567890
+      watchedAt: 1234567890,
     };
 
     mockUseLocalStorageState.mockReturnValue([
       { items: [existingItem], lastUpdated: 1234567890 },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());
@@ -157,12 +157,12 @@ describe('useWatchHistory', () => {
       name: `Video ${i}`,
       positionTicks: 0,
       totalTicks: 60000,
-      watchedAt: Date.now()
+      watchedAt: Date.now(),
     }));
 
     mockUseLocalStorageState.mockReturnValue([
       { items: manyItems, lastUpdated: Date.now() },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());
@@ -184,12 +184,12 @@ describe('useWatchHistory', () => {
       name: 'Test Video',
       positionTicks: 12345,
       totalTicks: 60000,
-      watchedAt: 1234567890
+      watchedAt: 1234567890,
     };
 
     mockUseLocalStorageState.mockReturnValue([
       { items: [existingItem], lastUpdated: 1234567890 },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());
@@ -208,12 +208,12 @@ describe('useWatchHistory', () => {
       name: 'Test Video',
       positionTicks: 12345,
       totalTicks: 60000,
-      watchedAt: 1234567890
+      watchedAt: 1234567890,
     };
 
     mockUseLocalStorageState.mockReturnValue([
       { items: [existingItem], lastUpdated: 1234567890 },
-      mockSetHistory
+      mockSetHistory,
     ]);
 
     const { result } = renderHook(() => useWatchHistory());

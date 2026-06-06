@@ -21,7 +21,7 @@
 ```typescript
 abstract class MediaClient {
   constructor(config: ServerConfig);
-  
+
   abstract authenticate(username: string, password: string): Promise<ServerConfig>;
   abstract getLibraries(): Promise<EmbyLibrary[]>;
   abstract getVideos(...): Promise<VideoResponse>;
@@ -48,6 +48,7 @@ constructor(config: ServerConfig)
 ```
 
 **参数:**
+
 - `config`: 服务器配置对象
   - `url`: 服务器地址
   - `username`: 用户名
@@ -66,6 +67,7 @@ async authenticate(username: string, password: string): Promise<ServerConfig>
 使用用户名和密码认证 Emby 服务器。
 
 **参数:**
+
 - `username`: 用户名
 - `password`: 密码
 
@@ -104,6 +106,7 @@ async getVideos(
 获取视频列表，支持多种过滤和排序选项。
 
 **参数:**
+
 - `navParentId`: 导航父级 ID（用于文件夹/剧集浏览）
 - `library`: 选中的媒体库
 - `feedType`: 视频源类型 ('latest' | 'random' | 'favorites' | 'history')
@@ -125,6 +128,7 @@ getVideoUrl(item: EmbyItem): string
 获取视频播放 URL。
 
 **参数:**
+
 - `item`: 视频项对象
 
 **返回:** 视频流 URL
@@ -144,6 +148,7 @@ getImageUrl(
 获取图片 URL。
 
 **参数:**
+
 - `itemId`: 项目 ID
 - `tag`: 图片标签（用于缓存）
 - `type`: 图片类型
@@ -161,6 +166,7 @@ async getFavorites(libraryName: string): Promise<Set<string>>
 获取收藏的视频 ID 集合。
 
 **参数:**
+
 - `libraryName`: 媒体库名称
 
 **返回:** 收藏的视频 ID 集合
@@ -180,6 +186,7 @@ async toggleFavorite(
 切换视频的收藏状态。
 
 **参数:**
+
 - `itemId`: 视频 ID
 - `isFavorite`: 当前是否已收藏
 - `libraryName`: 媒体库名称
@@ -195,6 +202,7 @@ async deleteItem(itemId: string): Promise<void>
 删除媒体项目。
 
 **参数:**
+
 - `itemId`: 项目 ID
 
 ---
@@ -208,6 +216,7 @@ async searchItems(query: string): Promise<EmbyItem[]>
 搜索媒体项目。
 
 **参数:**
+
 - `query`: 搜索查询
 
 **返回:** 匹配的项目数组
@@ -223,6 +232,7 @@ async getSubtitleTracks(itemId: string): Promise<SubtitleTrack[]>
 获取视频的字幕轨道。
 
 **参数:**
+
 - `itemId`: 视频 ID
 
 **返回:** 字幕轨道数组
@@ -240,10 +250,11 @@ Plex 媒体服务器的客户端实现，接口与 EmbyClient 类似。
 创建适当媒体客户端的工厂函数。
 
 ```typescript
-function createClient(config: ServerConfig): MediaClient
+function createClient(config: ServerConfig): MediaClient;
 ```
 
 **参数:**
+
 - `config`: 服务器配置
 
 **返回:** 对应的 MediaClient 实例
@@ -262,7 +273,7 @@ function useConfig(): {
   setConfig: (config: ServerConfig | null) => void;
   isLoggedIn: boolean;
   logout: () => void;
-}
+};
 ```
 
 ### useVideoList
@@ -288,7 +299,7 @@ function useVideoList(options: UseVideoListOptions): {
   navigateTo: (id: string, title: string) => void;
   navigateBack: () => void;
   selectVideo: (index: number) => void;
-}
+};
 ```
 
 ### useVideoControls
@@ -312,7 +323,7 @@ function useVideoControls(options: UseVideoControlsOptions): {
   setPlaybackRate: (rate: number) => void;
   seek: (time: number) => void;
   // ... 更多控制方法
-}
+};
 ```
 
 ### useFavorites
@@ -410,7 +421,7 @@ function useVideoControls(options: UseVideoControlsOptions): {
 #### isFolderType
 
 ```typescript
-function isFolderType(item: EmbyItem): boolean
+function isFolderType(item: EmbyItem): boolean;
 ```
 
 判断项目是否为文件夹类型。
@@ -418,10 +429,7 @@ function isFolderType(item: EmbyItem): boolean
 #### calculatePlaybackProgress
 
 ```typescript
-function calculatePlaybackProgress(
-  playbackPositionTicks?: number,
-  runTimeTicks?: number
-): number
+function calculatePlaybackProgress(playbackPositionTicks?: number, runTimeTicks?: number): number;
 ```
 
 计算视频播放进度百分比。
@@ -435,7 +443,7 @@ function calculatePlaybackProgress(
 #### isTVDevice
 
 ```typescript
-function isTVDevice(): boolean
+function isTVDevice(): boolean;
 ```
 
 判断设备是否为电视。
@@ -443,7 +451,7 @@ function isTVDevice(): boolean
 #### isIOSSafari
 
 ```typescript
-function isIOSSafari(): boolean
+function isIOSSafari(): boolean;
 ```
 
 判断是否为 iOS Safari 浏览器。

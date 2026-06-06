@@ -10,12 +10,12 @@
 
 在你的 GitHub 仓库中添加以下 4 个 Secrets：
 
-| Secret 名称 | 说明 | 值 |
-|------------|------|-----|
-| `ANDROID_KEYSTORE` | keystore 文件的 Base64 编码 | (见下方) |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 | `embytok123` |
-| `ANDROID_KEY_ALIAS` | key 别名 | `embytok` |
-| `ANDROID_KEY_PASSWORD` | key 密码 | `embytok123` |
+| Secret 名称                 | 说明                        | 值           |
+| --------------------------- | --------------------------- | ------------ |
+| `ANDROID_KEYSTORE`          | keystore 文件的 Base64 编码 | (见下方)     |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码               | `embytok123` |
+| `ANDROID_KEY_ALIAS`         | key 别名                    | `embytok`    |
+| `ANDROID_KEY_PASSWORD`      | key 密码                    | `embytok123` |
 
 ---
 
@@ -30,37 +30,45 @@ MIIKtgIBAzCCCmAGCSqGSIb3DQEHAaCCClEEggpNMIIKSTCCBbAGCSqGSIb3DQEHAaCCBaEEggWdMIIF
 ## 🚀 配置步骤
 
 ### 1. 打开你的 GitHub 仓库
+
 访问你的 EmbyTok 仓库页面
 
 ### 2. 进入 Secrets 设置
+
 - 点击仓库顶部的 **Settings**
 - 在左侧菜单中找到 **Secrets and variables**
 - 点击 **Actions**
 
 ### 3. 添加 Secrets
+
 点击 **New repository secret** 按钮，依次添加以下 4 个 Secrets：
 
 #### 第一个 Secret：ANDROID_KEYSTORE
+
 - **Name**: `ANDROID_KEYSTORE`
 - **Value**: 将上面大段的 Base64 字符串完整复制粘贴进去（包括开头和结尾）
 - 点击 **Add secret**
 
 #### 第二个 Secret：ANDROID_KEYSTORE_PASSWORD
+
 - **Name**: `ANDROID_KEYSTORE_PASSWORD`
 - **Value**: `embytok123`
 - 点击 **Add secret**
 
 #### 第三个 Secret：ANDROID_KEY_ALIAS
+
 - **Name**: `ANDROID_KEY_ALIAS`
 - **Value**: `embytok`
 - 点击 **Add secret**
 
 #### 第四个 Secret：ANDROID_KEY_PASSWORD
+
 - **Name**: `ANDROID_KEY_PASSWORD`
 - **Value**: `embytok123`
 - 点击 **Add secret**
 
 ### 4. 验证配置
+
 完成后，你应该在 Secrets 列表中看到这 4 个 Secrets（但不会显示具体的值，这是正常的）。
 
 ---

@@ -19,29 +19,32 @@ const WatchHistoryView: React.FC<WatchHistoryViewProps> = ({
   onSelectVideo,
   onRemoveFromHistory,
   onClearHistory,
-  onClose
+  onClose,
 }) => {
   const { t } = useTranslation();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [itemDetails, setItemDetails] = useState<Map<string, EmbyItem>>(new Map());
 
-  const formatWatchedDate = useCallback((timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const formatWatchedDate = useCallback(
+    (timestamp: number) => {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-    if (hours < 1) {
-      return t.watchHistory?.watched || '刚刚观看';
-    } else if (hours < 24) {
-      return `${hours}小时前`;
-    } else if (days < 7) {
-      return `${days}天前`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  }, [t]);
+      if (hours < 1) {
+        return t.watchHistory?.watched || '刚刚观看';
+      } else if (hours < 24) {
+        return `${hours}小时前`;
+      } else if (days < 7) {
+        return `${days}天前`;
+      } else {
+        return date.toLocaleDateString();
+      }
+    },
+    [t]
+  );
 
   const formatProgress = useCallback((current: number, total: number) => {
     if (total === 0) return '0%';
@@ -79,9 +82,7 @@ const WatchHistoryView: React.FC<WatchHistoryViewProps> = ({
           >
             <X size={24} />
           </button>
-          <h2 className="text-xl font-bold text-white">
-            {t.watchHistory?.title || '观看历史'}
-          </h2>
+          <h2 className="text-xl font-bold text-white">{t.watchHistory?.title || '观看历史'}</h2>
         </div>
         <button
           onClick={() => setShowClearConfirm(true)}
@@ -103,11 +104,7 @@ const WatchHistoryView: React.FC<WatchHistoryViewProps> = ({
                 onClick={() => onSelectVideo(item.itemId, item.positionTicks)}
               >
                 {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
                     <Play className="w-12 h-12 text-zinc-700" />
@@ -142,12 +139,11 @@ const WatchHistoryView: React.FC<WatchHistoryViewProps> = ({
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="w-3 h-3 text-zinc-500" />
-                  <span className="text-zinc-500 text-xs">
-                    {formatWatchedDate(item.watchedAt)}
-                  </span>
+                  <span className="text-zinc-500 text-xs">{formatWatchedDate(item.watchedAt)}</span>
                   <span className="text-zinc-600 text-xs">•</span>
                   <span className="text-zinc-500 text-xs">
-                    {t.watchHistory?.continue || '继续观看'} {formatProgress(item.positionTicks, item.totalTicks)}
+                    {t.watchHistory?.continue || '继续观看'}{' '}
+                    {formatProgress(item.positionTicks, item.totalTicks)}
                   </span>
                 </div>
               </div>

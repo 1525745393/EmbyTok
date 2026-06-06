@@ -24,7 +24,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onBlur,
   onHistoryItemClick,
   onClearHistory,
-  onClearQuery
+  onClearQuery,
 }) => {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,11 +35,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   }, [isFocused]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onBlur();
-    }
-  }, [onBlur]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onBlur();
+      }
+    },
+    [onBlur]
+  );
 
   return (
     <div className="relative">

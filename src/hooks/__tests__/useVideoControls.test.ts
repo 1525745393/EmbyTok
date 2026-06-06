@@ -10,7 +10,7 @@ describe('useVideoControls Hook', () => {
     muted: false,
     currentTime: 0,
     duration: 100,
-    playbackRate: 1.0
+    playbackRate: 1.0,
   };
 
   const mockContainerElement = {
@@ -20,18 +20,20 @@ describe('useVideoControls Hook', () => {
       left: 0,
       top: 0,
       right: 1000,
-      bottom: 500
+      bottom: 500,
     }),
-    focus: vi.fn()
+    focus: vi.fn(),
   };
 
   // Test cases that don't require complex mocking
   it('has proper interface', () => {
     // Just check that the hook can be called without crashing
-    const { result } = renderHook(() => useVideoControls({
-      isActive: false,
-      isMuted: false
-    }));
+    const { result } = renderHook(() =>
+      useVideoControls({
+        isActive: false,
+        isMuted: false,
+      })
+    );
 
     expect(typeof result.current.isPlaying).toBe('boolean');
     expect(typeof result.current.togglePlay).toBe('function');
@@ -39,10 +41,12 @@ describe('useVideoControls Hook', () => {
   });
 
   it('returns refs', () => {
-    const { result } = renderHook(() => useVideoControls({
-      isActive: false,
-      isMuted: false
-    }));
+    const { result } = renderHook(() =>
+      useVideoControls({
+        isActive: false,
+        isMuted: false,
+      })
+    );
 
     expect(result.current.videoRef).toBeDefined();
     expect(result.current.containerRef).toBeDefined();

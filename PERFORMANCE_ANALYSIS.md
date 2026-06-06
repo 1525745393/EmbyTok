@@ -29,12 +29,13 @@
 
 1. **未使用 React.memo** (第 1004 行)
    - 组件没有优化，每次父组件更新都会重新渲染
-   
 2. **内联回调函数** (VideoFeed.tsx 第 185-191 行)
+
    ```tsx
    onToggleFavorite={() => onToggleFavorite(item.Id, favoriteIds.has(item.Id))}
    onDelete={() => onDelete(item.Id)}
    ```
+
    - 这些箭头函数每次渲染都会重新创建，导致 VideoCard 重新渲染
 
 3. **组件职责过多**
@@ -69,24 +70,32 @@
 **文件**: `components/VideoCard.tsx`
 
 1. **海报图片加载** (第 642-646 行)
+
    ```tsx
-   <img 
-       src={posterSrc}
-       className={`absolute inset-0 w-full h-full z-10 bg-transparent pointer-events-none ${videoObjectFitClass}`}
-       alt=""
+   <img
+     src={posterSrc}
+     className={`absolute inset-0 w-full h-full z-10 bg-transparent pointer-events-none ${videoObjectFitClass}`}
+     alt=""
    />
    ```
+
    - 没有设置 `loading="lazy"`
    - 没有设置 `decoding="async"`
 
 2. **侧边栏头像** (第 792-796 行)
+
    ```tsx
-   {posterSrc ? (
+   {
+     posterSrc ? (
        <img src={posterSrc} alt="Poster" className="w-full h-full object-cover" />
-   ) : (
-       <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-xs">Media</div>
-   )}
+     ) : (
+       <div className="w-full h-full flex items-center justify-center bg-indigo-600 text-xs">
+         Media
+       </div>
+     );
+   }
    ```
+
    - 同样没有懒加载优化
 
 3. **模糊背景图** (第 593-597 行)
@@ -117,6 +126,7 @@
 **文件**: `components/VideoCard.tsx` (第 603-638 行)
 
 1. **视频元素配置**
+
    ```tsx
    <video
      ref={videoRef}
@@ -129,6 +139,7 @@
      // 缺少其他优化配置
    >
    ```
+
    - 没有设置 `preload="metadata"` 或 `preload="none"`
    - 没有使用 `poster` 属性（而是手动用 img 标签实现）
 
@@ -144,6 +155,7 @@
      <div className="w-full h-full bg-black" />
    )}
    ```
+
    - 虽然只渲染当前和相邻视频，但没有对视频预加载进行精细控制
 
 ### 3.3 影响
@@ -181,6 +193,7 @@
      </div>
    ))}
    ```
+
    - 即使不渲染 VideoCard，仍然创建了 div 元素
    - 当视频列表很大时，DOM 节点数量会持续增加
 

@@ -1,4 +1,3 @@
-
 # 字幕支持功能 Implementation Plan
 
 &gt; **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -6,6 +5,7 @@
 **Goal:** 实现完整的字幕支持功能，包括字幕轨道检测、字幕显示、字幕设置（字体大小、颜色、位置）等
 
 **Architecture:**
+
 - 更新类型定义添加字幕相关类型
 - 创建 `useSubtitles` Hook 管理字幕状态
 - 创建字幕控件组件 `SubtitleControls`
@@ -22,6 +22,7 @@
 ### Task 1: 更新类型定义
 
 **Files:**
+
 - Modify: `types.ts`
 
 - [ ] **Step 1: 添加字幕相关类型**
@@ -61,6 +62,7 @@ export interface SubtitleSettings {
 ```bash
 npm run build
 ```
+
 Expected: 无类型错误
 
 ---
@@ -68,6 +70,7 @@ Expected: 无类型错误
 ### Task 2: 更新 EmbyClient 添加字幕 API
 
 **Files:**
+
 - Modify: `services/EmbyClient.ts`
 
 - [ ] **Step 1: 添加获取字幕轨道的方法**
@@ -91,13 +94,13 @@ async getSubtitleTracks(itemId: string): Promise&lt;SubtitleTrack[]&gt; {
   }
 
   const data = await response.json();
-  
+
   // 解析字幕轨道
   const tracks: SubtitleTrack[] = [];
-  
+
   if (data.MediaSources &amp;&amp; data.MediaSources.length &gt; 0) {
     const mediaSource = data.MediaSources[0];
-    
+
     if (mediaSource.MediaStreams) {
       mediaSource.MediaStreams.forEach((stream: any, index: number) =&gt; {
         if (stream.Type === 'Subtitle') {
@@ -108,7 +111,7 @@ async getSubtitleTracks(itemId: string): Promise&lt;SubtitleTrack[]&gt; {
             isDefault: stream.IsDefault || false,
             format: stream.Codec || 'vtt',
             // 如果有外部字幕 URL，构建它
-            url: stream.IsExternal 
+            url: stream.IsExternal
               ? `${this.getCleanUrl()}/Videos/${itemId}/${stream.Index}/Subtitles/0/Stream.${stream.Codec === 'srt' ? 'srt' : 'vtt'}`
               : undefined
           });
@@ -139,6 +142,7 @@ async getSubtitleContent(itemId: string, subtitleIndex: number): Promise&lt;stri
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -146,6 +150,7 @@ Expected: 构建成功
 ### Task 3: 创建 useSubtitles Hook
 
 **Files:**
+
 - Create: `src/hooks/useSubtitles.ts`
 - Modify: `src/hooks/index.ts`
 
@@ -213,16 +218,16 @@ export function useSubtitles() {
 
     while (i &lt; lines.length) {
       const line = lines[i].trim();
-      
+
       // 检查是否是时间戳行
       if (line.includes('--&gt;')) {
         const [startStr, endStr] = line.split('--&gt;').map(s =&gt; s.trim());
-        
+
         // 解析时间（格式：HH:MM:SS.mmm）
         const parseTime = (timeStr: string): number =&gt; {
           const parts = timeStr.split(':');
           let seconds = 0;
-          
+
           if (parts.length === 3) {
             seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60;
             const secParts = parts[2].split('.');
@@ -238,7 +243,7 @@ export function useSubtitles() {
               seconds += parseInt(secParts[1]) / 1000;
             }
           }
-          
+
           return seconds;
         };
 
@@ -257,7 +262,7 @@ export function useSubtitles() {
           cues.push({ startTime, endTime, text });
         }
       }
-      
+
       i++;
     }
 
@@ -281,11 +286,11 @@ export function useSubtitles() {
   // 根据视频时间更新当前字幕
   const updateCurrentCue = useCallback((currentTime: number) =&gt; {
     videoTimeRef.current = currentTime;
-    
+
     const cue = currentCues.find(
       c =&gt; currentTime &gt;= c.startTime &amp;&amp; currentTime &lt;= c.endTime
     ) || null;
-    
+
     setCurrentCue(cue);
   }, [currentCues]);
 
@@ -322,6 +327,7 @@ export { useSubtitles } from './useSubtitles';
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -329,6 +335,7 @@ Expected: 构建成功
 ### Task 4: 创建字幕控件组件
 
 **Files:**
+
 - Create: `components/SubtitleControls.tsx`
 
 - [ ] **Step 1: 创建 SubtitleControls 组件**
@@ -578,6 +585,7 @@ export default SubtitleControls;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -585,6 +593,7 @@ Expected: 无 TypeScript 错误
 ### Task 5: 创建字幕渲染组件
 
 **Files:**
+
 - Create: `components/SubtitleRenderer.tsx`
 
 - [ ] **Step 1: 创建 SubtitleRenderer 组件**
@@ -657,6 +666,7 @@ export default SubtitleRenderer;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -664,6 +674,7 @@ Expected: 无 TypeScript 错误
 ### Task 6: 集成字幕功能到 VideoCard
 
 **Files:**
+
 - Modify: `components/VideoCard.tsx`
 - Modify: `src/locales/zh.ts`
 - Modify: `src/locales/en.ts`
@@ -747,7 +758,7 @@ useEffect(() =&gt; {
       try {
         const tracks = await client.getSubtitleTracks(item.Id);
         setSubtitleTracks(tracks);
-        
+
         // 自动选择默认字幕
         const defaultTrack = tracks.find(t =&gt; t.isDefault);
         if (defaultTrack &amp;&amp; !subtitleSettings.selectedTrackId) {
@@ -757,7 +768,7 @@ useEffect(() =&gt; {
         console.error('Failed to load subtitle tracks:', error);
       }
     };
-    
+
     loadTracks();
   }
 }, [client, item.Id]);
@@ -768,9 +779,9 @@ useEffect(() =&gt; {
     const timeUpdateHandler = () =&gt; {
       updateCurrentCue(videoRef.current!.currentTime);
     };
-    
+
     videoRef.current.addEventListener('timeupdate', timeUpdateHandler);
-    
+
     return () =&gt; {
       videoRef.current?.removeEventListener('timeupdate', timeUpdateHandler);
     };
@@ -826,6 +837,7 @@ useEffect(() =&gt; {
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -839,6 +851,7 @@ Expected: 构建成功
 ```bash
 npm run build
 ```
+
 Expected: 构建成功，无错误
 
 - [ ] **Step 2: 功能测试清单**
@@ -862,4 +875,3 @@ Expected: 构建成功，无错误
 - [ ] 代码已提交
 - [ ] 功能已测试验证
 - [ ] 文档已更新
-

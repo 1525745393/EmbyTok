@@ -9,14 +9,14 @@ describe('SubtitleRenderer Component', () => {
       id: '1',
       startTime: 0,
       endTime: 5,
-      text: 'First subtitle'
+      text: 'First subtitle',
     },
     {
       id: '2',
       startTime: 5,
       endTime: 10,
-      text: 'Second subtitle\nwith two lines'
-    }
+      text: 'Second subtitle\nwith two lines',
+    },
   ];
 
   const mockSettings = {
@@ -25,7 +25,7 @@ describe('SubtitleRenderer Component', () => {
     fontSize: 'medium' as const,
     textColor: '#FFFFFF',
     backgroundColor: 'rgba(0,0,0,0.8)',
-    position: 'bottom' as const
+    position: 'bottom' as const,
   };
 
   it('should not render when disabled', () => {
@@ -36,43 +36,27 @@ describe('SubtitleRenderer Component', () => {
         settings={{ ...mockSettings, enabled: false }}
       />
     );
-    
+
     expect(container.firstChild).toBeNull();
   });
 
   it('should not render when no active cue', () => {
     const { container } = render(
-      <SubtitleRenderer
-        cues={mockCues}
-        currentTime={20}
-        settings={mockSettings}
-      />
+      <SubtitleRenderer cues={mockCues} currentTime={20} settings={mockSettings} />
     );
-    
+
     expect(container.firstChild).toBeNull();
   });
 
   it('should render active subtitle', () => {
-    render(
-      <SubtitleRenderer
-        cues={mockCues}
-        currentTime={3}
-        settings={mockSettings}
-      />
-    );
-    
+    render(<SubtitleRenderer cues={mockCues} currentTime={3} settings={mockSettings} />);
+
     expect(screen.getByText('First subtitle')).toBeInTheDocument();
   });
 
   it('should render multi-line subtitle', () => {
-    render(
-      <SubtitleRenderer
-        cues={mockCues}
-        currentTime={7}
-        settings={mockSettings}
-      />
-    );
-    
+    render(<SubtitleRenderer cues={mockCues} currentTime={7} settings={mockSettings} />);
+
     expect(screen.getByText('Second subtitle')).toBeInTheDocument();
   });
 
@@ -84,9 +68,9 @@ describe('SubtitleRenderer Component', () => {
         settings={{ ...mockSettings, fontSize: 'small' }}
       />
     );
-    
+
     expect(screen.getByText('First subtitle')).toBeInTheDocument();
-    
+
     rerender(
       <SubtitleRenderer
         cues={mockCues}
@@ -94,7 +78,7 @@ describe('SubtitleRenderer Component', () => {
         settings={{ ...mockSettings, fontSize: 'large' }}
       />
     );
-    
+
     expect(screen.getByText('First subtitle')).toBeInTheDocument();
   });
 });

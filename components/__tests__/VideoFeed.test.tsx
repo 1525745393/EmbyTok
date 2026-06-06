@@ -18,8 +18,8 @@ vi.mock('../src/hooks', () => ({
   useSmartVideoPreload: () => ({
     isPreloaded: vi.fn().mockReturnValue(true),
     getCacheStatus: vi.fn().mockReturnValue('idle'),
-    updateScrollSpeed: vi.fn()
-  })
+    updateScrollSpeed: vi.fn(),
+  }),
 }));
 
 const mockVideos = [
@@ -31,7 +31,7 @@ const mockVideos = [
     Type: 'Movie',
     ServerId: 'server1',
     ImageTags: { Primary: 'image1' },
-    UserData: {}
+    UserData: {},
   },
   {
     Id: '2',
@@ -41,13 +41,13 @@ const mockVideos = [
     Type: 'Movie',
     ServerId: 'server1',
     ImageTags: {},
-    UserData: {}
-  }
+    UserData: {},
+  },
 ];
 
 const mockClient = {
   getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
-  getVideoUrl: vi.fn().mockReturnValue('https://example.com/video.mp4')
+  getVideoUrl: vi.fn().mockReturnValue('https://example.com/video.mp4'),
 };
 
 describe('VideoFeed Component', () => {
@@ -65,7 +65,7 @@ describe('VideoFeed Component', () => {
         onLoadMore={vi.fn()}
       />
     );
-    
+
     // Check that component renders without errors
     expect(document.body).toBeInTheDocument();
   });
@@ -85,7 +85,7 @@ describe('VideoFeed Component', () => {
         onRefresh={vi.fn()}
       />
     );
-    
+
     expect(screen.getByText('未找到视频')).toBeInTheDocument();
   });
 
@@ -105,7 +105,7 @@ describe('VideoFeed Component', () => {
         onRefresh={onRefresh}
       />
     );
-    
+
     const refreshButton = screen.getByText('刷新');
     fireEvent.click(refreshButton);
     expect(onRefresh).toHaveBeenCalled();

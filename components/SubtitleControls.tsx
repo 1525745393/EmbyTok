@@ -18,7 +18,7 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
   onToggleSubtitles,
   onSelectTrack,
   onUpdateSettings,
-  onClose
+  onClose,
 }) => {
   const { t } = useTranslation();
   const [showSettings, setShowSettings] = useState(false);
@@ -26,7 +26,7 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
   const fontSizeOptions = [
     { value: 'small', label: t.subtitles?.small || '小' },
     { value: 'medium', label: t.subtitles?.medium || '中' },
-    { value: 'large', label: t.subtitles?.large || '大' }
+    { value: 'large', label: t.subtitles?.large || '大' },
   ];
 
   const textColorOptions = [
@@ -35,12 +35,12 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
     { value: '#00FF00', label: '绿色' },
     { value: '#00FFFF', label: '青色' },
     { value: '#FF0000', label: '红色' },
-    { value: '#0000FF', label: '蓝色' }
+    { value: '#0000FF', label: '蓝色' },
   ];
 
   const positionOptions = [
     { value: 'bottom', label: t.subtitles?.bottom || '底部' },
-    { value: 'top', label: t.subtitles?.top || '顶部' }
+    { value: 'top', label: t.subtitles?.top || '顶部' },
   ];
 
   return (
@@ -49,9 +49,7 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <Subtitles size={20} className="text-white" />
-            <span className="text-white font-medium">
-              {t.subtitles?.select || '字幕'}
-            </span>
+            <span className="text-white font-medium">{t.subtitles?.select || '字幕'}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -101,14 +99,14 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
                 }`}
               >
                 <span>{t.subtitles?.on || '开启'}</span>
-                {settings.enabled && !settings.selectedTrackId && <Check size={18} className="text-indigo-500" />}
+                {settings.enabled && !settings.selectedTrackId && (
+                  <Check size={18} className="text-indigo-500" />
+                )}
               </button>
 
               {tracks.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-zinc-500 text-xs px-4 py-2">
-                    可用字幕
-                  </p>
+                  <p className="text-zinc-500 text-xs px-4 py-2">可用字幕</p>
                   {tracks.map((track) => (
                     <button
                       key={track.id}
@@ -130,7 +128,9 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
                           <span className="text-xs text-zinc-500">{track.language}</span>
                         )}
                       </div>
-                      {settings.selectedTrackId === track.id && <Check size={18} className="text-indigo-500" />}
+                      {settings.selectedTrackId === track.id && (
+                        <Check size={18} className="text-indigo-500" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -139,9 +139,7 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
           ) : (
             <div className="p-4 space-y-4">
               <div>
-                <p className="text-zinc-400 text-sm mb-2">
-                  {t.subtitles?.fontSize || '字体大小'}
-                </p>
+                <p className="text-zinc-400 text-sm mb-2">{t.subtitles?.fontSize || '字体大小'}</p>
                 <div className="flex gap-2">
                   {fontSizeOptions.map((option) => (
                     <button
@@ -160,18 +158,14 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
               </div>
 
               <div>
-                <p className="text-zinc-400 text-sm mb-2">
-                  {t.subtitles?.textColor || '文字颜色'}
-                </p>
+                <p className="text-zinc-400 text-sm mb-2">{t.subtitles?.textColor || '文字颜色'}</p>
                 <div className="flex gap-2">
                   {textColorOptions.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => onUpdateSettings({ textColor: option.value })}
                       className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                        settings.textColor === option.value
-                          ? 'ring-2 ring-white scale-110'
-                          : ''
+                        settings.textColor === option.value ? 'ring-2 ring-white scale-110' : ''
                       }`}
                       style={{ backgroundColor: option.value }}
                     />
@@ -180,9 +174,7 @@ const SubtitleControls: React.FC<SubtitleControlsProps> = ({
               </div>
 
               <div>
-                <p className="text-zinc-400 text-sm mb-2">
-                  {t.subtitles?.position || '位置'}
-                </p>
+                <p className="text-zinc-400 text-sm mb-2">{t.subtitles?.position || '位置'}</p>
                 <div className="flex gap-2">
                   {positionOptions.map((option) => (
                     <button

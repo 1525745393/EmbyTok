@@ -38,7 +38,14 @@ interface VideoControlsActions {
 export function useVideoControls(
   options: VideoControlsOptions
 ): VideoControlsState & VideoControlsActions {
-  const { isActive, isMuted, isAutoPlay = false, onVideoEnd, onVideoLoadStart = () => {}, onVideoLoadComplete = () => {} } = options;
+  const {
+    isActive,
+    isMuted,
+    isAutoPlay = false,
+    onVideoEnd,
+    onVideoLoadStart = () => {},
+    onVideoLoadComplete = () => {},
+  } = options;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,25 +142,31 @@ export function useVideoControls(
     setIsSeeking(true);
   }, []);
 
-  const handleSeekMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isSeeking || !containerRef.current) return;
+  const handleSeekMove = useCallback(
+    (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isSeeking || !containerRef.current) return;
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const rect = containerRef.current.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, clientX / rect.width));
-    setCurrentTime(percent * duration);
-  }, [isSeeking, duration]);
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const rect = containerRef.current.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, clientX / rect.width));
+      setCurrentTime(percent * duration);
+    },
+    [isSeeking, duration]
+  );
 
-  const handleSeekEnd = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isSeeking) return;
+  const handleSeekEnd = useCallback(
+    (e: React.TouchEvent | React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isSeeking) return;
 
-    setIsSeeking(false);
-    if (videoRef.current) {
-      videoRef.current.currentTime = currentTime;
-    }
-  }, [isSeeking, currentTime]);
+      setIsSeeking(false);
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    },
+    [isSeeking, currentTime]
+  );
 
   return {
     isPlaying,
@@ -175,6 +188,6 @@ export function useVideoControls(
     handleSeekStart,
     handleSeekMove,
     handleSeekEnd,
-    setError
+    setError,
   };
 }

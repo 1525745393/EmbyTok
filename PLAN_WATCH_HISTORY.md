@@ -1,11 +1,11 @@
-
 # 播放历史功能 Implementation Plan
 
 &gt; **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现完整的观看历史记录功能，包括观看记录、进度保存、历史列表展示和管理
 
-**Architecture:** 
+**Architecture:**
+
 - 新增自定义 Hook `useWatchHistory` 管理历史数据
 - 更新 `types.ts` 添加历史数据类型
 - 新增组件 `WatchHistory.tsx` 展示历史列表
@@ -21,6 +21,7 @@
 ### Task 1: 更新类型定义
 
 **Files:**
+
 - Modify: `types.ts`
 
 - [ ] **Step 1: 添加 WatchHistory 相关类型到 types.ts**
@@ -49,9 +50,11 @@ export type FeedType = 'latest' | 'random' | 'favorites' | 'history';
 - [ ] **Step 2: 验证类型定义**
 
 运行 TypeScript 编译检查：
+
 ```bash
 npm run build
 ```
+
 Expected: 无类型错误
 
 ---
@@ -59,6 +62,7 @@ Expected: 无类型错误
 ### Task 2: 创建 useWatchHistory Hook
 
 **Files:**
+
 - Create: `src/hooks/useWatchHistory.ts`
 - Modify: `src/hooks/index.ts`
 
@@ -78,20 +82,20 @@ export function useWatchHistory() {
     WATCH_HISTORY_KEY,
     { items: [], lastUpdated: Date.now() }
   );
-  
+
   // 清理过期记录
   const cleanupExpiredItems = useCallback(() =&gt; {
     const now = Date.now();
     const expiryMs = HISTORY_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-    
+
     setHistory(prev =&gt; {
       const validItems = prev.items.filter(
         item =&gt; now - item.lastWatchedAt &lt; expiryMs
       );
-      
+
       // 限制最大数量
       const trimmedItems = validItems.slice(0, MAX_HISTORY_ITEMS);
-      
+
       return {
         ...prev,
         items: trimmedItems,
@@ -103,11 +107,11 @@ export function useWatchHistory() {
   // 记录观看
   const recordWatch = useCallback((item: EmbyItem, progressSeconds: number) =&gt; {
     const now = Date.now();
-    
+
     setHistory(prev =&gt; {
       const existingIndex = prev.items.findIndex(h =&gt; h.itemId === item.Id);
       let newItems: WatchHistoryItem[];
-      
+
       if (existingIndex &gt;= 0) {
         // 更新现有记录
         newItems = [...prev.items];
@@ -119,7 +123,7 @@ export function useWatchHistory() {
           lastProgress: progressSeconds,
           totalWatchTime: existing.totalWatchTime + Math.min(progressSeconds - existing.lastProgress, 300) // 每次最多加5分钟避免异常
         };
-        
+
         // 移到最前面
         const [updated] = newItems.splice(existingIndex, 1);
         newItems.unshift(updated);
@@ -135,12 +139,12 @@ export function useWatchHistory() {
         };
         newItems = [newItem, ...prev.items];
       }
-      
+
       // 限制数量
       if (newItems.length &gt; MAX_HISTORY_ITEMS) {
         newItems = newItems.slice(0, MAX_HISTORY_ITEMS);
       }
-      
+
       return {
         items: newItems,
         lastUpdated: now
@@ -153,14 +157,14 @@ export function useWatchHistory() {
     setHistory(prev =&gt; {
       const existingIndex = prev.items.findIndex(h =&gt; h.itemId === itemId);
       if (existingIndex &lt; 0) return prev;
-      
+
       const newItems = [...prev.items];
       newItems[existingIndex] = {
         ...newItems[existingIndex],
         lastProgress: progressSeconds,
         lastWatchedAt: Date.now()
       };
-      
+
       return {
         ...prev,
         items: newItems,
@@ -220,6 +224,7 @@ export { useWatchHistory } from './useWatchHistory';
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -227,6 +232,7 @@ Expected: 构建成功
 ### Task 3: 集成 VideoCard 记录观看历史
 
 **Files:**
+
 - Modify: `components/VideoCard.tsx`
 
 - [ ] **Step 1: 导入 useWatchHistory**
@@ -283,7 +289,7 @@ useEffect(() =&gt; {
       }
     }, 10000); // 每10秒更新一次
   }
-  
+
   return () =&gt; {
     if (progressUpdateTimer.current) {
       clearInterval(progressUpdateTimer.current);
@@ -326,6 +332,7 @@ const handleLoadedMetadataWithHistory = useCallback(() =&gt; {
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -333,6 +340,7 @@ Expected: 构建成功
 ### Task 4: 创建 WatchHistory 组件
 
 **Files:**
+
 - Create: `components/WatchHistory.tsx`
 
 - [ ] **Step 1: 创建 WatchHistory 组件**
@@ -382,7 +390,7 @@ function formatRelativeTime(timestamp: number, lang: 'zh' | 'en'): string {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  
+
   if (lang === 'zh') {
     if (minutes &lt; 1) return '刚刚';
     if (minutes &lt; 60) return `${minutes}分钟前`;
@@ -535,6 +543,7 @@ export default WatchHistory;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -542,6 +551,7 @@ Expected: 无 TypeScript 错误
 ### Task 5: 集成到 StandardRoot
 
 **Files:**
+
 - Modify: `components/standard/StandardRoot.tsx`
 - Modify: `src/locales/zh.ts`
 - Modify: `src/locales/en.ts` (创建或更新)
@@ -579,7 +589,7 @@ export default {
     noOverview: 'No overview available',
     autoPlayOn: 'Auto-play enabled',
     doubleSpeed: '2x Speed',
-    videoLoadError: 'Failed to load video'
+    videoLoadError: 'Failed to load video',
   },
   login: {
     serverAddress: 'Server Address',
@@ -592,7 +602,7 @@ export default {
     plexError: 'Plex login failed',
     language: 'Language',
     chinese: '中文',
-    english: 'English'
+    english: 'English',
   },
   standardRoot: {
     favorites: 'Favorites',
@@ -600,7 +610,7 @@ export default {
     latest: 'Latest',
     history: 'History',
     discover: 'Discover',
-    deleteFailed: 'Deletion failed, please check permissions'
+    deleteFailed: 'Deletion failed, please check permissions',
   },
   // ... 保持其他翻译
   watchHistory: {
@@ -611,8 +621,8 @@ export default {
     times: 'times',
     clearAll: 'Clear All',
     clearConfirm: 'Are you sure you want to clear all watch history?',
-    history: 'History'
-  }
+    history: 'History',
+  },
 };
 ```
 
@@ -706,6 +716,7 @@ const [showHistory, setShowHistory] = useState(false);
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -719,6 +730,7 @@ Expected: 构建成功
 ```bash
 npm run build
 ```
+
 Expected: 构建成功，无错误
 
 - [ ] **Step 2: 功能测试清单**
@@ -740,4 +752,3 @@ Expected: 构建成功，无错误
 - [ ] 代码已提交（至少每个 Task 一个 commit）
 - [ ] 功能已测试验证
 - [ ] 文档已更新（PRD中已记录）
-

@@ -91,6 +91,7 @@ utils/
 测试独立的函数、工具类和纯组件。
 
 示例：
+
 - 工具函数测试
 - API 客户端测试
 - 自定义 Hook 测试
@@ -123,10 +124,10 @@ beforeEach(() => {
 it('should do something', () => {
   // Arrange - 准备测试数据和环境
   const input = 'test';
-  
+
   // Act - 执行被测试的代码
   const result = functionUnderTest(input);
-  
+
   // Assert - 验证结果
   expect(result).toBe('expected');
 });
@@ -139,7 +140,7 @@ vi.mock('../../../services/clientFactory');
 
 const mockClient = {
   authenticate: vi.fn(),
-  getVideos: vi.fn()
+  getVideos: vi.fn(),
 };
 
 (ClientFactory.create as any).mockReturnValue(mockClient);
@@ -196,11 +197,11 @@ describe('useYourHook', () => {
 
   it('should update state when called', () => {
     const { result } = renderHook(() => useYourHook());
-    
+
     act(() => {
       result.current.updateValue('newValue');
     });
-    
+
     expect(result.current.someValue).toBe('newValue');
   });
 });
@@ -224,7 +225,7 @@ describe('YourClient', () => {
     const mockResponse = { data: 'test' };
     (global.fetch as any).mockResolvedValue({
       ok: true,
-      json: async () => mockResponse
+      json: async () => mockResponse,
     });
 
     const result = await client.getData();
@@ -236,6 +237,7 @@ describe('YourClient', () => {
 ## 覆盖率
 
 当前的测试覆盖率目标：
+
 - 工具函数: 80%+
 - API 客户端: 70%+
 - 自定义 Hooks: 70%+
@@ -261,7 +263,7 @@ beforeEach(() => {
 ```typescript
 Object.defineProperty(window, 'innerWidth', {
   value: 1920,
-  configurable: true
+  configurable: true,
 });
 ```
 
@@ -270,7 +272,7 @@ Object.defineProperty(window, 'innerWidth', {
 ```typescript
 global.fetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: async () => mockData
+  json: async () => mockData,
 });
 ```
 

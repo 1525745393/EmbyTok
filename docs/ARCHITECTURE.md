@@ -125,7 +125,8 @@ const [deviceMode, setDeviceMode] = useState<'standard' | 'tv'>(() => {
     const forcedMode = localStorage.getItem('embyForceDeviceMode');
     if (forcedMode === 'tv' || forcedMode === 'standard') return forcedMode;
     const userAgent = navigator.userAgent.toLowerCase();
-    const isTV = userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
+    const isTV =
+      userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
     return isTV ? 'tv' : 'standard';
   } catch (e) {
     return 'standard';
@@ -159,6 +160,7 @@ class PlexClient extends MediaClient { /* Plex 实现 */ }
 位置: [src/hooks/useVideoList.ts](file:///workspace/src/hooks/useVideoList.ts)
 
 核心 Hook，管理：
+
 - 视频数据加载
 - 收藏功能
 - 导航栈（支持文件夹/剧集深度浏览）
@@ -179,6 +181,7 @@ class PlexClient extends MediaClient { /* Plex 实现 */ }
 位置: [src/hooks/useSmartVideoPreload.ts](file:///workspace/src/hooks/useSmartVideoPreload.ts)
 
 根据多种因素动态调整预加载策略：
+
 - 网络状况（通过 Network Information API）
 - 滚动速度和方向
 - 当前视频索引

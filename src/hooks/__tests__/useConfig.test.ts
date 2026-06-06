@@ -12,12 +12,12 @@ describe('useConfig', () => {
     username: 'testuser',
     token: 'testtoken',
     userId: 'user123',
-    serverType: 'emby' as const
+    serverType: 'emby' as const,
   };
 
   const mockClient = {
     authenticate: vi.fn(),
-    getVideos: vi.fn()
+    getVideos: vi.fn(),
   };
 
   beforeEach(() => {
@@ -73,7 +73,7 @@ describe('useConfig', () => {
     const mockReload = vi.fn();
     Object.defineProperty(window.location, 'reload', {
       value: mockReload,
-      configurable: true
+      configurable: true,
     });
 
     const { result } = renderHook(() => useConfig());

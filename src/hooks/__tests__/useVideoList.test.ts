@@ -94,9 +94,7 @@ describe('useVideoList Hook', () => {
       result.current.navigateTo('folder1', 'My Folder');
     });
 
-    expect(result.current.navStack).toEqual([
-      { id: 'folder1', title: 'My Folder' },
-    ]);
+    expect(result.current.navStack).toEqual([{ id: 'folder1', title: 'My Folder' }]);
     expect(result.current.viewMode).toBe('grid');
 
     act(() => {

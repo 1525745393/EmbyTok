@@ -32,6 +32,7 @@ EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客
 Claude 在开发时应遵循以下原则：
 
 #### 代码质量
+
 - 遵循 TypeScript 最佳实践
 - 使用有意义的变量和函数名
 - 保持函数简洁，每个函数只做一件事
@@ -40,12 +41,14 @@ Claude 在开发时应遵循以下原则：
 - 使用适当的并发控制机制
 
 #### 小步重构
+
 - 每次只做一个小改动
 - 频繁提交，保持代码随时可工作
 - 重构前确保有足够的测试
 - 每次修改后运行测试，确保行为不变
 
 #### 性能优化
+
 - 避免不必要的对象创建
 - 及时释放不再需要的资源
 - 避免重复计算
@@ -56,16 +59,19 @@ Claude 在开发时应遵循以下原则：
 - 注意线程安全问题
 
 #### 命名约定
+
 - 使用有意义的、描述性的名称
 - 遵循项目或语言的命名规范
 - 避免缩写和单字母变量（除非是约定俗成的，如循环中的 `i`）
 
 #### 代码组织
+
 - 相关代码放在一起
 - 函数只做一件事
 - 保持适当的抽象层次
 
 #### 注释与文档
+
 - 注释应该解释为什么，而不是做什么
 - 为公共 API 提供清晰的文档
 - 更新注释以反映代码变化
@@ -118,16 +124,19 @@ npm run build:android
 ### 5. 关键组件和功能
 
 #### 视频播放
+
 - [VideoPlayer.tsx](file:///workspace/components/VideoPlayer.tsx) - 视频播放器组件
 - [VideoControls.tsx](file:///workspace/components/VideoControls.tsx) - 视频控制组件
 - [useVideoControls.ts](file:///workspace/src/hooks/useVideoControls.ts) - 视频控制 Hook
 
 #### 媒体客户端
+
 - [EmbyClient.ts](file:///workspace/services/EmbyClient.ts) - Emby 媒体服务器客户端
 - [PlexClient.ts](file:///workspace/services/PlexClient.ts) - Plex 媒体服务器客户端
 - [clientFactory.ts](file:///workspace/services/clientFactory.ts) - 客户端工厂
 
 #### 核心 Hooks
+
 - [useConfig.ts](file:///workspace/src/hooks/useConfig.ts) - 配置管理
 - [useFavorites.ts](file:///workspace/src/hooks/useFavorites.ts) - 收藏功能
 - [useLibraries.ts](file:///workspace/src/hooks/useLibraries.ts) - 媒体库管理
@@ -166,6 +175,7 @@ npm run build:android
 ## 常见任务示例
 
 ### 添加新功能
+
 1. 理解需求并设计解决方案
 2. 编写测试用例
 3. 实现功能
@@ -173,6 +183,7 @@ npm run build:android
 5. 提交代码
 
 ### 修复 Bug
+
 1. 复现问题
 2. 定位根因
 3. 修复问题
@@ -180,6 +191,7 @@ npm run build:android
 5. 验证修复
 
 ### 重构代码
+
 1. 确保有足够的测试覆盖
 2. 小步重构
 3. 每次重构后运行测试

@@ -46,6 +46,7 @@ npx cap sync android
 ### 4. 使用 Android Studio 构建 (推荐)
 
 #### 方法一：在 Android Studio 中构建
+
 1. 打开 Android Studio
 2. 选择 "Open an existing Android Studio project"
 3. 选择项目中的 `android` 文件夹
@@ -55,6 +56,7 @@ npx cap sync android
    `android/app/build/outputs/apk/debug/app-debug.apk`
 
 #### 方法二：构建 Release 版本
+
 1. 在 Android Studio 中选择 "Build" → "Generate Signed Bundle / APK"
 2. 选择 "APK"
 3. 配置签名密钥（如果没有，请创建新密钥）
@@ -65,25 +67,31 @@ npx cap sync android
 ### 5. 使用命令行构建
 
 #### Debug 版本
+
 ```bash
 cd android
 ./gradlew assembleDebug
 ```
+
 APK 文件位于：
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
 #### Release 版本
+
 需要先配置签名密钥，然后执行：
+
 ```bash
 cd android
 ./gradlew assembleRelease
 ```
+
 APK 文件位于：
 `android/app/build/outputs/apk/release/app-release.apk`
 
 ## 配置签名密钥 (Release 版本)
 
 ### 方法一：使用 Android Studio
+
 1. 在 Android Studio 中选择 "Build" → "Generate Signed Bundle / APK"
 2. 选择 "Create new..." 创建新密钥库
 3. 填写密钥信息并保存
@@ -106,16 +114,20 @@ adb install android/app/build/outputs/apk/debug/app-debug.apk
 ## 常见问题
 
 ### 1. Gradle 下载超时
+
 如果遇到 Gradle 下载超时，可以：
+
 - 配置 Gradle 镜像源
 - 使用代理
 - 或者在 Android Studio 中配置 Gradle 代理设置
 
 ### 2. Java 版本不匹配
+
 确保使用正确的 Java 版本（JDK 17+），可以在 Android Studio 的设置中配置：
 `File` → `Settings` → `Build, Execution, Deployment` → `Build Tools` → `Gradle` → `Gradle JDK`
 
 ### 3. 依赖下载失败
+
 - 检查网络连接
 - 配置阿里云或其他镜像源
 - 使用代理

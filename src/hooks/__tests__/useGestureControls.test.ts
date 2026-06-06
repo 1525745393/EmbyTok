@@ -10,8 +10,8 @@ describe('useGestureControls Hook', () => {
     current: {
       playbackRate: 1.0,
       currentTime: 100,
-      duration: 200
-    } as HTMLVideoElement
+      duration: 200,
+    } as HTMLVideoElement,
   };
 
   beforeEach(() => {
@@ -22,10 +22,10 @@ describe('useGestureControls Hook', () => {
     const { result } = renderHook(() =>
       useGestureControls({
         togglePlay: mockTogglePlay,
-        videoRef: mockVideoRef
+        videoRef: mockVideoRef,
       })
     );
-    
+
     expect(result.current.playbackRate).toBe(1.0);
     expect(result.current.seekOffset).toBeNull();
     expect(result.current.hearts).toEqual([]);
@@ -35,10 +35,10 @@ describe('useGestureControls Hook', () => {
     const { result } = renderHook(() =>
       useGestureControls({
         togglePlay: mockTogglePlay,
-        videoRef: mockVideoRef
+        videoRef: mockVideoRef,
       })
     );
-    
+
     expect(typeof result.current.handleTouchStart).toBe('function');
     expect(typeof result.current.handleTouchMove).toBe('function');
     expect(typeof result.current.handleTouchEnd).toBe('function');
@@ -49,16 +49,16 @@ describe('useGestureControls Hook', () => {
     const { result } = renderHook(() =>
       useGestureControls({
         togglePlay: mockTogglePlay,
-        videoRef: mockVideoRef
+        videoRef: mockVideoRef,
       })
     );
-    
+
     expect(result.current.hearts.length).toBe(0);
-    
+
     act(() => {
       result.current.addHeart(100, 200);
     });
-    
+
     expect(result.current.hearts.length).toBe(1);
     expect(result.current.hearts[0].x).toBe(100);
     expect(result.current.hearts[0].y).toBe(200);
@@ -70,10 +70,10 @@ describe('useGestureControls Hook', () => {
         togglePlay: mockTogglePlay,
         onDoubleTap: mockOnDoubleTap,
         onSwipeDown: mockOnSwipeDown,
-        videoRef: mockVideoRef
+        videoRef: mockVideoRef,
       })
     );
-    
+
     expect(result.current).toBeDefined();
   });
 });

@@ -11,7 +11,7 @@ describe('VideoSkeleton Component', () => {
 
   it('should contain skeleton elements', () => {
     const { container } = render(<VideoSkeleton />);
-    
+
     // Check that there are some div elements (skeleton placeholders)
     const divs = container.querySelectorAll('div');
     expect(divs.length).toBeGreaterThan(0);

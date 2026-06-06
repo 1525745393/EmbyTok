@@ -7,18 +7,12 @@ interface SubtitleRendererProps {
   settings: SubtitleSettings;
 }
 
-const SubtitleRenderer: React.FC<SubtitleRendererProps> = ({
-  cues,
-  currentTime,
-  settings
-}) => {
+const SubtitleRenderer: React.FC<SubtitleRendererProps> = ({ cues, currentTime, settings }) => {
   if (!settings.enabled) {
     return null;
   }
 
-  const activeCue = cues.find(
-    (cue) => currentTime >= cue.startTime && currentTime <= cue.endTime
-  );
+  const activeCue = cues.find((cue) => currentTime >= cue.startTime && currentTime <= cue.endTime);
 
   if (!activeCue) {
     return null;
@@ -27,16 +21,16 @@ const SubtitleRenderer: React.FC<SubtitleRendererProps> = ({
   const fontSizeClass = {
     small: 'text-lg',
     medium: 'text-2xl',
-    large: 'text-4xl'
+    large: 'text-4xl',
   }[settings.fontSize];
 
-  const positionClass = settings.position === 'bottom'
-    ? 'bottom-8'
-    : 'top-8';
+  const positionClass = settings.position === 'bottom' ? 'bottom-8' : 'top-8';
 
   const renderText = (text: string) => {
     return text.split('\n').map((line, index) => (
-      <p key={index} className="text-center">{line}</p>
+      <p key={index} className="text-center">
+        {line}
+      </p>
     ));
   };
 
@@ -48,7 +42,7 @@ const SubtitleRenderer: React.FC<SubtitleRendererProps> = ({
           style={{
             color: settings.textColor,
             backgroundColor: settings.backgroundColor,
-            textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
           }}
         >
           {renderText(activeCue.text)}

@@ -19,46 +19,52 @@ vi.mock('../src/hooks', () => ({
         delete: '删除',
         rename: '重命名',
         collectionName: '合集名称',
-        removeFromCollection: '从合集移除'
-      }
-    }
-  })
+        removeFromCollection: '从合集移除',
+      },
+    },
+  }),
 }));
 
 const mockCollections = [
   {
     id: 'default',
     name: '默认合集',
-    itemIds: ['1', '2']
+    itemIds: ['1', '2'],
   },
   {
     id: 'collection1',
     name: '我的收藏',
-    itemIds: ['1']
-  }
+    itemIds: ['1'],
+  },
 ];
 
 const mockItems = new Map([
-  ['1', {
-    Id: '1',
-    Name: 'Test Video 1',
-    Type: 'Movie',
-    ServerId: 'server1',
-    ImageTags: { Primary: 'image1' },
-    UserData: {}
-  }],
-  ['2', {
-    Id: '2',
-    Name: 'Test Video 2',
-    Type: 'Movie',
-    ServerId: 'server1',
-    ImageTags: {},
-    UserData: {}
-  }]
+  [
+    '1',
+    {
+      Id: '1',
+      Name: 'Test Video 1',
+      Type: 'Movie',
+      ServerId: 'server1',
+      ImageTags: { Primary: 'image1' },
+      UserData: {},
+    },
+  ],
+  [
+    '2',
+    {
+      Id: '2',
+      Name: 'Test Video 2',
+      Type: 'Movie',
+      ServerId: 'server1',
+      ImageTags: {},
+      UserData: {},
+    },
+  ],
 ]);
 
 const mockClient = {
-  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
+  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
 };
 
 describe('FavoritesManager Component', () => {
@@ -72,7 +78,7 @@ describe('FavoritesManager Component', () => {
     onRenameCollection: vi.fn(),
     onAddToCollection: vi.fn(),
     onRemoveFromCollection: vi.fn(),
-    onClose: vi.fn()
+    onClose: vi.fn(),
   };
 
   it('should render correctly', () => {
@@ -90,7 +96,7 @@ describe('FavoritesManager Component', () => {
   it('should call onClose when close button is clicked', () => {
     render(<FavoritesManager {...defaultProps} />);
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(btn => btn.innerHTML.includes('X'));
+    const closeButton = closeButtons.find((btn) => btn.innerHTML.includes('X'));
     if (closeButton) {
       fireEvent.click(closeButton);
       expect(defaultProps.onClose).toHaveBeenCalled();

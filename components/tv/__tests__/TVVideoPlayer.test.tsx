@@ -10,7 +10,7 @@ const mockVideos = [
     ProductionYear: 2020,
     Type: 'Movie',
     ImageTags: { Primary: 'image1' },
-    Overview: 'This is the first video overview'
+    Overview: 'This is the first video overview',
   },
   {
     Id: '2',
@@ -18,15 +18,15 @@ const mockVideos = [
     ProductionYear: 2021,
     Type: 'Movie',
     ImageTags: {},
-    Overview: 'This is the second video overview'
-  }
+    Overview: 'This is the second video overview',
+  },
 ];
 
 const mockClient = {
   getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
   getVideoUrl: vi.fn().mockReturnValue('https://example.com/video.mp4'),
   getFavorites: vi.fn().mockResolvedValue(new Set()),
-  toggleFavorite: vi.fn().mockResolvedValue(undefined)
+  toggleFavorite: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('TVVideoPlayer Component', () => {
@@ -41,7 +41,7 @@ describe('TVVideoPlayer Component', () => {
         language="zh"
       />
     );
-    
+
     expect(screen.getByText('First Video')).toBeInTheDocument();
     expect(screen.getByText('2020')).toBeInTheDocument();
   });
@@ -57,7 +57,7 @@ describe('TVVideoPlayer Component', () => {
         language="zh"
       />
     );
-    
+
     expect(screen.getByText('Second Video')).toBeInTheDocument();
   });
 
@@ -73,7 +73,7 @@ describe('TVVideoPlayer Component', () => {
         language="zh"
       />
     );
-    
+
     const allButtons = screen.getAllByRole('button');
     fireEvent.click(allButtons[0]);
     expect(onBack).toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe('TVVideoPlayer Component', () => {
         language="en"
       />
     );
-    
+
     expect(screen.getByText('First Video')).toBeInTheDocument();
   });
 });

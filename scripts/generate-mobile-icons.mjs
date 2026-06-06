@@ -10,53 +10,59 @@ import path from 'path';
 async function generateMobileIcons(inputPath, outputDir) {
   // 确保输出目录存在
   await fs.mkdir(outputDir, { recursive: true });
-  
+
   console.log(`Generating mobile icons from ${inputPath}...`);
-  
+
   // Android图标尺寸（mipmap密度）
   const androidSizes = {
-    'mdpi': 48,
-    'hdpi': 72,
-    'xhdpi': 96,
-    'xxhdpi': 144,
-    'xxxhdpi': 192
+    mdpi: 48,
+    hdpi: 72,
+    xhdpi: 96,
+    xxhdpi: 144,
+    xxxhdpi: 192,
   };
-  
+
   // iOS图标尺寸
   const iosSizes = [
-    20, 29, 40, 58, 60, 76, 80, 87, 120, 152, 167, 180, 1024 // App Store图标
+    20,
+    29,
+    40,
+    58,
+    60,
+    76,
+    80,
+    87,
+    120,
+    152,
+    167,
+    180,
+    1024, // App Store图标
   ];
-  
+
   // 生成Android图标
   console.log('\nGenerating Android icons...');
   for (const [density, size] of Object.entries(androidSizes)) {
     const androidDir = path.join(outputDir, 'android', `mipmap-${density}`);
     await fs.mkdir(androidDir, { recursive: true });
-    
+
     const outputPath = path.join(androidDir, 'ic_launcher.png');
-    await sharp(inputPath)
-      .resize(size, size)
-      .png()
-      .toFile(outputPath);
-    
+    await sharp(inputPath).resize(size, size).png().toFile(outputPath);
+
     console.log(`Generated ${outputPath}`);
   }
-  
+
   // 生成iOS图标
   console.log('\nGenerating iOS icons...');
   const iosDir = path.join(outputDir, 'ios');
   await fs.mkdir(iosDir, { recursive: true });
-  
+
   for (const size of iosSizes) {
     const outputPath = path.join(iosDir, `icon-${size}x${size}.png`);
-    await sharp(inputPath)
-      .resize(size, size)
-      .png()
-      .toFile(outputPath);
-    
+    await sharp(inputPath).resize(size, size).png().toFile(outputPath);
+
     console.log(`Generated ${outputPath}`);
   }
-  
+
   console.log('\nMobile icons generated successfully!');
 }
 

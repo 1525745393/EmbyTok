@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { EmbyItem, FeedType, SubtitleTrack, SubtitleSettings } from '../types';
 import { MediaClient } from '../services/MediaClient';
@@ -31,29 +30,29 @@ interface VideoFeedProps {
   onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
 }
 
-const VideoFeed: React.FC<VideoFeedProps> = ({ 
-    videos, 
-    client, 
-    onRefresh, 
-    isLoading,
-    favoriteIds,
-    onToggleFavorite,
-    isFavoriteFunc,
-    onDelete = () => {},
-    initialIndex = 0,
-    onIndexChange,
-    isMuted,
-    onToggleMute,
-    feedType,
-    hasMore,
-    onLoadMore,
-    isAutoPlay = false,
-    onToggleAutoPlay = () => {},
-    language = 'zh',
-    subtitleTracksMap = new Map(),
-    subtitleSettings,
-    onUpdateSubtitleSettings = () => {},
-    onAddToWatchHistory = () => {}
+const VideoFeed: React.FC<VideoFeedProps> = ({
+  videos,
+  client,
+  onRefresh,
+  isLoading,
+  favoriteIds,
+  onToggleFavorite,
+  isFavoriteFunc,
+  onDelete = () => {},
+  initialIndex = 0,
+  onIndexChange,
+  isMuted,
+  onToggleMute,
+  feedType,
+  hasMore,
+  onLoadMore,
+  isAutoPlay = false,
+  onToggleAutoPlay = () => {},
+  language = 'zh',
+  subtitleTracksMap = new Map(),
+  subtitleSettings,
+  onUpdateSubtitleSettings = () => {},
+  onAddToWatchHistory = () => {},
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -61,13 +60,12 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const [isTV, setIsTV] = useState(false);
   const isFirstRender = useRef(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  
+
   // 使用智能视频预加载
-  const {
-    isPreloaded,
-    getCacheStatus,
-    updateScrollSpeed
-  } = useSmartVideoPreload(videos, activeIndex);
+  const { isPreloaded, getCacheStatus, updateScrollSpeed } = useSmartVideoPreload(
+    videos,
+    activeIndex
+  );
 
   // 根据滚动速度动态调整可见视频数量
   const [currentScrollSpeed, setCurrentScrollSpeed] = useState<number>(0);
@@ -76,14 +74,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const visibleIndices = useMemo(() => {
     const indices = new Set<number>();
     let range = 1; // 默认渲染前后各1个
-    
+
     // 根据滚动速度调整范围
     if (currentScrollSpeed < 0.5) {
       range = 2; // 慢速滚动时渲染更多
     } else if (currentScrollSpeed > 2) {
       range = 1; // 快速滚动时减少渲染
     }
-    
+
     // 添加要渲染的索引
     for (let i = -range; i <= range; i++) {
       const idx = activeIndex + i;
@@ -91,19 +89,25 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         indices.add(idx);
       }
     }
-    
+
     return indices;
   }, [activeIndex, videos.length, currentScrollSpeed]);
 
   // 记忆化的 toggle favorite 回调
-  const createToggleFavorite = useCallback((itemId: string, isFavorite: boolean) => {
-    return () => onToggleFavorite(itemId, isFavorite);
-  }, [onToggleFavorite]);
+  const createToggleFavorite = useCallback(
+    (itemId: string, isFavorite: boolean) => {
+      return () => onToggleFavorite(itemId, isFavorite);
+    },
+    [onToggleFavorite]
+  );
 
   // 记忆化的 delete 回调
-  const createDelete = useCallback((itemId: string) => {
-    return () => onDelete(itemId);
-  }, [onDelete]);
+  const createDelete = useCallback(
+    (itemId: string) => {
+      return () => onDelete(itemId);
+    },
+    [onDelete]
+  );
 
   // 处理滚动事件并更新滚动速度
   const handleScroll = useCallback(() => {
@@ -132,31 +136,34 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   useLayoutEffect(() => {
     if (isFirstRender.current && containerRef.current && initialIndex > 0) {
-        const windowHeight = window.innerHeight;
-        containerRef.current.scrollTop = windowHeight * initialIndex;
-        isFirstRender.current = false;
+      const windowHeight = window.innerHeight;
+      containerRef.current.scrollTop = windowHeight * initialIndex;
+      isFirstRender.current = false;
     }
   }, [initialIndex]);
 
   useEffect(() => {
     if (isAutoPlay) {
-        setShowToast(true);
-        const timer = setTimeout(() => setShowToast(false), 2000);
-        return () => clearTimeout(timer);
+      setShowToast(true);
+      const timer = setTimeout(() => setShowToast(false), 2000);
+      return () => clearTimeout(timer);
     } else {
-        setShowToast(false);
+      setShowToast(false);
     }
   }, [isAutoPlay]);
 
-  const scrollToVideo = useCallback((index: number) => {
-    if (containerRef.current && index >= 0 && index < videos.length) {
-      containerRef.current.scrollTo({
+  const scrollToVideo = useCallback(
+    (index: number) => {
+      if (containerRef.current && index >= 0 && index < videos.length) {
+        containerRef.current.scrollTo({
           top: index * window.innerHeight,
-          behavior: 'smooth'
-      });
-      setActiveIndex(index);
-    }
-  }, [videos.length]);
+          behavior: 'smooth',
+        });
+        setActiveIndex(index);
+      }
+    },
+    [videos.length]
+  );
 
   // 优化的键盘事件处理
   useEffect(() => {
@@ -166,14 +173,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (activeIndex < videos.length - 1) {
-            scrollToVideo(activeIndex + 1);
+          scrollToVideo(activeIndex + 1);
         } else if (hasMore) {
-            onLoadMore();
+          onLoadMore();
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (activeIndex > 0) {
-            scrollToVideo(activeIndex - 1);
+          scrollToVideo(activeIndex - 1);
         }
       }
     };
@@ -194,7 +201,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     const options = {
       root: container,
       rootMargin: '0px',
-      threshold: 0.85, 
+      threshold: 0.85,
     };
 
     const handleIntersect = (entries: IntersectionObserverEntry[]) => {
@@ -204,7 +211,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
           setActiveIndex(index);
           if (onIndexChange) onIndexChange(index);
           if (feedType === 'latest' && index >= videos.length - 2 && hasMore && !isLoading) {
-              onLoadMore();
+            onLoadMore();
           }
         }
       });
@@ -223,9 +230,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const handleNextVideo = useCallback(() => {
     if (activeIndex < videos.length - 1) {
-        scrollToVideo(activeIndex + 1);
+      scrollToVideo(activeIndex + 1);
     } else if (hasMore) {
-        onLoadMore();
+      onLoadMore();
     }
   }, [activeIndex, hasMore, onLoadMore, scrollToVideo, videos.length]);
 
@@ -236,7 +243,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       const isPreloadedItem = isPreloaded(item.Id);
       const cacheStatus = getCacheStatus(item.Id);
       const isFav = isFavoriteFunc ? isFavoriteFunc(item.Id) : favoriteIds.has(item.Id);
-      
+
       return (
         <div
           key={item.Id}
@@ -270,42 +277,73 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory]);
+  }, [
+    videos,
+    visibleIndices,
+    client,
+    activeIndex,
+    favoriteIds,
+    isFavoriteFunc,
+    createToggleFavorite,
+    createDelete,
+    isMuted,
+    onToggleMute,
+    isAutoPlay,
+    onToggleAutoPlay,
+    handleNextVideo,
+    language,
+    isPreloaded,
+    getCacheStatus,
+    subtitleTracksMap,
+    subtitleSettings,
+    onUpdateSubtitleSettings,
+    onAddToWatchHistory,
+  ]);
 
   if (videos.length === 0 && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-white bg-black pt-20">
         <Film className="w-16 h-16 text-zinc-800 mb-4" />
         <p className="text-lg mb-2 font-bold">未找到视频</p>
-        <button onClick={onRefresh} className="px-6 py-3 bg-indigo-600 rounded-full text-sm font-bold">刷新</button>
+        <button
+          onClick={onRefresh}
+          className="px-6 py-3 bg-indigo-600 rounded-full text-sm font-bold"
+        >
+          刷新
+        </button>
       </div>
     );
   }
 
   return (
     <div className="relative h-full w-full bg-black">
-        {showToast && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-              <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
-                  <Infinity className="w-5 h-5 text-green-400" />
-                  <span className="font-bold">自动连播已开启</span>
-              </div>
+      {showToast && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+          <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-2xl flex items-center gap-2 animate-in fade-in zoom-in">
+            <Infinity className="w-5 h-5 text-green-400" />
+            <span className="font-bold">自动连播已开启</span>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={containerRef}
+        className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black scroll-smooth"
+      >
+        {renderVideoCards}
+
+        {feedType === 'random' && videos.length > 0 && (
+          <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
+            <Shuffle className="w-16 h-16 text-zinc-700" />
+            <button
+              onClick={onRefresh}
+              className="px-8 py-4 bg-indigo-600 rounded-full text-lg font-bold"
+            >
+              换一批
+            </button>
           </div>
         )}
-
-        <div
-          ref={containerRef}
-          className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black scroll-smooth"
-        >
-          {renderVideoCards}
-          
-          {feedType === 'random' && videos.length > 0 && (
-            <div className="h-[100dvh] w-full snap-center flex flex-col items-center justify-center bg-zinc-900 text-white gap-4">
-                <Shuffle className="w-16 h-16 text-zinc-700" />
-                <button onClick={onRefresh} className="px-8 py-4 bg-indigo-600 rounded-full text-lg font-bold">换一批</button>
-            </div>
-          )}
-        </div>
+      </div>
     </div>
   );
 };

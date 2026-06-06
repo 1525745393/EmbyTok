@@ -1,4 +1,3 @@
-
 import React, { useState, useLayoutEffect, lazy, Suspense } from 'react';
 
 // 代码分割：延迟加载大型组件
@@ -18,7 +17,8 @@ function App() {
       const forcedMode = localStorage.getItem('embyForceDeviceMode');
       if (forcedMode === 'tv' || forcedMode === 'standard') return forcedMode as 'standard' | 'tv';
       const userAgent = navigator.userAgent.toLowerCase();
-      const isTV = userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
+      const isTV =
+        userAgent.includes('tv') || userAgent.includes('googletv') || userAgent.includes('smarttv');
       return isTV ? 'tv' : 'standard';
     } catch (e) {
       return 'standard';

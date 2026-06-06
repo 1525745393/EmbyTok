@@ -44,9 +44,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
   if (!isOpen) return null;
 
-  const apkAsset = release.assets.find(asset => 
-    asset.name.toLowerCase().endsWith('.apk')
-  );
+  const apkAsset = release.assets.find((asset) => asset.name.toLowerCase().endsWith('.apk'));
 
   const handleDownload = () => {
     if (apkAsset) {
@@ -85,9 +83,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
               {t.whatNew}
             </h4>
             <div className="bg-zinc-800/50 rounded-xl p-4 max-h-48 overflow-y-auto border border-zinc-700">
-              <pre className="text-sm text-white whitespace-pre-wrap font-sans">
-                {release.body}
-              </pre>
+              <pre className="text-sm text-white whitespace-pre-wrap font-sans">{release.body}</pre>
             </div>
           </div>
 

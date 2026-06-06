@@ -8,9 +8,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('should initialize with initial value when localStorage is empty', () => {
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', 'initialValue')
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', 'initialValue'));
 
     expect(result.current[0]).toBe('initialValue');
   });
@@ -26,17 +24,13 @@ describe('useLocalStorageState', () => {
   it('should read existing value from localStorage', () => {
     localStorage.setItem('testKey', JSON.stringify('savedValue'));
 
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', 'initialValue')
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', 'initialValue'));
 
     expect(result.current[0]).toBe('savedValue');
   });
 
   it('should update state and localStorage when setState is called', () => {
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', 'initialValue')
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', 'initialValue'));
 
     act(() => {
       result.current[1]('newValue');
@@ -47,9 +41,7 @@ describe('useLocalStorageState', () => {
   });
 
   it('should update state with function updater', () => {
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', 0)
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', 0));
 
     act(() => {
       result.current[1]((prev) => prev + 1);
@@ -61,9 +53,7 @@ describe('useLocalStorageState', () => {
 
   it('should handle objects correctly', () => {
     const initialObject = { key: 'value' };
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', initialObject)
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', initialObject));
 
     expect(result.current[0]).toEqual(initialObject);
 
@@ -76,9 +66,7 @@ describe('useLocalStorageState', () => {
 
   it('should handle arrays correctly', () => {
     const initialArray = [1, 2, 3];
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', initialArray)
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', initialArray));
 
     expect(result.current[0]).toEqual(initialArray);
 
@@ -92,20 +80,14 @@ describe('useLocalStorageState', () => {
   it('should fall back to initial value when localStorage has invalid JSON', () => {
     localStorage.setItem('testKey', '{invalid-json}');
 
-    const { result } = renderHook(() =>
-      useLocalStorageState('testKey', 'fallbackValue')
-    );
+    const { result } = renderHook(() => useLocalStorageState('testKey', 'fallbackValue'));
 
     expect(result.current[0]).toBe('fallbackValue');
   });
 
   it('should use different keys independently', () => {
-    const { result: result1 } = renderHook(() =>
-      useLocalStorageState('key1', 'value1')
-    );
-    const { result: result2 } = renderHook(() =>
-      useLocalStorageState('key2', 'value2')
-    );
+    const { result: result1 } = renderHook(() => useLocalStorageState('key1', 'value1'));
+    const { result: result2 } = renderHook(() => useLocalStorageState('key2', 'value2'));
 
     expect(result1.current[0]).toBe('value1');
     expect(result2.current[0]).toBe('value2');

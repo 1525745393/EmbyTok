@@ -13,9 +13,9 @@ const mockRelease = {
     {
       id: 1,
       name: 'test.apk',
-      browser_download_url: 'https://github.com/test/test/releases/download/v1.0.0/test.apk'
-    }
-  ]
+      browser_download_url: 'https://github.com/test/test/releases/download/v1.0.0/test.apk',
+    },
+  ],
 };
 
 describe('UpdateNotification Component', () => {
@@ -25,7 +25,7 @@ describe('UpdateNotification Component', () => {
     currentVersion: '1.0.0',
     latestVersion: '1.1.0',
     release: mockRelease,
-    language: 'zh' as const
+    language: 'zh' as const,
   };
 
   it('should not render when isOpen is false', () => {
@@ -47,9 +47,9 @@ describe('UpdateNotification Component', () => {
   it('should call onClose when close button is clicked', () => {
     const onClose = vi.fn();
     render(<UpdateNotification {...defaultProps} onClose={onClose} />);
-    
+
     const closeButtons = screen.getAllByRole('button');
-    const closeButton = closeButtons.find(btn => btn.innerHTML.includes('lucide-x'));
+    const closeButton = closeButtons.find((btn) => btn.innerHTML.includes('lucide-x'));
     if (closeButton) {
       fireEvent.click(closeButton);
       expect(onClose).toHaveBeenCalled();
@@ -59,7 +59,7 @@ describe('UpdateNotification Component', () => {
   it('should call onClose when later button is clicked', () => {
     const onClose = vi.fn();
     render(<UpdateNotification {...defaultProps} onClose={onClose} />);
-    
+
     const laterButton = screen.getByText('稍后再说');
     fireEvent.click(laterButton);
     expect(onClose).toHaveBeenCalled();

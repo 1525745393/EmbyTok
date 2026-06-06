@@ -7,20 +7,20 @@ const mockConfig = {
   url: 'https://example.com',
   username: 'testuser',
   userId: '123',
-  token: 'token'
+  token: 'token',
 };
 
 const mockLibraries = [
   {
     Id: '1',
     Name: 'Movies',
-    ImageTags: {}
+    ImageTags: {},
   },
   {
     Id: '2',
     Name: 'TV Shows',
-    ImageTags: {}
-  }
+    ImageTags: {},
+  },
 ];
 
 describe('TVSettings Component', () => {
@@ -42,7 +42,7 @@ describe('TVSettings Component', () => {
         version="1.0.0"
       />
     );
-    
+
     expect(screen.getAllByText('账户')).toHaveLength(2); // 左侧 Tab 和右侧标题各一次
     expect(screen.getByText('testuser')).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe('TVSettings Component', () => {
         version="1.0.0"
       />
     );
-    
+
     expect(screen.getAllByText('媒体库')).toHaveLength(2); // 左侧 Tab 和右侧标题各一次
     expect(screen.getByText('Movies')).toBeInTheDocument();
     expect(screen.getByText('TV Shows')).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe('TVSettings Component', () => {
         version="1.0.0"
       />
     );
-    
+
     const logoutButton = screen.getByText('退出登录');
     fireEvent.click(logoutButton);
     expect(onLogout).toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('TVSettings Component', () => {
         version="1.0.0"
       />
     );
-    
+
     const langButton = screen.getByText('当前：简体中文');
     fireEvent.click(langButton);
     expect(onToggleLanguage).toHaveBeenCalled();

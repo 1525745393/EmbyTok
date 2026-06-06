@@ -1,11 +1,11 @@
-
 # 收藏分类/筛选功能 Implementation Plan
 
 &gt; **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现收藏分类管理功能，包括创建分类、添加视频到分类、按分类筛选、排序等
 
-**Architecture:** 
+**Architecture:**
+
 - 更新类型定义添加收藏分类相关类型
 - 创建 `useFavorites` Hook 管理收藏分类状态
 - 创建收藏管理组件 `FavoritesManager`
@@ -21,6 +21,7 @@
 ### Task 1: 更新类型定义
 
 **Files:**
+
 - Modify: `types.ts`
 
 - [ ] **Step 1: 添加收藏分类相关类型**
@@ -50,6 +51,7 @@ export type FavoriteSortOrder = 'recent' | 'name' | 'watchCount';
 ```bash
 npm run build
 ```
+
 Expected: 无类型错误
 
 ---
@@ -57,6 +59,7 @@ Expected: 无类型错误
 ### Task 2: 创建 useFavorites Hook
 
 **Files:**
+
 - Create: `src/hooks/useFavorites.ts`
 - Modify: `src/hooks/index.ts`
 
@@ -121,7 +124,7 @@ export function useFavorites() {
 
     setFavoritesState(prev =&gt; {
       const newCollections = prev.collections.filter(c =&gt; c.id !== collectionId);
-      
+
       // 如果删除的是当前选中的分类，切换到默认分类
       let newDefaultId = prev.defaultCollectionId;
       if (currentCollectionId === collectionId) {
@@ -276,6 +279,7 @@ export { useFavorites } from './useFavorites';
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -283,6 +287,7 @@ Expected: 构建成功
 ### Task 3: 创建收藏管理组件
 
 **Files:**
+
 - Create: `components/FavoritesManager.tsx`
 
 - [ ] **Step 1: 创建 FavoritesManager 组件**
@@ -529,6 +534,7 @@ export default FavoritesManager;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -536,6 +542,7 @@ Expected: 无 TypeScript 错误
 ### Task 4: 创建分类选择组件（视频卡片使用）
 
 **Files:**
+
 - Create: `components/CollectionSelector.tsx`
 
 - [ ] **Step 1: 创建 CollectionSelector 组件**
@@ -703,6 +710,7 @@ export default CollectionSelector;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -710,6 +718,7 @@ Expected: 无 TypeScript 错误
 ### Task 5: 集成收藏功能到 StandardRoot
 
 **Files:**
+
 - Modify: `components/standard/StandardRoot.tsx`
 - Modify: `src/locales/zh.ts`
 - Modify: `src/locales/en.ts`
@@ -795,11 +804,13 @@ const {
   removeFromCollection,
   isInCollection,
   getItemCollections,
-  getFilteredVideos
+  getFilteredVideos,
 } = useFavorites();
 
 const [showCollectionSelector, setShowCollectionSelector] = useState(false);
-const [selectedVideoForCollection, setSelectedVideoForCollection] = useState&lt;EmbyItem | null&gt;(null);
+const [selectedVideoForCollection, setSelectedVideoForCollection] = useState & lt;
+EmbyItem | (null & gt);
+null;
 ```
 
 - [ ] **Step 4: 处理收藏分类筛选**
@@ -824,7 +835,7 @@ const displayVideos = useMemo(() =&gt; {
 const handleToggleFavorite = useCallback(async (itemId: string, isFavorite: boolean) =&gt; {
   // 调用现有的 Emby 客户端 API
   await client.toggleFavorite(itemId, isFavorite, selectedLib?.Name || "收藏");
-  
+
   // 同时更新本地收藏分类
   if (isFavorite) {
     // 添加到全部收藏
@@ -845,6 +856,7 @@ const handleToggleFavorite = useCallback(async (itemId: string, isFavorite: bool
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -858,6 +870,7 @@ Expected: 构建成功
 ```bash
 npm run build
 ```
+
 Expected: 构建成功，无错误
 
 - [ ] **Step 2: 功能测试清单**
@@ -881,4 +894,3 @@ Expected: 构建成功，无错误
 - [ ] 代码已提交
 - [ ] 功能已测试验证
 - [ ] 文档已更新
-

@@ -20,32 +20,35 @@ export function useImagePreload(
   const [preloadStatus, setPreloadStatus] = useState<PreloadStatus>({});
   const preloadedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  const preloadImage = useCallback((item: EmbyItem) => {
-    if (!enabled || !item.ImageTags?.Primary) return;
+  const preloadImage = useCallback(
+    (item: EmbyItem) => {
+      if (!enabled || !item.ImageTags?.Primary) return;
 
-    const itemId = item.Id;
-    const currentStatus = preloadStatus[itemId];
+      const itemId = item.Id;
+      const currentStatus = preloadStatus[itemId];
 
-    if (currentStatus === 'loading' || currentStatus === 'loaded') {
-      return;
-    }
+      if (currentStatus === 'loading' || currentStatus === 'loaded') {
+        return;
+      }
 
-    setPreloadStatus(prev => ({ ...prev, [itemId]: 'loading' }));
+      setPreloadStatus((prev) => ({ ...prev, [itemId]: 'loading' }));
 
-    const img = new Image();
-    const imageUrl = client.getImageUrl(itemId, item.ImageTags.Primary, 'Primary');
+      const img = new Image();
+      const imageUrl = client.getImageUrl(itemId, item.ImageTags.Primary, 'Primary');
 
-    img.onload = () => {
-      preloadedImagesRef.current.set(itemId, img);
-      setPreloadStatus(prev => ({ ...prev, [itemId]: 'loaded' }));
-    };
+      img.onload = () => {
+        preloadedImagesRef.current.set(itemId, img);
+        setPreloadStatus((prev) => ({ ...prev, [itemId]: 'loaded' }));
+      };
 
-    img.onerror = () => {
-      setPreloadStatus(prev => ({ ...prev, [itemId]: 'error' }));
-    };
+      img.onerror = () => {
+        setPreloadStatus((prev) => ({ ...prev, [itemId]: 'error' }));
+      };
 
-    img.src = imageUrl;
-  }, [enabled, client, preloadStatus]);
+      img.src = imageUrl;
+    },
+    [enabled, client, preloadStatus]
+  );
 
   useEffect(() => {
     if (!enabled || videos.length === 0) return;
@@ -59,17 +62,23 @@ export function useImagePreload(
     }
   }, [activeIndex, videos, enabled, preloadCount, preloadImage]);
 
-  const getPreloadStatus = useCallback((itemId: string) => {
-    return preloadStatus[itemId] || 'pending';
-  }, [preloadStatus]);
+  const getPreloadStatus = useCallback(
+    (itemId: string) => {
+      return preloadStatus[itemId] || 'pending';
+    },
+    [preloadStatus]
+  );
 
-  const isPreloaded = useCallback((itemId: string) => {
-    return preloadStatus[itemId] === 'loaded' || preloadedImagesRef.current.has(itemId);
-  }, [preloadStatus]);
+  const isPreloaded = useCallback(
+    (itemId: string) => {
+      return preloadStatus[itemId] === 'loaded' || preloadedImagesRef.current.has(itemId);
+    },
+    [preloadStatus]
+  );
 
   return {
     getPreloadStatus,
     isPreloaded,
-    preloadStatus
+    preloadStatus,
   };
 }

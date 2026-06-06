@@ -1,11 +1,11 @@
-
 # 搜索功能 Implementation Plan
 
 &gt; **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现快速搜索功能，包括搜索栏、实时搜索建议、搜索历史、搜索结果展示
 
-**Architecture:** 
+**Architecture:**
+
 - 新增自定义 Hook `useSearch` 管理搜索状态和逻辑
 - 更新 `EmbyClient` 添加搜索 API 方法
 - 新增组件 `SearchBar` 和 `SearchResults`
@@ -20,6 +20,7 @@
 ### Task 1: 更新类型定义
 
 **Files:**
+
 - Modify: `types.ts`
 
 - [ ] **Step 1: 添加搜索相关类型**
@@ -43,6 +44,7 @@ export interface SearchHistoryItem {
 ```bash
 npm run build
 ```
+
 Expected: 无类型错误
 
 ---
@@ -50,6 +52,7 @@ Expected: 无类型错误
 ### Task 2: 更新 EmbyClient 添加搜索方法
 
 **Files:**
+
 - Modify: `services/EmbyClient.ts`
 
 - [ ] **Step 1: 添加搜索 API 方法**
@@ -97,6 +100,7 @@ async search(query: string, limit: number = 50): Promise&lt;SearchResult&gt; {
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -104,6 +108,7 @@ Expected: 构建成功
 ### Task 3: 创建 useSearch Hook
 
 **Files:**
+
 - Create: `src/hooks/useSearch.ts`
 - Modify: `src/hooks/index.ts`
 
@@ -129,7 +134,7 @@ export function useSearch(client: MediaClient | null) {
     []
   );
   const [showHistory, setShowHistory] = useState(false);
-  
+
   const debounceTimerRef = useRef&lt;ReturnType&lt;typeof setTimeout&gt; | null&gt;(null);
 
   // 防抖搜索
@@ -146,10 +151,10 @@ export function useSearch(client: MediaClient | null) {
 
     debounceTimerRef.current = setTimeout(async () =&gt; {
       if (!client) return;
-      
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const searchResult = await client.search(searchQuery);
         setResults(searchResult);
@@ -165,7 +170,7 @@ export function useSearch(client: MediaClient | null) {
   // 当查询变化时触发搜索
   useEffect(() =&gt; {
     debouncedSearch(query);
-    
+
     return () =&gt; {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
@@ -176,7 +181,7 @@ export function useSearch(client: MediaClient | null) {
   // 添加到搜索历史
   const addToHistory = useCallback((searchQuery: string) =&gt; {
     if (!searchQuery.trim()) return;
-    
+
     setSearchHistory(prev =&gt; {
       // 移除已存在的相同查询
       const filtered = prev.filter(item =&gt; item.query.toLowerCase() !== searchQuery.toLowerCase());
@@ -238,6 +243,7 @@ export { useSearch } from './useSearch';
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -245,6 +251,7 @@ Expected: 构建成功
 ### Task 4: 创建 SearchBar 组件
 
 **Files:**
+
 - Create: `components/SearchBar.tsx`
 
 - [ ] **Step 1: 创建 SearchBar 组件**
@@ -289,7 +296,7 @@ function formatRelativeTime(timestamp: number, lang: 'zh' | 'en'): string {
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  
+
   if (lang === 'zh') {
     if (minutes &lt; 1) return '刚刚';
     if (minutes &lt; 60) return `${minutes}分钟前`;
@@ -358,7 +365,7 @@ export function SearchBar({
         setShowDropdown(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () =&gt; document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -464,6 +471,7 @@ export default SearchBar;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -471,6 +479,7 @@ Expected: 无 TypeScript 错误
 ### Task 5: 创建 SearchResults 组件
 
 **Files:**
+
 - Create: `components/SearchResults.tsx`
 
 - [ ] **Step 1: 创建 SearchResults 组件**
@@ -597,6 +606,7 @@ export default SearchResults;
 ```bash
 npm run build
 ```
+
 Expected: 无 TypeScript 错误
 
 ---
@@ -604,6 +614,7 @@ Expected: 无 TypeScript 错误
 ### Task 6: 集成到 StandardRoot
 
 **Files:**
+
 - Modify: `components/standard/StandardRoot.tsx`
 - Modify: `src/locales/zh.ts`
 - Modify: `src/locales/en.ts`
@@ -669,7 +680,7 @@ const {
   addToHistory,
   removeFromHistory,
   clearHistory,
-  performSearch
+  performSearch,
 } = useSearch(client);
 const [showSearchResults, setShowSearchResults] = useState(false);
 ```
@@ -758,6 +769,7 @@ const [showSearchResults, setShowSearchResults] = useState(false);
 ```bash
 npm run build
 ```
+
 Expected: 构建成功
 
 ---
@@ -771,6 +783,7 @@ Expected: 构建成功
 ```bash
 npm run build
 ```
+
 Expected: 构建成功，无错误
 
 - [ ] **Step 2: 功能测试清单**
@@ -794,4 +807,3 @@ Expected: 构建成功，无错误
 - [ ] 代码已提交
 - [ ] 功能已测试验证
 - [ ] 文档已更新
-

@@ -5,17 +5,21 @@ import type { EmbyItem } from '../../types';
 // 创建模拟数据
 const createMockEmbyItems = (count: number): EmbyItem[] => {
   const types = ['Movie', 'Episode', 'Series', 'Season', 'Folder', 'MusicAlbum'];
-  return Array.from({ length: count }, (_, i) => ({
-    Id: `item-${i}`,
-    Name: `Item ${i}`,
-    Type: types[i % types.length]
-  } as EmbyItem));
+  return Array.from(
+    { length: count },
+    (_, i) =>
+      ({
+        Id: `item-${i}`,
+        Name: `Item ${i}`,
+        Type: types[i % types.length],
+      }) as EmbyItem
+  );
 };
 
 describe('media utils 性能测试', () => {
   bench('isFolderType - 大量数据测试', () => {
     const testItems = createMockEmbyItems(1000);
-    testItems.forEach(item => isFolderType(item));
+    testItems.forEach((item) => isFolderType(item));
   });
 
   bench('calculatePlaybackProgress - 性能测试', () => {

@@ -10,10 +10,10 @@ vi.mock('../src/hooks', () => ({
       search: {
         searching: '搜索中...',
         noResults: '未找到结果',
-        results: '搜索结果'
-      }
-    }
-  })
+        results: '搜索结果',
+      },
+    },
+  }),
 }));
 
 const mockResults = [
@@ -24,7 +24,7 @@ const mockResults = [
     Type: 'Movie',
     ServerId: 'server1',
     ImageTags: { Primary: 'image1' },
-    UserData: {}
+    UserData: {},
   },
   {
     Id: '2',
@@ -33,12 +33,12 @@ const mockResults = [
     Type: 'Movie',
     ServerId: 'server1',
     ImageTags: {},
-    UserData: {}
-  }
+    UserData: {},
+  },
 ];
 
 const mockClient = {
-  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
+  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
 };
 
 describe('SearchResults Component', () => {

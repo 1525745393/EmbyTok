@@ -30,7 +30,7 @@ function formatVersion({ major, minor, patch }) {
 
 function bumpVersion(currentVersion, type) {
   const { major, minor, patch } = parseVersion(currentVersion);
-  
+
   switch (type) {
     case 'major':
       return formatVersion({ major: major + 1, minor: 0, patch: 0 });
@@ -75,7 +75,7 @@ function updateChangelog(version) {
 
   const currentContent = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
   const newEntry = generateChangelogEntry(version);
-  
+
   // 在文件开头（标题之后）插入新条目
   const title = '# 版本更新日志 (Changelog)\n\n';
   if (currentContent.startsWith(title)) {
@@ -90,7 +90,7 @@ function updateChangelog(version) {
 
 function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     console.log('Version Manager');
     console.log('');

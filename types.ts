@@ -1,4 +1,3 @@
-
 export type ServerType = 'emby' | 'plex';
 
 export interface ServerConfig {
@@ -146,9 +145,9 @@ export interface SubtitleSettings {
 export type OrientationMode = 'vertical' | 'horizontal' | 'both';
 
 export interface VideoResponse {
-    items: EmbyItem[];
-    nextStartIndex: number;
-    totalCount: number;
+  items: EmbyItem[];
+  nextStartIndex: number;
+  totalCount: number;
 }
 
 export interface GitHubRelease {

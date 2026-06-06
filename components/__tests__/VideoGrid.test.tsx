@@ -12,7 +12,7 @@ const mockVideos = [
     Type: 'Movie',
     ServerId: 'server1',
     ImageTags: { Primary: 'image1' },
-    UserData: {}
+    UserData: {},
   },
   {
     Id: '2',
@@ -23,8 +23,8 @@ const mockVideos = [
     ServerId: 'server1',
     ImageTags: {},
     UserData: {
-      PlaybackPositionTicks: 36000000000
-    }
+      PlaybackPositionTicks: 36000000000,
+    },
   },
   {
     Id: '3',
@@ -32,12 +32,12 @@ const mockVideos = [
     Type: 'Series',
     ServerId: 'server1',
     ImageTags: {},
-    UserData: {}
-  }
+    UserData: {},
+  },
 ];
 
 const mockClient = {
-  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg')
+  getImageUrl: vi.fn().mockReturnValue('https://example.com/image.jpg'),
 };
 
 describe('VideoGrid Component', () => {
@@ -53,7 +53,7 @@ describe('VideoGrid Component', () => {
         onRefresh={vi.fn()}
       />
     );
-    
+
     expect(screen.getByText('First Video')).toBeInTheDocument();
     expect(screen.getByText('Second Video')).toBeInTheDocument();
   });
@@ -70,7 +70,7 @@ describe('VideoGrid Component', () => {
         onRefresh={vi.fn()}
       />
     );
-    
+
     expect(screen.getByText('暂无内容')).toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe('VideoGrid Component', () => {
         onRefresh={vi.fn()}
       />
     );
-    
+
     const firstVideo = screen.getByText('First Video');
     fireEvent.click(firstVideo);
     expect(onSelect).toHaveBeenCalledWith(0);
@@ -107,7 +107,7 @@ describe('VideoGrid Component', () => {
         onNavigate={onNavigate}
       />
     );
-    
+
     const seriesItem = screen.getByText('TV Series');
     fireEvent.click(seriesItem);
     expect(onNavigate).toHaveBeenCalled();
@@ -126,7 +126,7 @@ describe('VideoGrid Component', () => {
         onRefresh={onRefresh}
       />
     );
-    
+
     const refreshButton = screen.getByText('刷新');
     fireEvent.click(refreshButton);
     expect(onRefresh).toHaveBeenCalled();

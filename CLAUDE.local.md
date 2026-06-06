@@ -35,6 +35,7 @@ npm run dev
 #### Vite 配置
 
 项目使用 Vite 作为构建工具，主要配置文件：
+
 - [vite.config.ts](file:///workspace/vite.config.ts) - 生产环境配置
 - [vite.config.local.ts](file:///workspace/vite.config.local.ts) - 本地开发配置
 

@@ -19,35 +19,35 @@ export function useUpdateChecker() {
   const isVersionNewer = (current: string, latest: string): boolean => {
     const currentParts = parseVersion(current);
     const latestParts = parseVersion(latest);
-    
+
     for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
       const currentPart = currentParts[i] || 0;
       const latestPart = latestParts[i] || 0;
-      
+
       if (latestPart > currentPart) return true;
       if (latestPart < currentPart) return false;
     }
-    
+
     return false;
   };
 
   const checkForUpdates = useCallback(async (): Promise<UpdateCheckResult> => {
     setIsChecking(true);
     setCheckError(null);
-    
+
     try {
       const response = await fetch(GITHUB_API_URL);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       const release: GitHubRelease = await response.json();
       const latestVersion = release.tag_name;
       const hasUpdate = isVersionNewer(CURRENT_VERSION, latestVersion);
-      
+
       setLastCheckTime(Date.now());
-      
+
       return {
         hasUpdate,
         latestVersion,
