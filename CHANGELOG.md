@@ -1,5 +1,96 @@
 # 版本更新日志 (Changelog)
 
+## v2.3.4
+**日期**: 2026-06-06
+
+### 🚀 新功能与优化
+#### 1. 完整测试体系建设
+- **单元测试**：覆盖所有自定义 Hooks、工具函数、服务客户端
+  - 新增 17 个 Hooks 测试文件，100+ 测试用例
+  - 覆盖 useConfig、useFavorites、useSearch 等核心 Hooks
+- **组件集成测试**：测试所有主要 UI 组件
+  - 覆盖 Login、VideoPlayer、VideoFeed 等 20+ 组件
+  - 包含移动端、标准端、TV 端的测试
+- **E2E 端到端测试**：使用 Playwright 测试完整用户流程
+  - 首页加载测试
+  - 登录流程测试
+  - 移动端适配测试
+  - 应用性能测试
+- **性能基准测试**：使用 Vitest Bench 进行性能回归检测
+  - 大量数据处理性能测试
+  - 计算密集型函数性能测试
+  - 性能基准线管理工具
+
+#### 2. CI/CD 自动化集成
+- **GitHub Actions 工作流**
+  - 自动化测试：每次 PR 和推送自动运行
+  - 代码质量检查：TypeScript 类型检查 + Prettier 格式化
+  - 测试覆盖率报告：自动生成并上传 artifacts
+  - 性能基准测试：自动检测性能回归
+- **工作流文件**
+  - `test.yml`：专门的测试工作流
+  - `docker-build-push.yml`：构建和部署工作流
+- **开发者体验优化**
+  - 支持手动触发工作流
+  - 清晰的测试结果展示
+  - 30天的测试 artifacts 保留
+
+#### 3. 项目质量与工程化
+- **测试覆盖统计**
+  - 单元/集成测试文件：47 个
+  - E2E 测试文件：3 个
+  - 性能测试文件：2 个
+  - 总测试用例：310+ 个
+  - 通过率：100% ✅
+- **代码质量保障**
+  - 完整的 TypeScript 类型检查
+  - Prettier 代码格式化规范
+  - Vitest 覆盖率报告
+- **性能监控**
+  - 基准性能测试脚本
+  - 性能结果比较工具
+  - 可扩展的性能检测框架
+
+### 🔧 技术改进
+- **测试框架升级**
+  - Vitest 配置优化（排除 E2E 测试）
+  - Playwright 端到端测试集成
+  - 性能基准测试集成
+- **项目结构优化**
+  - 测试文件统一组织
+  - E2E 测试独立目录
+  - 基准测试文件集中管理
+- **文档完善**
+  - 更新 TESTING_SUMMARY.md 完整测试总结
+  - 添加 CI/CD 使用说明
+  - 性能测试文档
+  - 版本管理指南
+
+### 📁 文件更新
+- **新增测试文件**（52+）
+  - `e2e/app.spec.ts`
+  - `e2e/login.spec.ts`
+  - `e2e/mobile.spec.ts`
+  - `e2e/performance.spec.ts`
+  - `utils/__tests__/media.benchmark.ts`
+  - `src/hooks/__tests__/` 完整测试集
+  - `components/__tests__/` 完整组件测试
+  - `components/tv/__tests__/` TV 端测试
+  - `components/mobile/__tests__/` 移动端测试
+  - `components/standard/__tests__/` 标准端测试
+- **配置文件更新**
+  - `.github/workflows/test.yml` (新增)
+  - `vitest.config.ts` (更新)
+  - `playwright.config.ts` (新增)
+  - `package.json` (添加测试脚本)
+- **工具脚本**
+  - `scripts/benchmark-compare.js` (新增)
+- **文档更新**
+  - `docs/TESTING_SUMMARY.md` (大幅更新)
+  - `README.md` (后续待更新)
+
+---
+
 ## v1.9.5
 **日期**: 2026-06-05
 
