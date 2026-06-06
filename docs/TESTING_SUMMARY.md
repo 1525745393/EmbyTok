@@ -167,6 +167,13 @@
   - 无历史状态
   - 历史项渲染
   - 关闭和删除功能
+- ✅ `SubtitleControls.test.tsx` - 字幕控制组件测试
+  - 基本渲染
+  - 字幕轨道渲染
+  - 设置面板切换
+- ✅ `VideoCard.test.tsx` - 视频卡片组件测试
+  - 基本渲染
+  - 收藏状态渲染
 
 ## 测试运行命令
 
@@ -193,8 +200,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：35 个
-- 总测试用例：268 个
+- 总测试文件：37 个
+- 总测试用例：275 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -232,7 +239,9 @@ npm run test:run
 │   ├── VideoInfo.test.tsx
 │   ├── SearchResults.test.tsx
 │   ├── FavoritesManager.test.tsx
-│   └── WatchHistoryView.test.tsx
+│   ├── WatchHistoryView.test.tsx
+│   ├── SubtitleControls.test.tsx
+│   └── VideoCard.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -245,18 +254,16 @@ npm run test:run
 ## 后续工作建议
 
 1. **更多组件测试**：为以下组件添加集成测试
-   - `VideoFeed`
-   - `VideoGrid`
-   - `VideoCard`
-   - `SubtitleControls`
-   - `SubtitleRenderer`
-   - `TVDashboard`
-   - `TVSettings`
-   - `TVVideoGrid`
-   - `TVVideoPlayer`
-   - `MobileRoot`
-   - `StandardRoot`
-   - 以及其他所有 UI 组件
+  - `VideoFeed`
+  - `VideoGrid`
+  - `SubtitleRenderer`
+  - `TVDashboard`
+  - `TVSettings`
+  - `TVVideoGrid`
+  - `TVVideoPlayer`
+  - `MobileRoot`
+  - `StandardRoot`
+  - 以及其他所有 UI 组件
 
 2. **E2E 测试**：添加端到端测试
    - 使用 Playwright 或 Cypress
