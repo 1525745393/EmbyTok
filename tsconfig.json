@@ -17,5 +17,18 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.bench.ts",
+    "node_modules",
+    "android",
+    "coverage",
+    "bench-results",
+    "dist",
+    "e2e"
+  ]
 }
