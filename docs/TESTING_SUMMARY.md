@@ -5,6 +5,7 @@
 - **Testing Library** - React 组件测试库
 - **Happy DOM** - 轻量级 DOM 环境
 - **Playwright** - 端到端（E2E）测试框架
+- **Vitest Bench** - 基准性能测试框架
 
 ## 已完成的测试
 
@@ -229,6 +230,15 @@
   - 响应式布局测试
   - 小屏幕适配
 
+### 性能测试 (`e2e/` 和 `utils/__tests__/`)
+- ✅ `performance.spec.ts` - 应用整体性能测试
+  - 页面加载性能测试
+  - 资源加载测试
+  - 用户操作响应测试
+- ✅ `media.benchmark.ts` - 工具函数性能基准测试
+  - 媒体工具函数性能测试
+  - 大量数据处理测试
+
 ## 测试运行命令
 
 ### 单元测试和集成测试
@@ -262,6 +272,16 @@ npm run test:e2e:ui
 
 注意：运行 E2E 测试前，确保开发服务器已在 `http://localhost:5173` 启动。
 
+### 性能测试
+
+```bash
+# 运行 Vitest 基准性能测试
+npm run test:bench
+
+# 运行 Playwright 应用性能测试（需要先启动开发服务器）
+npm run test:performance
+```
+
 ## 测试覆盖率目标
 
 当前已覆盖的核心功能：
@@ -273,7 +293,8 @@ npm run test:e2e:ui
 测试统计：
 - 单元/集成测试文件：47 个
 - E2E 测试文件：3 个
-- 总测试文件：50 个
+- 性能测试文件：2 个
+- 总测试文件：52 个
 - 总测试用例：305 个（单元/集成）+ 5 个（E2E）= 310 个
 - 通过率：100% 🎉
 
@@ -334,11 +355,13 @@ npm run test:e2e:ui
 ├── utils/__tests__/
 │   ├── device.test.ts
 │   ├── media.test.ts
-│   └── time.test.ts
+│   ├── time.test.ts
+│   └── media.benchmark.ts
 └── e2e/
     ├── app.spec.ts
     ├── login.spec.ts
-    └── mobile.spec.ts
+    ├── mobile.spec.ts
+    └── performance.spec.ts
 ```
 
 ## 后续工作建议
@@ -351,14 +374,15 @@ npm run test:e2e:ui
 
 2. **CI/CD 集成**：配置自动化测试流程
    - GitHub Actions 或类似 CI 工具
-   - 每次提交自动运行测试（单元 + E2E）
+   - 每次提交自动运行测试（单元 + E2E + 性能）
    - 测试覆盖率报告
    - 性能回归检测
 
-3. **性能测试**：添加性能基准测试
-   - 视频加载性能
-   - 内存使用情况
-   - 滚动流畅度
+3. **性能测试扩展**：增强性能测试覆盖
+   - 视频加载性能测试
+   - 内存使用监控测试
+   - 滚动流畅度测试
+   - 构建性能优化测试
 
 4. **更多浏览器测试**：在更多浏览器和设备上运行 E2E 测试
    - Firefox

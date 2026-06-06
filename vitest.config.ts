@@ -20,6 +20,9 @@ export default defineConfig({
         'utils/**/*.{ts,tsx}'
       ],
       exclude: ['**/*.d.ts', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}']
+    },
+    benchmark: {
+      include: ['**/*.{bench,benchmark}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}']
     }
   },
   resolve: {

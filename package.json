@@ -11,9 +11,11 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "test:run": "vitest run",
+    "test:bench": "vitest bench",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install",
+    "test:performance": "playwright test --grep performance",
     "cap:add": "cap add android",
     "cap:sync": "cap sync",
     "build:android": "tsc && vite build && cap sync android"
