@@ -33,7 +33,7 @@ log_error() {
 
 # 获取当前版本
 get_current_version() {
-    node -e "console.log(require('./package.json').version)"
+    grep -E '"version":' package.json | head -1 | awk -F': ' '{print $2}' | sed 's/[", ]//g'
 }
 
 # 更新版本
