@@ -145,6 +145,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [extract-version, check-tag]
     if: ${{ inputs.build_android != false && needs.check-tag.outputs.tag_exists == 'false' }}
+    outputs:
+      has_release_apk: ${{ steps.check-release.outputs.has_release_apk }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -172,14 +174,18 @@ jobs:
 
       - name: Prepare Android signing
         id: prepare-signing
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/embytok-release.keystore
-          echo "ANDROID_KEYSTORE=1" >> $GITHUB_ENV
-          echo "ANDROID_KEYSTORE_PATH=embytok-release.keystore" >> $GITHUB_ENV
-          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > android/app/embytok-release.keystore
+            echo "ANDROID_KEYSTORE=1" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PATH=embytok-release.keystore" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "signing_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "signing_enabled=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Gradle Build Action
         uses: gradle/actions/setup-gradle@v3
@@ -193,11 +199,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Build Release APK (if secrets available)
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+      - name: Build Release APK
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace
+          fi
 
       - name: Rename APKs
         run: |
@@ -207,18 +214,28 @@ jobs:
             mv android/app/build/outputs/apk/release/app-release.apk EmbyTok-v${VERSION}-release.apk
           fi
 
+      - name: Check if release APK exists
+        id: check-release
+        run: |
+          VERSION=${{ needs.extract-version.outputs.version }}
+          if [ -f "EmbyTok-v${VERSION}-release.apk" ]; then
+            echo "has_release_apk=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_release_apk=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
           path: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
 
-      - name: Upload Release APK artifact (if available)
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+      - name: Upload Release APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
           path: EmbyTok-v${{ needs.extract-version.outputs.version }}-release.apk
+        if: steps.check-release.outputs.has_release_apk == 'true'
 
   generate-release-notes:
     name: Generate Release Notes
@@ -262,11 +279,11 @@ jobs:
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
 
-      - name: Download Release APK (if available)
-        if: ${{ secrets.ANDROID_KEYSTORE != '' }}
+      - name: Download Release APK
         uses: actions/download-artifact@v4
         with:
           name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
+        if: needs.android.outputs.has_release_apk == 'true'
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
