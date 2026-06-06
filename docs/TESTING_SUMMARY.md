@@ -186,6 +186,14 @@
   - 视频选择事件
   - 文件夹导航事件
   - 刷新事件
+- ✅ `VideoFeed.test.tsx` - 视频流组件测试
+  - 视频流渲染
+  - 空状态渲染
+  - 刷新功能
+- ✅ `TVDashboard.test.tsx` - TV 模式主界面组件测试
+  - 加载状态
+  - 媒体库渲染
+  - 最近添加视频
 
 ## 测试运行命令
 
@@ -212,8 +220,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：39 个
-- 总测试用例：285 个
+- 总测试文件：41 个
+- 总测试用例：291 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -255,7 +263,10 @@ npm run test:run
 │   ├── SubtitleControls.test.tsx
 │   ├── VideoCard.test.tsx
 │   ├── SubtitleRenderer.test.tsx
-│   └── VideoGrid.test.tsx
+│   ├── VideoGrid.test.tsx
+│   └── VideoFeed.test.tsx
+├── components/tv/__tests__/
+│   └── TVDashboard.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -268,8 +279,6 @@ npm run test:run
 ## 后续工作建议
 
 1. **更多组件测试**：为以下组件添加集成测试
-  - `VideoFeed`
-  - `TVDashboard`
   - `TVSettings`
   - `TVVideoGrid`
   - `TVVideoPlayer`
