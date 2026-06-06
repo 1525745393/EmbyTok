@@ -27,7 +27,9 @@
     "version:major": "node scripts/version-manager.js bump major",
     "version:set": "node scripts/version-manager.js set",
     "changelog:generate": "node scripts/extract-changelog.js",
-    "release:check": "node scripts/pre-release-check.js"
+    "release:check": "node scripts/pre-release-check.js",
+    "build:app": "node scripts/build.js",
+    "build:app:debug": "node scripts/build.js --debug"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
