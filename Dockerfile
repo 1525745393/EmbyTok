@@ -10,8 +10,8 @@ WORKDIR /app
 # 复制 package.json 和 package-lock.json
 COPY package*.json ./
 
-# 安装依赖（使用 npm ci 保证构建一致性）
-RUN npm ci
+# 安装依赖
+RUN npm install --legacy-peer-deps
 
 # 复制源代码
 COPY . .
