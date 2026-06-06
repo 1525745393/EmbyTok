@@ -1,52 +1,57 @@
-name: Release
+name: Build and Release
 
 on:
+  release:
+    types: [published]
   push:
-    branches:
-      - main
-    paths:
-      - 'package.json'
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.jsx'
-      - '**/*.json'
-      - '.github/**'
+    tags:
+      - v*
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to release (e.g., 1.2.3, leave empty to use package.json)'
+      tag:
+        description: "Tag"
+        required: true
+      prerelease:
+        description: "是否作为预发布（pre-release）"
         required: false
-        type: string
-      create_release:
-        description: 'Create GitHub Release'
-        required: true
-        type: boolean
-        default: true
-      push_docker:
-        description: 'Push Docker image'
-        required: true
-        type: boolean
-        default: true
-      build_android:
-        description: 'Build Android APK'
-        required: true
-        type: boolean
-        default: true
+        default: "false"
 
 jobs:
+  init-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          items=()
+
+          items+=('{"build": "docker", "os": "ubuntu-latest"}')
+          items+=('{"build": "android", "os": "ubuntu-latest"}')
+
+          matrix="matrix=["
+          for ((i=0; i<${#items[@]}; i++)); do
+            matrix+=" ${items[i]}"
+            if ((i != ${#items[@]}-1)); then
+              matrix+=","
+            fi
+          done
+          matrix+="]"
+
+          echo $matrix >> $GITHUB_OUTPUT
+
   test:
-    name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -60,79 +65,42 @@ jobs:
       - name: Check Prettier formatting
         run: npx prettier --check .
 
-  extract-version:
-    name: Extract Version
-    runs-on: ubuntu-latest
-    needs: test
-    outputs:
-      version: ${{ steps.get-version.outputs.version }}
+  build-app:
+    needs: [init-matrix, test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{fromJson(needs.init-matrix.outputs.matrix)}}
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: "20"
+          cache: "npm"
 
-      - name: Get version
-        id: get-version
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Using version: $VERSION"
+      - name: Install dependencies
+        run: npm ci
 
-  check-tag:
-    name: Check Tag
-    runs-on: ubuntu-latest
-    needs: extract-version
-    outputs:
-      tag_exists: ${{ steps.check.outputs.exists }}
-    steps:
-      - name: Check if tag exists
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = "${{ needs.extract-version.outputs.version }}";
-            const tag = `v${version}`;
-            try {
-              await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `tags/${tag}`
-              });
-              return { exists: 'true' };
-            } catch (error) {
-              if (error.status === 404) {
-                return { exists: 'false' };
-              }
-              throw error;
-            }
-
-  docker:
-    name: Build & Push Docker
-    runs-on: ubuntu-latest
-    needs: [extract-version, check-tag]
-    if: ${{ (inputs.push_docker != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
+      - name: Build Docker image
+        if: ${{ matrix.build == 'docker' }}
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
+        if: ${{ matrix.build == 'docker' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push Docker image
+        if: ${{ matrix.build == 'docker' }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -140,44 +108,28 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:${{ needs.extract-version.outputs.version }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:${{ github.event.inputs.tag || github.ref_name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  android:
-    name: Build Android APK
-    runs-on: ubuntu-latest
-    needs: [extract-version, check-tag]
-    if: ${{ (inputs.build_android != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
-    outputs:
-      has_release_apk: ${{ steps.check-release.outputs.has_release_apk }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Build web
+        if: ${{ matrix.build == 'android' }}
         run: npm run build
 
       - name: Sync Capacitor
+        if: ${{ matrix.build == 'android' }}
         run: npx cap sync android
 
       - name: Set up JDK 17
+        if: ${{ matrix.build == 'android' }}
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
 
       - name: Prepare Android signing
+        if: ${{ matrix.build == 'android' }}
         id: prepare-signing
         run: |
           if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
@@ -193,18 +145,21 @@ jobs:
           fi
 
       - name: Gradle Build Action
+        if: ${{ matrix.build == 'android' }}
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.2.1
+          gradle-version: "8.2.1"
           cache-read-only: false
 
       - name: Build Debug APK
+        if: ${{ matrix.build == 'android' }}
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Release APK
+        if: ${{ matrix.build == 'android' }}
         run: |
           cd android
           if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
@@ -212,92 +167,88 @@ jobs:
           fi
 
       - name: Rename APKs
+        if: ${{ matrix.build == 'android' }}
         run: |
-          VERSION=${{ needs.extract-version.outputs.version }}
-          mv android/app/build/outputs/apk/debug/app-debug.apk EmbyTok-v${VERSION}-debug.apk
+          version="${{ github.event.inputs.tag || github.ref_name }}"
+          mv android/app/build/outputs/apk/debug/app-debug.apk EmbyTok-$version-debug.apk
           if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            mv android/app/build/outputs/apk/release/app-release.apk EmbyTok-v${VERSION}-release.apk
+            mv android/app/build/outputs/apk/release/app-release.apk EmbyTok-$version-release.apk
           fi
 
       - name: Check if release APK exists
+        if: ${{ matrix.build == 'android' }}
         id: check-release
         run: |
-          VERSION=${{ needs.extract-version.outputs.version }}
-          if [ -f "EmbyTok-v${VERSION}-release.apk" ]; then
+          version="${{ github.event.inputs.tag || github.ref_name }}"
+          if [ -f "EmbyTok-$version-release.apk" ]; then
             echo "has_release_apk=true" >> $GITHUB_OUTPUT
           else
             echo "has_release_apk=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload Debug APK artifact
+        if: ${{ matrix.build == 'android' }}
         uses: actions/upload-artifact@v4
         with:
-          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
-          path: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
+          name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug
+          path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
 
       - name: Upload Release APK artifact
+        if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
-          path: EmbyTok-v${{ needs.extract-version.outputs.version }}-release.apk
-        if: steps.check-release.outputs.has_release_apk == 'true'
+          name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release
+          path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
 
-  generate-release-notes:
-    name: Generate Release Notes
-    runs-on: ubuntu-latest
-    needs: [extract-version, check-tag]
-    if: ${{ (inputs.create_release != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
-    outputs:
-      release_body: ${{ steps.generate.outputs.body }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Extract changelog
-        id: generate
+      - name: Get changelog
+        id: get-changelog
+        shell: bash
         run: |
-          VERSION=${{ needs.extract-version.outputs.version }}
-          BODY=$(node scripts/extract-changelog.js $VERSION)
-          # 使用EOF来安全处理多行内容
-          echo 'body<<EOF' >> $GITHUB_OUTPUT
-          echo "$BODY" >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
+          if [ ! -s CHANGELOG.md ]; then
+            echo "CHANGELOG.md 不存在或为空，无法生成 Release 说明。"
+            exit 1
+          fi
 
-  create-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [extract-version, check-tag, docker, android, generate-release-notes]
-    if: ${{ (inputs.create_release != false || github.event_name == 'push') && needs.check-tag.outputs.tag_exists == 'false' }}
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+          delimiter="__EMBYTOK_CHANGELOG_EOF__"
+          {
+            echo "CHANGELOG<<$delimiter"
+            node scripts/extract-changelog.js ${{ github.event.inputs.tag || github.ref_name }}
+            echo
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Download Debug APK
-        uses: actions/download-artifact@v4
+      - name: Resolve release type
+        id: release-type
+        shell: bash
+        run: |
+          prerelease=false
+          if [ "${{ github.event_name }}" = "release" ]; then
+            prerelease="${{ github.event.release.prerelease }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            prerelease=true
+          fi
+          echo "prerelease=$prerelease" >> $GITHUB_OUTPUT
+
+      - name: Create Release - Android
+        uses: svenstaro/upload-release-action@v2
+        if: ${{ matrix.build == 'android' }}
         with:
-          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-debug
+          overwrite: true
+          asset_name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
+          file: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
+          prerelease: ${{ steps.release-type.outputs.prerelease }}
+          body: ${{ steps.get-changelog.outputs.CHANGELOG }}
+          tag: ${{ github.event.inputs.tag || github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download Release APK
-        uses: actions/download-artifact@v4
+      - name: Create Release - Android Release
+        uses: svenstaro/upload-release-action@v2
+        if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
         with:
-          name: EmbyTok-v${{ needs.extract-version.outputs.version }}-release
-        if: needs.android.outputs.has_release_apk == 'true'
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            EmbyTok-v${{ needs.extract-version.outputs.version }}-debug.apk
-            EmbyTok-v${{ needs.extract-version.outputs.version }}-release.apk
-          tag_name: v${{ needs.extract-version.outputs.version }}
-          name: Release v${{ needs.extract-version.outputs.version }}
-          body: ${{ needs.generate-release-notes.outputs.release_body }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          overwrite: true
+          asset_name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
+          file: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
+          prerelease: ${{ steps.release-type.outputs.prerelease }}
+          body: ${{ steps.get-changelog.outputs.CHANGELOG }}
+          tag: ${{ github.event.inputs.tag || github.ref }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
