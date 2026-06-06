@@ -148,6 +148,7 @@
    - 该 hook 包含网络状况检测、缓存管理等功能，但完全闲置
 
 3. **VideoFeed 中的视频管理** (第 179-196 行)
+
    ```tsx
    {Math.abs(activeIndex - index) <= 1 ? (
      <VideoCard ... />
@@ -182,6 +183,7 @@
 **文件**: `components/VideoFeed.tsx` (第 173-198 行)
 
 1. **渲染所有视频**
+
    ```tsx
    {videos.map((item, index) => (
      <div key={item.Id} ...>
