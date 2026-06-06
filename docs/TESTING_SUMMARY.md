@@ -194,6 +194,15 @@
   - 加载状态
   - 媒体库渲染
   - 最近添加视频
+- ✅ `TVSettings.test.tsx` - TV 模式设置组件测试
+  - 账户 Tab 渲染
+  - 媒体库 Tab 渲染
+  - 退出登录功能
+  - 语言切换功能
+- ✅ `TVVideoGrid.test.tsx` - TV 模式视频网格组件测试
+  - 视频网格渲染
+  - 视频点击选择
+  - 键盘选择功能
 
 ## 测试运行命令
 
@@ -220,8 +229,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：41 个
-- 总测试用例：291 个
+- 总测试文件：43 个
+- 总测试用例：298 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -266,7 +275,9 @@ npm run test:run
 │   ├── VideoGrid.test.tsx
 │   └── VideoFeed.test.tsx
 ├── components/tv/__tests__/
-│   └── TVDashboard.test.tsx
+│   ├── TVDashboard.test.tsx
+│   ├── TVSettings.test.tsx
+│   └── TVVideoGrid.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -279,8 +290,6 @@ npm run test:run
 ## 后续工作建议
 
 1. **更多组件测试**：为以下组件添加集成测试
-  - `TVSettings`
-  - `TVVideoGrid`
   - `TVVideoPlayer`
   - `MobileRoot`
   - `StandardRoot`
