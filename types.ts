@@ -27,14 +27,27 @@ export interface EmbyLibrary {
   CollectionType?: string;
 }
 
+export interface MediaStream {
+  Type: string;
+  Codec?: string;
+  Language?: string;
+  DisplayTitle?: string;
+  IsDefault?: boolean;
+  IsExternal?: boolean;
+  Index?: number;
+  Path?: string;
+}
+
 export interface MediaSource {
   Id: string;
   Container: string;
   Path: string;
   Protocol: string;
+  Name?: string;
   SupportsDirectPlay?: boolean;
   SupportsDirectStream?: boolean;
   SupportsTranscoding?: boolean;
+  MediaStreams?: MediaStream[];
 }
 
 export interface EmbyItem {
