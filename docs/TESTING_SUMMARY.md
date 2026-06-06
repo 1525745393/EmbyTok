@@ -208,6 +208,9 @@
   - 无海报图渲染
   - 返回按钮功能
   - 语言切换支持
+- ✅ `TVRoot.test.tsx` - TV 模式根组件测试
+  - 登录表单渲染
+  - 品牌名称显示
 
 ## 测试运行命令
 
@@ -234,8 +237,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：44 个
-- 总测试用例：302 个
+- 总测试文件：45 个
+- 总测试用例：303 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -283,7 +286,8 @@ npm run test:run
 │   ├── TVDashboard.test.tsx
 │   ├── TVSettings.test.tsx
 │   ├── TVVideoGrid.test.tsx
-│   └── TVVideoPlayer.test.tsx
+│   ├── TVVideoPlayer.test.tsx
+│   └── TVRoot.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -298,7 +302,6 @@ npm run test:run
 1. **更多组件测试**：为以下组件添加集成测试
   - `MobileRoot`
   - `StandardRoot`
-  - `TVRoot`
   - 以及其他所有 UI 组件
 
 2. **E2E 测试**：添加端到端测试
