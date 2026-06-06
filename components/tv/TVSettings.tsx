@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { ServerConfig, EmbyLibrary, OrientationMode } from '../../types';
-import { User, Library, Monitor, Info, Globe, Smartphone, Square, LogOut, EyeOff, Eye, CheckCircle2 } from 'lucide-react';
+import { User, Library, Monitor, Info, Globe, Smartphone, Square, LogOut, EyeOff, Eye, CheckCircle2, Users } from 'lucide-react';
 
 interface TVSettingsProps {
   config: ServerConfig;
@@ -17,12 +17,18 @@ interface TVSettingsProps {
   activeTab: string;
   onTabChange: (tab: any) => void;
   version: string;
+  onShowUserSwitcher?: () => void;
+  hasMultiUser?: boolean;
+  userCount?: number;
 }
 
 const TVSettings: React.FC<TVSettingsProps> = ({
   config, libraries, hiddenLibIds, onToggleHidden, orientationMode, 
   onOrientationChange, language, onToggleLanguage, onToggleMode, onLogout,
-  activeTab, onTabChange, version
+  activeTab, onTabChange, version,
+  onShowUserSwitcher,
+  hasMultiUser,
+  userCount
 }) => {
   
   const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,8 +41,8 @@ const TVSettings: React.FC<TVSettingsProps> = ({
   };
 
   const t = {
-      zh: { account: '账户', libs: '媒体库', display: '显示', about: '关于', logout: '退出登录', lang: '界面语言', switch: '标准模式' },
-      en: { account: 'Account', libs: 'Libraries', display: 'Display', about: 'About', logout: 'Logout', lang: 'Language', switch: 'Standard' }
+      zh: { account: '账户', libs: '媒体库', display: '显示', about: '关于', logout: '退出登录', lang: '界面语言', switch: '标准模式', switchAccount: '切换账户' },
+      en: { account: 'Account', libs: 'Libraries', display: 'Display', about: 'About', logout: 'Logout', lang: 'Language', switch: 'Standard', switchAccount: 'Switch Account' }
   }[language];
 
   return (
@@ -60,6 +66,17 @@ const TVSettings: React.FC<TVSettingsProps> = ({
                           <div className="w-10 sm:w-12 h-10 sm:h-12 bg-indigo-600 rounded-full flex items-center justify-center text-lg sm:text-xl font-black">{config.username[0].toUpperCase()}</div>
                           <div><div className="text-base sm:text-lg font-bold text-white">{config.username}</div><div className="text-[10px] text-white/20 font-mono">{config.url}</div></div>
                       </div>
+                      {hasMultiUser && onShowUserSwitcher && (
+                        <button tabIndex={0} onClick={onShowUserSwitcher} className="w-full p-2 sm:p-3 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-lg sm:rounded-xl font-bold text-xs transition-all outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-2">
+                          <Users size={14} />
+                          {t.switchAccount}
+                          {userCount !== undefined && userCount > 1 && (
+                            <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                              {userCount}
+                            </span>
+                          )}
+                        </button>
+                      )}
                       <button tabIndex={0} onClick={onLogout} className="w-full p-2 sm:p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg sm:rounded-xl font-bold text-xs transition-all outline-none focus:ring-2 focus:ring-red-500">{t.logout}</button>
                   </div>
               </div>

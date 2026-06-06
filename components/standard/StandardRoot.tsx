@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, lazy
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode, WatchHistoryItem, FavoriteCollection, SubtitleSettings, SubtitleTrack, GitHubRelease, UpdateCheckResult } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft, Search, History, Heart } from 'lucide-react';
-import { useSearch, useSubtitles, useFavorites, useWatchHistory, useUpdateChecker } from '../../src/hooks';
+import { useSearch, useSubtitles, useFavorites, useWatchHistory, useUpdateChecker, useMultiUser } from '../../src/hooks';
+import UserSwitcher from '../UserSwitcher';
 
 // 导入我们新创建的组件
 const WatchHistoryView = lazy(() => import('../WatchHistoryView'));
@@ -38,9 +39,25 @@ interface StandardRootProps {
 }
 
 function StandardRoot({ onToggleMode }: StandardRootProps) {
+  // 多用户管理
+  const { users, currentUser, addUser, removeUser, switchUser, updateLastUsed, isLoggedIn, getCurrentUserConfig } = useMultiUser();
+  
+  // 配置状态：优先使用多用户配置，否则使用旧的单用户配置
   const [config, setConfig] = useState<ServerConfig | null>(() => {
+    // 如果有多用户配置，使用多用户配置
+    const multiUserConfig = getCurrentUserConfig();
+    if (multiUserConfig) return multiUserConfig;
+    // 否则尝试加载旧配置
     try { const saved = localStorage.getItem('embyConfig'); return saved ? JSON.parse(saved) : null; } catch (e) { return null; }
   });
+  
+  // 用户切换后更新配置
+  useEffect(() => {
+    const multiUserConfig = getCurrentUserConfig();
+    if (multiUserConfig) {
+      setConfig(multiUserConfig);
+    }
+  }, [currentUser, getCurrentUserConfig]);
 
   const client = useMemo(() => config ? ClientFactory.create(config) : null, [config]);
   const [libraries, setLibraries] = useState<EmbyLibrary[]>([]);
@@ -59,6 +76,9 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   
+  // 用户切换器显示状态
+  const [showUserSwitcher, setShowUserSwitcher] = useState(false);
+  
   // 语言状态
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   
@@ -71,7 +91,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   const [updateCheckResult, setUpdateCheckResult] = useState<UpdateCheckResult | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   
-  // 搜索相关状态 - 使用 useSearch Hook
+  // 搜索相关状态 - 使用 useSearch Hook（支持多用户）
   const [showSearch, setShowSearch] = useState(false);
   const {
     query: searchQuery,
@@ -81,9 +101,9 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     debouncedSearch,
     performSearch,
     clearHistory
-  } = useSearch(client);
+  } = useSearch(client, currentUser?.id);
   
-  // 观看历史相关状态 - 使用 useWatchHistory Hook
+  // 观看历史相关状态 - 使用 useWatchHistory Hook（支持多用户）
   const [showWatchHistory, setShowWatchHistory] = useState(false);
   const {
     history: watchHistory,
@@ -92,9 +112,9 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     clearHistory: clearWatchHistory,
     getHistoryItem,
     getProgress
-  } = useWatchHistory();
+  } = useWatchHistory(currentUser?.id);
   
-  // 收藏相关状态 - 使用 useFavorites Hook
+  // 收藏相关状态 - 使用 useFavorites Hook（支持多用户）
   const [showFavoritesManager, setShowFavoritesManager] = useState(false);
   const {
     collections: favoritesCollections,
@@ -106,7 +126,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     isFavorite,
     getCollection,
     getItemCollections
-  } = useFavorites();
+  } = useFavorites(currentUser?.id);
   
   // 字幕相关状态 - 使用 useSubtitles Hook
   const {
@@ -135,15 +155,81 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // 同步配置到 localStorage（兼容旧版）和更新最后使用时间
   useEffect(() => {
-    if (config) localStorage.setItem('embyConfig', JSON.stringify(config));
-    else localStorage.removeItem('embyConfig');
-  }, [config]);
+    if (config) {
+      localStorage.setItem('embyConfig', JSON.stringify(config));
+      // 如果有多用户配置，更新最后使用时间
+      if (currentUser) {
+        updateLastUsed(currentUser.id);
+      }
+    } else {
+      localStorage.removeItem('embyConfig');
+    }
+  }, [config, currentUser, updateLastUsed]);
 
   useEffect(() => {
     if (client) fetchLibraries();
   }, [client]);
   const fetchLibraries = async () => { if (client) setLibraries(await client.getLibraries()); };
+  
+  // 处理登录（添加或切换用户）
+  const handleLogin = useCallback((newConfig: ServerConfig) => {
+    // 检查是否已存在该用户
+    const existingUser = users.find(u => 
+      u.serverUrl === newConfig.url && 
+      u.username === newConfig.username &&
+      u.serverType === newConfig.serverType
+    );
+    
+    if (existingUser) {
+      // 已存在，切换到该用户
+      switchUser(existingUser.id);
+    } else {
+      // 新用户，添加到多用户列表
+      addUser({
+        name: newConfig.username,
+        serverUrl: newConfig.url,
+        username: newConfig.username,
+        token: newConfig.token,
+        serverType: newConfig.serverType
+      });
+    }
+  }, [users, addUser, switchUser]);
+  
+  // 处理用户切换
+  const handleSwitchUser = useCallback((userId: string) => {
+    switchUser(userId);
+    setShowUserSwitcher(false);
+    setIsMenuOpen(false);
+  }, [switchUser]);
+  
+  // 处理添加新用户
+  const handleAddNewUser = useCallback((profile: Omit<import('../../types').UserProfile, 'id' | 'lastUsed'>) => {
+    addUser(profile);
+    setShowUserSwitcher(false);
+  }, [addUser]);
+  
+  // 处理删除用户
+  const handleRemoveUser = useCallback((userId: string) => {
+    removeUser(userId);
+  }, [removeUser]);
+  
+  // 退出登录
+  const handleLogout = useCallback(() => {
+    // 如果有多用户，切换到其他用户而不是完全退出
+    if (users.length > 1 && currentUser) {
+      const otherUser = users.find(u => u.id !== currentUser.id);
+      if (otherUser) {
+        switchUser(otherUser.id);
+        return;
+      }
+    }
+    // 否则执行完整退出
+    setConfig(null);
+    localStorage.removeItem('embyConfig');
+    window.location.reload();
+  }, [users, currentUser, switchUser]);
   
   // 添加到观看历史 - 使用 useWatchHistory hook
   const handleAddToWatchHistory = useCallback((item: EmbyItem, currentTime: number, duration: number) => {
@@ -312,7 +398,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   if (!config || !client) {
     return (
       <Suspense fallback={<ComponentFallback />}>
-        <Login onLogin={setConfig} />
+        <Login onLogin={handleLogin} />
       </Suspense>
     );
   }
@@ -532,13 +618,16 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         <LibrarySelect isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} libraries={libraries} selectedId={selectedLib?.Id || null} onSelect={(lib) => { setSelectedLib(lib); setIsMenuOpen(false); }} hiddenLibIds={hiddenLibIds} onToggleHidden={(id) => {
             const n = new Set(hiddenLibIds); if (n.has(id)) n.delete(id); else n.add(id);
             setHiddenLibIds(n); localStorage.setItem('embyHiddenLibs', JSON.stringify(Array.from(n)));
-        }} onLogout={() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }} serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode} onToggleMode={onToggleMode}
+        }} onLogout={handleLogout} serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode} onToggleMode={onToggleMode}
         language={language} onToggleLanguage={toggleLanguage}
         version={currentVersion}
         onCheckUpdates={handleCheckUpdates}
         isCheckingUpdates={isChecking}
         updateCheckResult={updateCheckResult}
         onShowUpdateDialog={handleShowUpdateDialog}
+        onShowUserSwitcher={() => setShowUserSwitcher(true)}
+        hasMultiUser={users.length > 0}
+        userCount={users.length}
       />
       </Suspense>
       
@@ -554,6 +643,24 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
             language={language}
           />
         </Suspense>
+      )}
+      
+      {/* 用户切换器 */}
+      {showUserSwitcher && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-start">
+          <div className="w-3/4 max-w-sm h-full">
+            <UserSwitcher
+              users={users}
+              currentUser={currentUser}
+              onSwitchUser={handleSwitchUser}
+              onAddUser={handleAddNewUser}
+              onRemoveUser={handleRemoveUser}
+              onClose={() => setShowUserSwitcher(false)}
+              language={language}
+            />
+          </div>
+          <div className="flex-grow" onClick={() => setShowUserSwitcher(false)}></div>
+        </div>
       )}
     </div>
   );

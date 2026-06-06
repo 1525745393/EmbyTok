@@ -1,242 +1,359 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { EmbyItem } from '../../types';
 
-interface PreloadConfig {
-  // 预加载当前视频前后的秒数
-  preloadBuffer: number;
-  // 预加载下一个视频的前几秒
-  nextVideoPreloadSeconds: number;
-  // 最大缓存视频数
-  maxCachedVideos: number;
-  // 是否启用预加载
-  enabled: boolean;
+/**
+ * 智能视频预加载Hook
+ * 
+ * 功能：
+ * - 检测用户滑动方向，预测下一个要播放的视频
+ * - 提前开始预加载下一个视频（视频流、海报、字幕）
+ * - 网络带宽检测和自适应质量策略
+ * - 预加载队列管理
+ */
+
+export type NetworkType = '4g' | '3g' | '2g' | 'slow-2g' | 'wifi' | 'unknown';
+
+interface PreloadTask {
+  videoId: string;
+  videoUrl: string;
+  blobUrl: string | null;
+  status: 'idle' | 'preloading' | 'ready' | 'error' | 'cancelled';
+  progress: number;
+  createdAt: number;
+  element: HTMLVideoElement | null;
 }
 
-const DEFAULT_CONFIG: PreloadConfig = {
-  preloadBuffer: 10,
-  nextVideoPreloadSeconds: 5,
-  maxCachedVideos: 3,
-  enabled: true
+interface UseSmartPreloadReturn {
+  /** 预加载指定视频 */
+  preloadNext: (videoId: string, videoUrl: string) => void;
+  /** 取消预加载 */
+  cancelPreload: (videoId: string) => void;
+  /** 获取预加载后的URL */
+  getPreloadedUrl: (videoId: string) => string | null;
+  /** 检查是否正在预加载 */
+  isPreloading: (videoId: string) => boolean;
+  /** 获取预加载进度 */
+  preloadProgress: (videoId: string) => number;
+  /** 当前网络类型 */
+  networkType: NetworkType;
+  /** 设置自动质量调整 */
+  setAutoQuality: (enabled: boolean) => void;
+  /** 滑动方向 */
+  scrollDirection: 'up' | 'down' | 'none';
+  /** 更新滚动方向（供VideoFeed调用） */
+  updateScrollDirection: (direction: 'up' | 'down' | 'none') => void;
+}
+
+// Network Information API 类型扩展
+interface NetworkInformation {
+  effectiveType?: '4g' | '3g' | '2g' | 'slow-2g';
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+}
+
+interface NavigatorWithNetwork extends Navigator {
+  connection?: NetworkInformation;
+}
+
+/** 根据网络类型判断是否预加载视频 */
+const shouldPreloadVideo = (networkType: NetworkType): boolean => {
+  return networkType === 'wifi' || networkType === '4g';
 };
 
-interface CachedVideo {
-  itemId: string;
-  lastUsed: number;
-  status: 'idle' | 'preparing' | 'ready' | 'error';
-}
+/** 根据网络类型判断是否预加载海报 */
+const shouldPreloadPoster = (networkType: NetworkType): boolean => {
+  return networkType !== '2g' && networkType !== 'slow-2g' && networkType !== 'unknown';
+};
 
-// 速度检测相关类型
-type ScrollDirection = 'up' | 'down' | 'none';
+/**
+ * 智能视频预加载Hook
+ */
+export function useSmartVideoPreload(): UseSmartPreloadReturn {
+  // 预加载任务映射
+  const [preloadTasks, setPreloadTasks] = useState<Map<string, PreloadTask>>(new Map());
+  // 当前网络类型
+  const [networkType, setNetworkType] = useState<NetworkType>('unknown');
+  // 是否启用自动质量调整
+  const [autoQualityEnabled, setAutoQualityEnabled] = useState(true);
+  // 当前滑动方向
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | 'none'>('none');
 
-export function useSmartVideoPreload(
-  videos: EmbyItem[], 
-  activeIndex: number,
-  config: Partial<PreloadConfig> = {}
-) {
-  const mergedConfig = { ...DEFAULT_CONFIG, ...config };
-  const [cachedVideos, setCachedVideos] = useState<Map<string, CachedVideo>>(new Map());
-  const [networkQuality, setNetworkQuality] = useState<'high' | 'medium' | 'low' | 'unknown'>('unknown');
-  const [scrollSpeed, setScrollSpeed] = useState<number>(0);
-  const [scrollDirection, setScrollDirection] = useState<ScrollDirection>('none');
-  
-  const currentConfigRef = useRef(mergedConfig);
-  const lastScrollTimeRef = useRef<number>(Date.now());
-  const lastScrollPositionRef = useRef<number>(0);
-  const scrollSpeedHistoryRef = useRef<number[]>([]);
+  // 使用 ref 存储最新状态，避免闭包问题
+  const preloadTasksRef = useRef<Map<string, PreloadTask>>(new Map());
+  const networkTypeRef = useRef<NetworkType>('unknown');
+  const autoQualityRef = useRef(true);
 
-  // 网络状况检测
-  const checkNetworkQuality = useCallback(() => {
-    if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
-      if (connection) {
-        const quality: 'high' | 'medium' | 'low' | 'unknown' = 
-          connection.saveData ? 'low' :
-          connection.effectiveType === '4g' || connection.effectiveType === '5g' ? 'high' :
-          connection.effectiveType === '3g' ? 'medium' : 'low';
-        
-        setNetworkQuality(quality);
-        return {
-          effectiveType: connection.effectiveType,
-          downlink: connection.downlink,
-          rtt: connection.rtt,
-          saveData: connection.saveData,
-          quality
-        };
-      }
-    }
-    return { quality: 'unknown' };
-  }, []);
-
-  // 检测滚动速度
-  const updateScrollSpeed = useCallback((currentPosition: number) => {
-    const now = Date.now();
-    const timeDelta = now - lastScrollTimeRef.current;
-    const positionDelta = currentPosition - lastScrollPositionRef.current;
-    
-    if (timeDelta > 0) {
-      const speed = Math.abs(positionDelta / timeDelta); // 像素/毫秒
-      
-      // 保存速度历史用于平滑
-      scrollSpeedHistoryRef.current.push(speed);
-      if (scrollSpeedHistoryRef.current.length > 5) {
-        scrollSpeedHistoryRef.current.shift();
-      }
-      
-      // 计算平均速度
-      const avgSpeed = scrollSpeedHistoryRef.current.reduce((a, b) => a + b, 0) / scrollSpeedHistoryRef.current.length;
-      setScrollSpeed(avgSpeed);
-      
-      // 确定方向
-      setScrollDirection(positionDelta > 0 ? 'down' : positionDelta < 0 ? 'up' : 'none');
-    }
-    
-    lastScrollTimeRef.current = now;
-    lastScrollPositionRef.current = currentPosition;
-  }, []);
-
-  // 根据网络状况和滚动速度动态调整预加载策略
-  const getDynamicConfig = useCallback(() => {
-    const baseConfig = { ...DEFAULT_CONFIG, ...config };
-    const network = checkNetworkQuality();
-    
-    // 根据网络质量调整
-    switch (network.quality) {
-      case 'high':
-        baseConfig.enabled = true;
-        baseConfig.maxCachedVideos = 4;
-        break;
-      case 'medium':
-        baseConfig.enabled = true;
-        baseConfig.maxCachedVideos = 2;
-        break;
-      case 'low':
-      case 'unknown':
-        baseConfig.enabled = true;
-        baseConfig.maxCachedVideos = 1;
-        break;
-    }
-    
-    // 根据滚动速度进一步调整
-    if (scrollSpeed > 2) {
-      // 快速滚动 - 减少预加载
-      baseConfig.maxCachedVideos = Math.max(1, baseConfig.maxCachedVideos - 1);
-    } else if (scrollSpeed < 0.5) {
-      // 慢速滚动或停止 - 增加预加载
-      baseConfig.maxCachedVideos = Math.min(5, baseConfig.maxCachedVideos + 1);
-    }
-    
-    return baseConfig;
-  }, [config, scrollSpeed, checkNetworkQuality]);
-
-  // 更新配置
+  // 更新 ref
   useEffect(() => {
-    currentConfigRef.current = getDynamicConfig();
-  }, [getDynamicConfig]);
+    preloadTasksRef.current = preloadTasks;
+  }, [preloadTasks]);
 
-  // 管理缓存
-  const manageCache = useCallback((itemId: string, status: CachedVideo['status'] = 'idle') => {
-    if (!currentConfigRef.current.enabled) return;
+  useEffect(() => {
+    networkTypeRef.current = networkType;
+  }, [networkType]);
 
-    setCachedVideos(prev => {
-      const newCache = new Map(prev);
-      const now = Date.now();
-      
-      // 更新使用时间
-      if (newCache.has(itemId)) {
-        const existing = newCache.get(itemId)!;
-        newCache.set(itemId, { 
-          ...existing, 
-          lastUsed: now,
-          status: status !== 'idle' ? status : existing.status
-        });
-      } else {
-        newCache.set(itemId, {
-          itemId,
-          lastUsed: now,
-          status
-        });
+  useEffect(() => {
+    autoQualityRef.current = autoQualityEnabled;
+  }, [autoQualityEnabled]);
+
+  /** 检测网络类型 */
+  const detectNetworkType = useCallback((): NetworkType => {
+    const nav = navigator as NavigatorWithNetwork;
+    if (!nav.connection) {
+      return 'unknown';
+    }
+
+    const connection = nav.connection;
+    
+    // 如果开启了省流模式，视为低质量网络
+    if (connection.saveData) {
+      return '3g';
+    }
+
+    const effectiveType = connection.effectiveType;
+    
+    switch (effectiveType) {
+      case '4g':
+        // 进一步检查带宽来区分WiFi和4G
+        if (connection.downlink && connection.downlink >= 10) {
+          return 'wifi';
+        }
+        return '4g';
+      case '3g':
+        return '3g';
+      case '2g':
+        return '2g';
+      case 'slow-2g':
+        return 'slow-2g';
+      default:
+        return 'unknown';
+    }
+  }, []);
+
+  /** 更新网络类型 */
+  const updateNetworkType = useCallback(() => {
+    const type = detectNetworkType();
+    setNetworkType(type);
+    return type;
+  }, [detectNetworkType]);
+
+  // 监听网络变化
+  useEffect(() => {
+    const nav = navigator as NavigatorWithNetwork;
+    if (!nav.connection) return;
+
+    const handleChange = () => {
+      updateNetworkType();
+    };
+
+    nav.connection.addEventListener?.('change', handleChange);
+    return () => {
+      nav.connection.removeEventListener?.('change', handleChange);
+    };
+  }, [updateNetworkType]);
+
+  // 初始化时检测网络
+  useEffect(() => {
+    updateNetworkType();
+  }, [updateNetworkType]);
+
+  /** 预加载视频 */
+  const preloadNext = useCallback((videoId: string, videoUrl: string) => {
+    const currentNetworkType = networkTypeRef.current;
+
+    // 检查是否应该预加载
+    if (!shouldPreloadVideo(currentNetworkType)) {
+      return;
+    }
+
+    // 如果已经有预加载任务且状态为ready或preloading，跳过
+    const existingTask = preloadTasksRef.current.get(videoId);
+    if (existingTask && (existingTask.status === 'ready' || existingTask.status === 'preloading')) {
+      return;
+    }
+
+    // 创建预加载任务
+    const task: PreloadTask = {
+      videoId,
+      videoUrl,
+      blobUrl: null,
+      status: 'preloading',
+      progress: 0,
+      createdAt: Date.now(),
+      element: null
+    };
+
+    setPreloadTasks(prev => {
+      const newMap = new Map(prev);
+      // 取消之前的预加载（如果有）
+      const oldTask = newMap.get(videoId);
+      if (oldTask?.element) {
+        oldTask.element.src = '';
+        oldTask.element.load();
       }
-      
-      // 移除旧的缓存
-      if (newCache.size > currentConfigRef.current.maxCachedVideos) {
-        const sorted = [...newCache.entries()]
-          .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+      newMap.set(videoId, task);
+      return newMap;
+    });
+
+    // 创建隐藏的video元素进行预加载
+    const videoElement = document.createElement('video');
+    videoElement.preload = 'auto';
+    videoElement.muted = true;
+    videoElement.setAttribute('aria-hidden', 'true');
+    videoElement.style.position = 'absolute';
+    videoElement.style.top = '-9999px';
+    videoElement.style.left = '-9999px';
+    videoElement.style.width = '1px';
+    videoElement.style.height = '1px';
+    videoElement.style.opacity = '0';
+    videoElement.style.pointerEvents = 'none';
+
+    // 监听加载进度
+    videoElement.addEventListener('progress', () => {
+      if (videoElement.duration && videoElement.buffered.length > 0) {
+        const bufferedEnd = videoElement.buffered.end(videoElement.buffered.length - 1);
+        const progress = (bufferedEnd / videoElement.duration) * 100;
         
-        const toRemove = sorted.slice(0, sorted.length - currentConfigRef.current.maxCachedVideos);
-        toRemove.forEach(([id]) => {
-          newCache.delete(id);
+        setPreloadTasks(prev => {
+          const newMap = new Map(prev);
+          const existingTask = newMap.get(videoId);
+          if (existingTask && existingTask.status === 'preloading') {
+            newMap.set(videoId, { ...existingTask, progress });
+          }
+          return newMap;
         });
       }
+    });
+
+    // 监听加载完成
+    videoElement.addEventListener('canplay', () => {
+      // 创建Blob URL
+      const blobUrl = URL.createObjectURL(videoElement.src);
       
-      return newCache;
+      setPreloadTasks(prev => {
+        const newMap = new Map(prev);
+        const existingTask = newMap.get(videoId);
+        if (existingTask && existingTask.status === 'preloading') {
+          newMap.set(videoId, { 
+            ...existingTask, 
+            status: 'ready', 
+            progress: 100,
+            blobUrl,
+            element: videoElement
+          });
+        }
+        return newMap;
+      });
+    });
+
+    // 监听错误
+    videoElement.addEventListener('error', () => {
+      setPreloadTasks(prev => {
+        const newMap = new Map(prev);
+        const existingTask = newMap.get(videoId);
+        if (existingTask) {
+          newMap.set(videoId, { ...existingTask, status: 'error' });
+        }
+        return newMap;
+      });
+    });
+
+    videoElement.src = videoUrl;
+    videoElement.load();
+
+    // 更新任务中的element引用
+    setPreloadTasks(prev => {
+      const newMap = new Map(prev);
+      const existingTask = newMap.get(videoId);
+      if (existingTask) {
+        newMap.set(videoId, { ...existingTask, element: videoElement });
+      }
+      return newMap;
+    });
+
+  }, []);
+
+  /** 取消预加载 */
+  const cancelPreload = useCallback((videoId: string) => {
+    setPreloadTasks(prev => {
+      const newMap = new Map(prev);
+      const task = newMap.get(videoId);
+      
+      if (task) {
+        // 释放Blob URL
+        if (task.blobUrl) {
+          URL.revokeObjectURL(task.blobUrl);
+        }
+        // 停止视频加载
+        if (task.element) {
+          task.element.src = '';
+          task.element.load();
+          task.element.remove();
+        }
+        newMap.set(videoId, { ...task, status: 'cancelled', element: null });
+      }
+      
+      return newMap;
     });
   }, []);
 
-  // 基于滚动速度和方向智能预加载
-  const preloadVideos = useCallback(() => {
-    if (!currentConfigRef.current.enabled || videos.length === 0) return;
-
-    const config = currentConfigRef.current;
-    const indicesToPreload: number[] = [];
-    
-    // 当前视频始终最高优先级
-    indicesToPreload.push(activeIndex);
-    
-    // 根据滚动方向和速度确定预加载数量
-    let preloadCount = 1;
-    if (scrollSpeed < 0.5) {
-      preloadCount = 2; // 慢速时预加载更多
-    } else if (scrollSpeed > 2) {
-      preloadCount = 1; // 快速时减少预加载
+  /** 获取预加载后的URL */
+  const getPreloadedUrl = useCallback((videoId: string): string | null => {
+    const task = preloadTasksRef.current.get(videoId);
+    if (task && task.status === 'ready' && task.blobUrl) {
+      return task.blobUrl;
     }
-    
-    // 根据滚动方向预加载
-    if (scrollDirection === 'down') {
-      // 向下滚动 - 预加载后面的视频
-      for (let i = 1; i <= preloadCount; i++) {
-        if (activeIndex + i < videos.length) {
-          indicesToPreload.push(activeIndex + i);
-        }
-      }
-    } else if (scrollDirection === 'up') {
-      // 向上滚动 - 预加载前面的视频
-      for (let i = 1; i <= preloadCount; i++) {
-        if (activeIndex - i >= 0) {
-          indicesToPreload.push(activeIndex - i);
-        }
-      }
-    } else {
-      // 无方向 - 预加载两侧
-      if (activeIndex + 1 < videos.length) {
-        indicesToPreload.push(activeIndex + 1);
-      }
-      if (activeIndex - 1 >= 0) {
-        indicesToPreload.push(activeIndex - 1);
-      }
-    }
-    
-    // 执行预加载
-    indicesToPreload.forEach((index, priority) => {
-      const item = videos[index];
-      if (item) {
-        const status: CachedVideo['status'] = priority === 0 ? 'ready' : 'preparing';
-        manageCache(item.Id, status);
-      }
-    });
-  }, [videos, activeIndex, scrollSpeed, scrollDirection, manageCache]);
+    return null;
+  }, []);
 
-  // 当活跃索引变化时预加载
+  /** 检查是否正在预加载 */
+  const isPreloading = useCallback((videoId: string): boolean => {
+    const task = preloadTasksRef.current.get(videoId);
+    return task?.status === 'preloading';
+  }, []);
+
+  /** 获取预加载进度 */
+  const preloadProgress = useCallback((videoId: string): number => {
+    const task = preloadTasksRef.current.get(videoId);
+    return task?.progress ?? 0;
+  }, []);
+
+  /** 设置自动质量调整 */
+  const setAutoQuality = useCallback((enabled: boolean) => {
+    setAutoQualityEnabled(enabled);
+  }, []);
+
+  /** 更新滑动方向 */
+  const updateScrollDirection = useCallback((direction: 'up' | 'down' | 'none') => {
+    setScrollDirection(direction);
+  }, []);
+
+  // 组件卸载时清理所有预加载
   useEffect(() => {
-    preloadVideos();
-  }, [activeIndex, preloadVideos]);
+    return () => {
+      preloadTasksRef.current.forEach(task => {
+        if (task.blobUrl) {
+          URL.revokeObjectURL(task.blobUrl);
+        }
+        if (task.element) {
+          task.element.src = '';
+          task.element.remove();
+        }
+      });
+    };
+  }, []);
 
   return {
-    isPreloaded: (itemId: string) => cachedVideos.has(itemId) && cachedVideos.get(itemId)?.status === 'ready',
-    getCacheStatus: (itemId: string) => cachedVideos.get(itemId)?.status || 'idle',
-    networkQuality,
-    scrollSpeed,
+    preloadNext,
+    cancelPreload,
+    getPreloadedUrl,
+    isPreloading,
+    preloadProgress,
+    networkType,
+    setAutoQuality,
     scrollDirection,
-    updateScrollSpeed,
-    config: currentConfigRef.current
+    updateScrollDirection
   };
 }

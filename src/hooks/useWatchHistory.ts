@@ -1,13 +1,17 @@
 import { useCallback } from 'react';
 import { useLocalStorageState } from './useLocalStorageState';
 import type { WatchHistory, WatchHistoryItem } from '../../types';
+import { getUserStorageKey } from './useMultiUser';
 
 const WATCH_HISTORY_KEY = 'embytok_watch_history';
 const MAX_HISTORY_ITEMS = 100;
 
-export function useWatchHistory() {
+export function useWatchHistory(userId?: string) {
+  // 如果有 userId，使用用户隔离的存储键
+  const storageKey = userId ? getUserStorageKey(userId, 'watch_history') : WATCH_HISTORY_KEY;
+
   const [history, setHistory] = useLocalStorageState<WatchHistory>(
-    WATCH_HISTORY_KEY,
+    storageKey,
     { items: [], lastUpdated: Date.now() }
   );
 

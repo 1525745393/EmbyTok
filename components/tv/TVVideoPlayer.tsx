@@ -4,6 +4,9 @@ import { EmbyItem } from '../../types';
 import { MediaClient } from '../../services/MediaClient';
 import { Play, Pause, ChevronLeft, Heart, Volume2, VolumeX, Infinity, Rewind, FastForward } from 'lucide-react';
 
+// 预加载时间阈值（秒），播放完毕前多少秒开始预加载下一集
+const PRELOAD_AHEAD_SECONDS = 5;
+
 interface TVVideoPlayerProps {
   videos: EmbyItem[];
   initialIndex: number;
@@ -18,13 +21,15 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
   const [isPlaying, setIsPlaying] = useState(false); 
   const [isBuffering, setIsBuffering] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
-  const [isAutoPlay, setIsAutoPlay] = useState(false);
+  const [isAutoPlay, setIsAutoPlay] = useState(true); // 默认开启自动连播
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [showInfoOverlay, setShowInfoOverlay] = useState(true);
+  const [nextEpisode, setNextEpisode] = useState<EmbyItem | null>(null); // 预加载的下一集
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentItem = videos[currentIndex];
   const overlayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const preloadTimerRef = useRef<number | null>(null);
 
   const posterSrc = currentItem.ImageTags?.Primary 
     ? client.getImageUrl(currentItem.Id, currentItem.ImageTags.Primary, 'Primary') 
@@ -69,6 +74,68 @@ const TVVideoPlayer: React.FC<TVVideoPlayerProps> = ({ videos, initialIndex, onB
           setCurrentIndex(nextIdx);
       }
   }, [currentIndex, videos.length]);
+
+  // 预加载下一集的逻辑
+  const preloadNextEpisode = useCallback(async () => {
+      // 只有剧集类型才需要预加载下一集
+      if (currentItem.Type !== 'Episode') {
+          setNextEpisode(null);
+          return;
+      }
+
+      // 获取剧集的系列ID
+      const seriesId = (currentItem as any).SeriesId || (currentItem as any).ParentId;
+      if (!seriesId) {
+          setNextEpisode(null);
+          return;
+      }
+
+      try {
+          const next = await client.getNextEpisode(seriesId, currentItem.Id);
+          setNextEpisode(next);
+      } catch (error) {
+          console.error('[TVVideoPlayer] 预加载下一集失败:', error);
+          setNextEpisode(null);
+      }
+  }, [currentItem, client]);
+
+  // 监听 currentIndex 变化时预加载下一集
+  useEffect(() => {
+      preloadNextEpisode();
+  }, [preloadNextEpisode]);
+
+  // 监听视频时间更新，检测是否接近播放结束
+  useEffect(() => {
+      const video = videoRef.current;
+      if (!video || !isAutoPlay) return;
+
+      const handleTimeUpdate = () => {
+          if (nextEpisode && video.duration > 0) {
+              const remainingTime = video.duration - video.currentTime;
+              // 如果剩余时间小于阈值且还没有播放下一集
+              if (remainingTime <= PRELOAD_AHEAD_SECONDS && remainingTime > 0) {
+                  // 停止当前定时器
+                  if (preloadTimerRef.current) {
+                      clearTimeout(preloadTimerRef.current);
+                      preloadTimerRef.current = null;
+                  }
+
+                  // 立即切换到下一集
+                  if (currentIndex < videos.length - 1) {
+                      setCurrentIndex(prev => prev + 1);
+                  }
+              }
+          }
+      };
+
+      video.addEventListener('timeupdate', handleTimeUpdate);
+      return () => {
+          video.removeEventListener('timeupdate', handleTimeUpdate);
+          if (preloadTimerRef.current) {
+              clearTimeout(preloadTimerRef.current);
+          }
+      };
+  }, [isAutoPlay, nextEpisode, currentIndex, videos.length]);
 
   const toggleFavorite = useCallback(async () => {
       const id = currentItem.Id;

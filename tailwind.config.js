@@ -12,6 +12,7 @@ export default {
     extend: {
       animation: {
         'heart-float': 'heartFloat 1.2s ease-out forwards',
+        'shimmer': 'shimmer 2s ease-in-out infinite',
       },
       keyframes: {
         heartFloat: {
@@ -30,6 +31,14 @@ export default {
           '100%': {
             transform: 'scale(0.8) translateY(0)',
             opacity: '0',
+          },
+        },
+        shimmer: {
+          '0%': {
+            backgroundPosition: '-200% 0',
+          },
+          '100%': {
+            backgroundPosition: '200% 0',
           },
         },
       },

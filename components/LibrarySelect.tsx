@@ -27,6 +27,10 @@ interface LibrarySelectProps {
   isCheckingUpdates?: boolean;
   updateCheckResult?: { hasUpdate: boolean; latestVersion?: string; release?: GitHubRelease };
   onShowUpdateDialog?: () => void;
+  // 多用户支持
+  onShowUserSwitcher?: () => void;
+  hasMultiUser?: boolean;
+  userCount?: number;
 }
 
 type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
@@ -47,7 +51,10 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
     onCheckUpdates,
     isCheckingUpdates,
     updateCheckResult,
-    onShowUpdateDialog
+    onShowUpdateDialog,
+    onShowUserSwitcher,
+    hasMultiUser,
+    userCount
 }) => {
   const [mode, setMode] = useState<MenuMode>('list');
 
@@ -82,6 +89,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           updateAvailable: '有新版本',
           noUpdate: '已是最新版本',
           checkFailed: '检查失败',
+          switchAccount: '切换账户',
+          accountCount: '账户',
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -111,6 +120,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           updateAvailable: 'Update Available',
           noUpdate: 'You are up to date',
           checkFailed: 'Check failed',
+          switchAccount: 'Switch Account',
+          accountCount: 'Accounts',
       }
   }[language];
 
@@ -212,6 +223,20 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                       <div className="bg-zinc-800 rounded-xl p-4 space-y-3">
                           <div className="text-xs text-zinc-400 truncate">{serverUrl}</div>
                           <div className="text-sm font-bold text-white truncate">{username}</div>
+                          {hasMultiUser && (
+                            <button
+                              onClick={onShowUserSwitcher}
+                              className="w-full py-2 rounded-lg bg-indigo-500/10 text-indigo-400 text-xs font-bold flex items-center justify-center gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              {t.switchAccount}
+                              {userCount !== undefined && userCount > 1 && (
+                                <span className="bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                  {userCount}
+                                </span>
+                              )}
+                            </button>
+                          )}
                           <button onClick={onLogout} className="w-full py-2 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold">{t.logout}</button>
                       </div>
                   </div>

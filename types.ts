@@ -170,6 +170,41 @@ export interface BufferingState {
   waitingForData: boolean;
 }
 
+// Playback Progress Types
+export interface PlaybackProgress {
+  itemId: string;
+  positionTicks: number;
+  durationTicks?: number;
+  mediaRate?: number;
+}
+
+// User Rating Types (0-10分制，内部自动转换为Emby的0-100)
+export interface UserRating {
+  itemId: string;
+  rating: number; // 0-10
+  type?: 'manual' | 'predicted';
+}
+
+// Enhanced Watched History Item for API responses
+export interface WatchedHistoryItem {
+  id: string;
+  itemId: string;
+  name: string;
+  type: string;
+  mediaType: string;
+  overview?: string;
+  productionYear?: number;
+  width?: number;
+  height?: number;
+  runTimeTicks?: number;
+  imageUrl?: string;
+  playbackPositionTicks: number;
+  playCount: number;
+  played: boolean;
+  lastPlayedDate?: string;
+  isFavorite: boolean;
+}
+
 export interface ProgressBarProps {
   currentTime: number;
   duration: number;
@@ -195,4 +230,96 @@ export interface GestureControlsOptions {
   onLongPress?: () => void;
   videoRef: React.RefObject<HTMLVideoElement>;
   longPressDelay?: number;
+}
+
+// Recommendations API 类型
+export type RecommendationType = 
+  | 'SimilarToRecentlyWatched'    // 因为您喜欢
+  | 'SimilarToCurrentlyPlayed'    // 相似于当前播放
+  | 'SimilarToLikedItem'          // 相似于喜欢的项目
+  | 'DirectorRelated'            // 同导演
+  | 'ActorRelated'                // 同演员
+  | 'ContinueWatching'           // 继续观看
+  | 'Upcoming';                  // 即将上线
+
+export interface Recommendation {
+  Id: string;
+  Name: string;
+  Type: string;
+  MediaType: string;
+  Overview?: string;
+  ProductionYear?: number;
+  Width?: number;
+  Height?: number;
+  RunTimeTicks?: number;
+  ImageTags?: {
+    Primary?: string;
+    Logo?: string;
+    Thumb?: string;
+    Backdrop?: string;
+  };
+  UserData?: {
+    IsFavorite: boolean;
+    PlaybackPositionTicks: number;
+    PlayCount: number;
+    Played: boolean;
+    LastPlayedDate?: string;
+  };
+}
+
+export interface RecommendationCategory {
+  CategoryId: string;
+  CategoryTitle: string;
+  RecommendationType: RecommendationType;
+  Items: Recommendation[];
+}
+
+// 多用户相关类型
+export interface UserProfile {
+  id: string;
+  name: string;
+  serverUrl: string;
+  username: string;
+  token: string;
+  serverType: ServerType;
+  lastUsed: number;
+}
+
+export interface MultiUserConfig {
+  users: UserProfile[];
+  currentUserId: string | null;
+}
+
+// ==================== 播放队列类型 ====================
+
+/**
+ * 播放模式枚举
+ */
+export enum PlayMode {
+  Sequential = 'sequential',   // 顺序播放
+  Shuffle = 'shuffle',          // 随机播放
+  LoopSingle = 'loop_single',   // 单曲循环
+  LoopAll = 'loop_all'          // 列表循环
+}
+
+/**
+ * 播放队列项
+ */
+export interface PlayQueueItem {
+  id: string;                   // 队列项唯一ID
+  item: EmbyItem;               // 关联的媒体项
+  addedAt: number;              // 添加时间戳
+}
+
+/**
+ * 播放队列
+ */
+export interface PlayQueue {
+  id: string;                   // 队列唯一ID
+  name?: string;                // 队列名称
+  items: PlayQueueItem[];       // 队列中的项目
+  currentIndex: number;         // 当前播放索引
+  playMode: PlayMode;           // 播放模式
+  createdAt: number;            // 创建时间
+  updatedAt: number;            // 更新时间
 }

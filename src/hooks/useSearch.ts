@@ -2,17 +2,20 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocalStorageState } from './useLocalStorageState';
 import type { SearchResult, SearchHistoryItem, EmbyItem } from '../../types';
 import type { MediaClient } from '../../services/MediaClient';
+import { getUserStorageKey } from './useMultiUser';
 
 const SEARCH_HISTORY_KEY = 'embytok_search_history';
 const MAX_SEARCH_HISTORY = 20;
 const DEBOUNCE_DELAY = 300;
 
-export function useSearch(client: MediaClient | null) {
+export function useSearch(client: MediaClient | null, userId?: string) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult>({ items: [], totalRecordCount: 0 });
   const [loading, setLoading] = useState(false);
+  // 如果有 userId，使用用户隔离的存储键
+  const storageKey = userId ? getUserStorageKey(userId, 'search_history') : SEARCH_HISTORY_KEY;
   const [searchHistory, setSearchHistory] = useLocalStorageState<SearchHistoryItem[]>(
-    SEARCH_HISTORY_KEY,
+    storageKey,
     []
   );
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);

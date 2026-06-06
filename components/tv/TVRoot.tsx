@@ -6,9 +6,11 @@ import TVVideoGrid from './TVVideoGrid';
 import TVVideoPlayer from './TVVideoPlayer';
 import TVDashboard from './TVDashboard';
 import TVSettings from './TVSettings';
+import UserSwitcher from '../UserSwitcher';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { LayoutGrid, Library, Settings, LogOut, Clock, Star, RefreshCcw, Monitor, Eye, EyeOff, User, Info, CheckCircle2, Smartphone, Square, Search, Globe } from 'lucide-react';
+import { useMultiUser } from '../../src/hooks';
 
 interface TVRootProps {
     onToggleMode?: () => void;
@@ -22,9 +24,25 @@ const TVRabbitIcon = () => (
 );
 
 function TVRoot({ onToggleMode }: TVRootProps) {
+  // 多用户管理
+  const { users, currentUser, addUser, removeUser, switchUser, updateLastUsed, isLoggedIn, getCurrentUserConfig } = useMultiUser();
+  
+  // 配置状态：优先使用多用户配置，否则使用旧的单用户配置
   const [config, setConfig] = useState<ServerConfig | null>(() => {
+    // 如果有多用户配置，使用多用户配置
+    const multiUserConfig = getCurrentUserConfig();
+    if (multiUserConfig) return multiUserConfig;
+    // 否则尝试加载旧配置
     try { const s = localStorage.getItem('embyConfig'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
   });
+
+  // 用户切换后更新配置
+  useEffect(() => {
+    const multiUserConfig = getCurrentUserConfig();
+    if (multiUserConfig) {
+      setConfig(multiUserConfig);
+    }
+  }, [currentUser, getCurrentUserConfig]);
 
   const client = useMemo(() => config ? ClientFactory.create(config) : null, [config]);
   const [videos, setVideos] = useState<EmbyItem[]>([]);
@@ -39,6 +57,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
   const [isSidebarFocused, setIsSidebarFocused] = useState(true);
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showUserSwitcher, setShowUserSwitcher] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('account');
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   const [hiddenLibIds, setHiddenLibIds] = useState<Set<string>>(() => {
@@ -57,12 +76,16 @@ function TVRoot({ onToggleMode }: TVRootProps) {
     uiStateRef.current = { selectedVideoIndex, showSettings, selectedLib, previewLib, isSidebarFocused };
   }, [selectedVideoIndex, showSettings, selectedLib, previewLib, isSidebarFocused]);
 
-  // 关键修复：当 config 改变（登录成功）时，同步持久化到本地存储
+  // 关键修复：当 config 改变（登录成功）时，同步持久化到本地存储并更新最后使用时间
   useEffect(() => {
     if (config) {
         localStorage.setItem('embyConfig', JSON.stringify(config));
+        // 如果有多用户配置，更新最后使用时间
+        if (currentUser) {
+          updateLastUsed(currentUser.id);
+        }
     }
-  }, [config]);
+  }, [config, currentUser, updateLastUsed]);
 
   useEffect(() => {
       if (config && client) {
@@ -72,7 +95,63 @@ function TVRoot({ onToggleMode }: TVRootProps) {
       }
   }, [!!config]);
 
-  const handleLogout = useCallback(() => { setConfig(null); localStorage.removeItem('embyConfig'); window.location.reload(); }, []);
+  // 处理登录（添加或切换用户）
+  const handleLogin = useCallback((newConfig: ServerConfig) => {
+    // 检查是否已存在该用户
+    const existingUser = users.find(u => 
+      u.serverUrl === newConfig.url && 
+      u.username === newConfig.username &&
+      u.serverType === newConfig.serverType
+    );
+    
+    if (existingUser) {
+      // 已存在，切换到该用户
+      switchUser(existingUser.id);
+    } else {
+      // 新用户，添加到多用户列表
+      addUser({
+        name: newConfig.username,
+        serverUrl: newConfig.url,
+        username: newConfig.username,
+        token: newConfig.token,
+        serverType: newConfig.serverType
+      });
+    }
+  }, [users, addUser, switchUser]);
+  
+  // 处理用户切换
+  const handleSwitchUser = useCallback((userId: string) => {
+    switchUser(userId);
+    setShowUserSwitcher(false);
+    setShowSettings(false);
+  }, [switchUser]);
+  
+  // 处理添加新用户
+  const handleAddNewUser = useCallback((profile: Omit<import('../../types').UserProfile, 'id' | 'lastUsed'>) => {
+    addUser(profile);
+    setShowUserSwitcher(false);
+  }, [addUser]);
+  
+  // 处理删除用户
+  const handleRemoveUser = useCallback((userId: string) => {
+    removeUser(userId);
+  }, [removeUser]);
+  
+  // 退出登录
+  const handleLogout = useCallback(() => {
+    // 如果有多用户，切换到其他用户而不是完全退出
+    if (users.length > 1 && currentUser) {
+      const otherUser = users.find(u => u.id !== currentUser.id);
+      if (otherUser) {
+        switchUser(otherUser.id);
+        return;
+      }
+    }
+    // 否则执行完整退出
+    setConfig(null);
+    localStorage.removeItem('embyConfig');
+    window.location.reload();
+  }, [users, currentUser, switchUser]);
 
   const toggleLanguage = useCallback(() => {
     setLanguage(prev => {
@@ -266,7 +345,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
 
   useEffect(() => { if (client) client.getLibraries().then(libs => { setLibraries(libs); }); }, [client]);
 
-  if (!config || !client) return <Login onLogin={setConfig} />;
+  if (!config || !client) return <Login onLogin={handleLogin} />;
 
   const t = {
       zh: { discover: '首页', settings: '设置', logout: '退出', latest: '最新', favorites: '收藏', random: '随机' },
@@ -334,6 +413,9 @@ function TVRoot({ onToggleMode }: TVRootProps) {
                 language={language} onToggleLanguage={toggleLanguage} onToggleMode={onToggleMode!} onLogout={handleLogout}
                 activeTab={activeTab} onTabChange={setActiveTab}
                 version={appVersion}
+                onShowUserSwitcher={() => setShowUserSwitcher(true)}
+                hasMultiUser={users.length > 0}
+                userCount={users.length}
             />
         ) : (
             <div className="h-full flex flex-col min-h-0">
@@ -360,6 +442,23 @@ function TVRoot({ onToggleMode }: TVRootProps) {
               <SideTabPill label={t.favorites} icon={<Star size={14} />} active={feedType === 'favorites'} onClick={() => setFeedType('favorites')} />
               <SideTabPill label={t.random} icon={<RefreshCcw size={14} />} active={feedType === 'random'} onClick={() => setFeedType('random')} />
           </div>
+      )}
+
+      {/* 用户切换器 */}
+      {showUserSwitcher && (
+        <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center">
+          <div className="w-[400px] max-h-[80vh]">
+            <UserSwitcher
+              users={users}
+              currentUser={currentUser}
+              onSwitchUser={handleSwitchUser}
+              onAddUser={handleAddNewUser}
+              onRemoveUser={handleRemoveUser}
+              onClose={() => setShowUserSwitcher(false)}
+              language={language}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

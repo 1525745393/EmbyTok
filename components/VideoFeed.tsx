@@ -29,6 +29,12 @@ interface VideoFeedProps {
   subtitleSettings?: SubtitleSettings;
   onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
   onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
+  /** 外部预览状态：当前正在预览的视频ID */
+  previewingId?: string | null;
+  /** 开始预览回调 */
+  onStartPreview?: (videoId: string) => void;
+  /** 停止预览回调 */
+  onStopPreview?: () => void;
 }
 
 const VideoFeed: React.FC<VideoFeedProps> = ({ 
@@ -53,7 +59,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     subtitleTracksMap = new Map(),
     subtitleSettings,
     onUpdateSubtitleSettings = () => {},
-    onAddToWatchHistory = () => {}
+    onAddToWatchHistory = () => {},
+    previewingId = null,
+    onStartPreview,
+    onStopPreview
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
@@ -64,10 +73,14 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   
   // 使用智能视频预加载
   const {
-    isPreloaded,
-    getCacheStatus,
-    updateScrollSpeed
-  } = useSmartVideoPreload(videos, activeIndex);
+    preloadNext,
+    getPreloadedUrl,
+    isPreloading,
+    preloadProgress,
+    networkType,
+    updateScrollDirection,
+    scrollDirection
+  } = useSmartVideoPreload();
 
   // 根据滚动速度动态调整可见视频数量
   const [currentScrollSpeed, setCurrentScrollSpeed] = useState<number>(0);
@@ -106,12 +119,33 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [onDelete]);
 
   // 处理滚动事件并更新滚动速度
+  const lastScrollPosRef = useRef<number>(0);
+  const lastScrollTimeRef = useRef<number>(Date.now());
+
   const handleScroll = useCallback(() => {
     if (containerRef.current) {
-      updateScrollSpeed(containerRef.current.scrollTop);
-      setCurrentScrollSpeed(containerRef.current.scrollTop); // 简化实现
+      const currentPos = containerRef.current.scrollTop;
+      const currentTime = Date.now();
+      const timeDelta = currentTime - lastScrollTimeRef.current;
+      const positionDelta = currentPos - lastScrollPosRef.current;
+
+      // 计算滚动速度
+      if (timeDelta > 0) {
+        const speed = Math.abs(positionDelta / timeDelta);
+        setCurrentScrollSpeed(speed);
+      }
+
+      // 判断滑动方向：向上滚动(currentPos减小)为down(下一个视频)，向下滚动(currentPos增大)为up(上一个视频)
+      if (positionDelta > 0) {
+        updateScrollDirection('up'); // 向下滚动滑到上一个视频
+      } else if (positionDelta < 0) {
+        updateScrollDirection('down'); // 向上滚动滑到下一个视频
+      }
+
+      lastScrollPosRef.current = currentPos;
+      lastScrollTimeRef.current = currentTime;
     }
-  }, [updateScrollSpeed]);
+  }, [updateScrollDirection]);
 
   // 添加滚动监听器
   useEffect(() => {
@@ -125,6 +159,25 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
       }
     };
   }, [handleScroll]);
+
+  // 根据滑动方向预加载下一个视频
+  useEffect(() => {
+    if (!scrollDirection || scrollDirection === 'none') return;
+
+    // 根据滑动方向确定要预加载的视频索引
+    const nextIndex = scrollDirection === 'down' ? activeIndex + 1 : activeIndex - 1;
+    
+    if (nextIndex >= 0 && nextIndex < videos.length) {
+      const nextVideo = videos[nextIndex];
+      // 获取视频URL - 这里假设VideoCard可以通过某种方式获取视频URL
+      // 实际使用时需要从item中获取正确的视频URL
+      const videoUrl = nextVideo.MediaSources?.[0]?.Path || nextVideo.key || '';
+      
+      if (videoUrl) {
+        preloadNext(nextVideo.Id, videoUrl);
+      }
+    }
+  }, [scrollDirection, activeIndex, videos, preloadNext]);
 
   useEffect(() => {
     setIsTV(window.navigator.userAgent.toLowerCase().includes('tv'));
@@ -233,9 +286,13 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const renderVideoCards = useMemo(() => {
     return videos.map((item, index) => {
       const isVisible = visibleIndices.has(index);
-      const isPreloadedItem = isPreloaded(item.Id);
-      const cacheStatus = getCacheStatus(item.Id);
+      const preloadedUrl = getPreloadedUrl(item.Id);
+      const isPreloadedItem = !!preloadedUrl;
+      const isPreloadingItem = isPreloading(item.Id);
+      const preloadProgressValue = preloadProgress(item.Id);
+      const cacheStatus = isPreloadingItem ? 'preparing' : isPreloadedItem ? 'ready' : 'idle';
       const isFav = isFavoriteFunc ? isFavoriteFunc(item.Id) : favoriteIds.has(item.Id);
+      const isCurrentlyPreviewing = previewingId === item.Id;
       
       return (
         <div
@@ -263,6 +320,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
               subtitleSettings={subtitleSettings}
               onUpdateSubtitleSettings={onUpdateSubtitleSettings}
               onAddToWatchHistory={onAddToWatchHistory}
+              isPreviewMode={!isActive && isVisible}
+              isPreviewing={isCurrentlyPreviewing}
+              onPreviewStart={onStartPreview}
+              onPreviewStop={onStopPreview}
             />
           ) : (
             <div className="w-full h-full bg-black" />
@@ -270,7 +331,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
         </div>
       );
     });
-  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory]);
+  }, [videos, visibleIndices, client, activeIndex, favoriteIds, isFavoriteFunc, createToggleFavorite, createDelete, isMuted, onToggleMute, isAutoPlay, onToggleAutoPlay, handleNextVideo, language, isPreloaded, getCacheStatus, subtitleTracksMap, subtitleSettings, onUpdateSubtitleSettings, onAddToWatchHistory, previewingId, onStartPreview, onStopPreview]);
 
   if (videos.length === 0 && !isLoading) {
     return (

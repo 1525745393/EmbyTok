@@ -3,11 +3,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { EmbyItem, SubtitleTrack, SubtitleSettings, PlaybackSpeed } from '../types';
 import { MediaClient } from '../services/MediaClient';
 import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2, Subtitles, Loader } from 'lucide-react';
-import { useLazyImage, usePlaybackSpeed, useBuffering } from '../src/hooks';
+import { useLazyImage, usePlaybackSpeed, useBuffering, useVideoPreview } from '../src/hooks';
 import SubtitleControls from './SubtitleControls';
 import SubtitleRenderer from './SubtitleRenderer';
 import ProgressBar from './ProgressBar';
 import SpeedControlPanel from './SpeedControlPanel';
+import VideoPreview from './VideoPreview';
 
 interface VideoCardProps {
   item: EmbyItem;
@@ -28,6 +29,14 @@ interface VideoCardProps {
   subtitleSettings?: SubtitleSettings;
   onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
   onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
+  /** 预览模式：显示预览触发区域 */
+  isPreviewMode?: boolean;
+  /** 是否正在预览 */
+  isPreviewing?: boolean;
+  /** 开始预览回调 */
+  onPreviewStart?: (videoId: string) => void;
+  /** 停止预览回调 */
+  onPreviewStop?: () => void;
 }
 
 const VideoCardComponent: React.FC<VideoCardProps> = ({ 
@@ -48,7 +57,11 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     subtitleTracks = [],
     subtitleSettings,
     onUpdateSubtitleSettings = () => {},
-    onAddToWatchHistory = () => {}
+    onAddToWatchHistory = () => {},
+    isPreviewMode = false,
+    isPreviewing = false,
+    onPreviewStart,
+    onPreviewStop
 }) => {
   const t = useMemo(() => ({
     zh: {
@@ -176,6 +189,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   
   const progressBarRef = useRef<HTMLDivElement>(null);
 
+  // 预览相关状态
+  const [isHovered, setIsHovered] = useState(false);
+  const previewHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
   const posterSrc = useMemo(() => 
     item.ImageTags?.Primary 
@@ -207,6 +224,30 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       setTimeout(() => {
           setHearts(prev => prev.filter(h => h.id !== id));
       }, 1000);
+  }, []);
+
+  // 预览相关处理器
+  const handlePreviewHoverStart = useCallback(() => {
+    if (!isPreviewMode || isActive) return;
+    
+    setIsHovered(true);
+    // 500ms后开始预览
+    previewHoverTimerRef.current = setTimeout(() => {
+      onPreviewStart?.(item.Id);
+    }, 500);
+  }, [isPreviewMode, isActive, item.Id, onPreviewStart]);
+
+  const handlePreviewHoverEnd = useCallback(() => {
+    setIsHovered(false);
+    if (previewHoverTimerRef.current) {
+      clearTimeout(previewHoverTimerRef.current);
+      previewHoverTimerRef.current = null;
+    }
+    onPreviewStop?.();
+  }, [onPreviewStop]);
+
+  const handlePreviewClick = useCallback(() => {
+    // 点击预览可以跳转到该视频
   }, []);
 
   const saveProgress = useCallback(() => {
@@ -565,6 +606,16 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     }
   }, [isActive]);
 
+  // 预览计时器清理
+  useEffect(() => {
+    return () => {
+      if (previewHoverTimerRef.current) {
+        clearTimeout(previewHoverTimerRef.current);
+        previewHoverTimerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -695,6 +746,30 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
               </button>
             </div>
           )}
+        </>
+      )}
+
+      {/* 预览触发区域和预览组件 - 仅预览模式显示 */}
+      {isPreviewMode && posterSrc && (
+        <>
+          {/* 预览触发区域 - 透明覆盖层 */}
+          <div
+            className={`absolute inset-0 z-20 transition-opacity duration-200 ${isHovered ? 'bg-black/10' : 'bg-transparent'}`}
+            onMouseEnter={handlePreviewHoverStart}
+            onMouseLeave={handlePreviewHoverEnd}
+            onTouchStart={handlePreviewHoverStart}
+            onTouchEnd={handlePreviewHoverEnd}
+          />
+          
+          {/* 视频预览窗口 */}
+          <VideoPreview
+            videoUrl={videoSrc}
+            posterUrl={posterSrc}
+            isActive={isPreviewing}
+            onPreviewEnd={handlePreviewHoverEnd}
+            onPreviewClick={handlePreviewClick}
+            previewDuration={3000}
+          />
         </>
       )}
 
@@ -1050,7 +1125,9 @@ const arePropsEqual = (prevProps: VideoCardProps, nextProps: VideoCardProps) => 
     prevProps.client === nextProps.client &&
     prevProps.subtitleSettings?.enabled === nextProps.subtitleSettings?.enabled &&
     prevProps.subtitleSettings?.selectedTrackId === nextProps.subtitleSettings?.selectedTrackId &&
-    prevProps.subtitleTracks?.length === nextProps.subtitleTracks?.length
+    prevProps.subtitleTracks?.length === nextProps.subtitleTracks?.length &&
+    prevProps.isPreviewMode === nextProps.isPreviewMode &&
+    prevProps.isPreviewing === nextProps.isPreviewing
   );
 };
 

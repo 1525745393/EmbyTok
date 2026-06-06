@@ -1,14 +1,18 @@
 import { useCallback } from 'react';
 import { useLocalStorageState } from './useLocalStorageState';
 import type { FavoritesState, FavoriteCollection } from '../../types';
+import { getUserStorageKey } from './useMultiUser';
 
 const FAVORITES_KEY = 'embytok_favorites';
 const DEFAULT_COLLECTION_ID = 'default';
 const DEFAULT_COLLECTION_NAME = '收藏';
 
-export function useFavorites() {
+export function useFavorites(userId?: string) {
+  // 如果有 userId，使用用户隔离的存储键
+  const storageKey = userId ? getUserStorageKey(userId, 'favorites') : FAVORITES_KEY;
+
   const [favoritesState, setFavoritesState] = useLocalStorageState<FavoritesState>(
-    FAVORITES_KEY,
+    storageKey,
     {
       collections: [{
         id: DEFAULT_COLLECTION_ID,

@@ -1,6 +1,6 @@
 
 import { MediaClient } from './MediaClient';
-import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode, SubtitleTrack } from '../types';
+import { EmbyItem, EmbyLibrary, FeedType, ServerConfig, VideoResponse, OrientationMode, SubtitleTrack, RecommendationCategory, WatchedHistoryItem, PlayQueue, PlayQueueItem, PlayMode } from '../types';
 
 export class PlexClient extends MediaClient {
     
@@ -276,5 +276,196 @@ export class PlexClient extends MediaClient {
             console.error('Failed to get subtitle tracks:', error);
             return [];
         }
+    }
+
+    /**
+     * Plex 暂不支持 Recommendations API
+     * 返回空数组
+     */
+    async getRecommendations(): Promise<RecommendationCategory[]> {
+        // Plex API 不提供与 Emby 相同的推荐功能
+        return [];
+    }
+
+    /**
+     * Plex 暂不支持播放进度同步到服务器
+     * @param itemId 媒体项ID
+     * @param positionTicks 播放位置
+     */
+    async updatePlaybackProgress(itemId: string, positionTicks: number): Promise<void> {
+        // Plex 不支持此功能，保持本地状态
+        console.warn('Plex 不支持远程播放进度同步');
+    }
+
+    /**
+     * Plex 暂不支持用户评分
+     * @param itemId 媒体项ID
+     * @param rating 评分（0-10）
+     */
+    async updateUserRating(itemId: string, rating: number): Promise<void> {
+        // Plex 不支持此功能
+        console.warn('Plex 不支持用户评分同步');
+    }
+
+    /**
+     * Plex 获取观影历史
+     * 通过已观看的媒体获取历史记录
+     * @param limit 返回记录数量限制
+     */
+    async getWatchedHistory(limit: number = 50): Promise<WatchedHistoryItem[]> {
+        try {
+            // Plex 使用 /library/allLeaves?viewedAt=1 获取已观看项目
+            const response = await fetch(
+                `${this.getCleanUrl()}/library/all?type=4&viewedAt=1&X-Plex-Container-Start=0&X-Plex-Container-Size=${limit}`,
+                { headers: this.getHeaders() }
+            );
+            
+            const data = await response.json();
+            const items = data.MediaContainer?.Metadata || [];
+            
+            return items.map((item: any) => ({
+                id: item.ratingKey,
+                itemId: item.ratingKey,
+                name: item.title || '未命名',
+                type: item.type,
+                mediaType: 'Video',
+                overview: item.summary,
+                productionYear: item.year,
+                width: item.Media?.[0]?.width,
+                height: item.Media?.[0]?.height,
+                runTimeTicks: item.duration ? item.duration * 10000 : 0,
+                playbackPositionTicks: item.viewOffset ? item.viewOffset * 10000 : 0,
+                playCount: item.viewCount || 0,
+                played: (item.viewCount || 0) > 0,
+                lastPlayedDate: item.lastViewedAt ? new Date(item.lastViewedAt * 1000).toISOString() : undefined,
+                isFavorite: false
+            }));
+        } catch (error) {
+            console.error('获取观影历史失败:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Plex 标记为已观看（不支持远程同步）
+     * @param itemId 媒体项ID
+     */
+    async markAsWatched(itemId: string): Promise<void> {
+        // Plex 不支持远程标记已观看
+        console.warn('Plex 不支持远程标记已观看');
+    }
+
+    /**
+     * Plex 标记为未观看（不支持远程同步）
+     * @param itemId 媒体项ID
+     */
+    async markAsUnwatched(itemId: string): Promise<void> {
+        // Plex 不支持远程标记未观看
+        console.warn('Plex 不支持远程标记未观看');
+    }
+
+    // ==================== 播放队列相关实现 ====================
+
+    /**
+     * 创建播放队列
+     * Plex 不支持播放队列 API，使用本地队列模拟
+     */
+    async createPlayQueue(items: EmbyItem[], startIndex: number = 0): Promise<PlayQueue> {
+        const now = Date.now();
+        const queueId = `local_queue_${now}`;
+
+        const queueItems: PlayQueueItem[] = items.map((item, index) => ({
+            id: `queue_item_${now}_${index}`,
+            item: item,
+            addedAt: now
+        }));
+
+        return {
+            id: queueId,
+            name: 'EmbyTok Queue',
+            items: queueItems,
+            currentIndex: startIndex,
+            playMode: PlayMode.Sequential,
+            createdAt: now,
+            updatedAt: now
+        };
+    }
+
+    /**
+     * 添加项目到播放队列
+     */
+    async addToPlayQueue(queueId: string, items: EmbyItem[]): Promise<void> {
+        console.log(`[PlexClient] 添加 ${items.length} 个项目到队列 ${queueId}`);
+    }
+
+    /**
+     * 从播放队列移除项目
+     */
+    async removeFromPlayQueue(queueId: string, itemIds: string[]): Promise<void> {
+        console.log(`[PlexClient] 从队列 ${queueId} 移除项目: ${itemIds.join(', ')}`);
+    }
+
+    /**
+     * 获取剧集的下一集
+     * 调用 Plex 的 /shows/{ratingKey}/allLeaves 获取剧集列表
+     */
+    async getNextEpisode(seriesId: string, currentEpisodeId: string): Promise<EmbyItem | null> {
+        try {
+            const response = await fetch(
+                `${this.getCleanUrl()}/shows/${seriesId}/allLeaves?X-Plex-Container-Start=0&X-Plex-Container-Size=500`,
+                { headers: this.getHeaders() }
+            );
+
+            if (!response.ok) {
+                console.error(`获取剧集列表失败: ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json();
+            const episodes = data.MediaContainer?.Metadata || [];
+
+            if (episodes.length === 0) {
+                return null;
+            }
+
+            // 找到当前剧集的索引
+            const currentIndex = episodes.findIndex((ep: any) => ep.ratingKey === currentEpisodeId);
+
+            if (currentIndex === -1) {
+                console.warn(`未找到当前剧集 ${currentEpisodeId}`);
+                return null;
+            }
+
+            // 获取下一集
+            const nextIndex = currentIndex + 1;
+
+            if (nextIndex >= episodes.length) {
+                return null;
+            }
+
+            const nextEp = episodes[nextIndex];
+            const mapped = this.mapPlexItems([nextEp]);
+
+            return mapped[0] || null;
+        } catch (error) {
+            console.error('获取下一集失败:', error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取播放队列
+     * Plex 不支持播放队列，返回空队列
+     */
+    async getPlayQueue(queueId: string): Promise<PlayQueue> {
+        return {
+            id: queueId,
+            name: 'EmbyTok Queue',
+            items: [],
+            currentIndex: 0,
+            playMode: PlayMode.Sequential,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
     }
 }
