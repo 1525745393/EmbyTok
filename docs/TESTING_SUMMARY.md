@@ -91,6 +91,21 @@
 - ✅ `useUpdateChecker.test.ts` - 更新检查 Hook 测试
   - 版本检查
   - 错误处理
+- ✅ `useGestureControls.test.ts` - 手势控制 Hook 测试
+  - 初始化状态
+  - 手势处理方法
+  - 心形动画
+- ✅ `useImagePreload.test.ts` - 图片预加载 Hook 测试
+  - 预加载状态管理
+  - 配置选项
+- ✅ `useLazyImage.test.ts` - 懒加载图片 Hook 测试
+  - 加载状态管理
+  - 重试机制
+  - 渐进式加载
+- ✅ `useSmartVideoPreload.test.ts` - 智能视频预加载 Hook 测试
+  - 预加载策略
+  - 滚动速度检测
+  - 网络质量检测
 
 ### 组件集成测试 (`components/__tests__/`)
 - ✅ `Login.test.tsx` - 登录组件测试
@@ -150,7 +165,11 @@ npm run test:run
 │   ├── useUIState.test.ts
 │   ├── useVideoList.test.ts
 │   ├── useSubtitles.test.ts
-│   └── useUpdateChecker.test.ts
+│   ├── useUpdateChecker.test.ts
+│   ├── useGestureControls.test.ts
+│   ├── useImagePreload.test.ts
+│   ├── useLazyImage.test.ts
+│   └── useSmartVideoPreload.test.ts
 ├── components/__tests__/
 │   ├── Login.test.tsx
 │   └── VideoPlayer.test.tsx
@@ -165,13 +184,7 @@ npm run test:run
 
 ## 后续工作建议
 
-1. **剩余 Hook 测试**：为以下 Hooks 添加测试
-   - `useGestureControls`
-   - `useImagePreload`
-   - `useLazyImage`
-   - `useSmartVideoPreload`
-
-2. **更多组件测试**：为以下组件添加集成测试
+1. **更多组件测试**：为以下组件添加集成测试
    - `VideoFeed`
    - `VideoGrid`
    - `VideoCard`
@@ -182,23 +195,23 @@ npm run test:run
    - `LibrarySelect`
    - 以及其他所有 UI 组件
 
-3. **E2E 测试**：添加端到端测试
+2. **E2E 测试**：添加端到端测试
    - 使用 Playwright 或 Cypress
    - 测试完整用户流程
    - 测试真实网络请求
 
-4. **CI/CD 集成**：配置自动化测试流程
+3. **CI/CD 集成**：配置自动化测试流程
    - GitHub Actions 或类似 CI 工具
    - 每次提交自动运行测试
    - 测试覆盖率报告
    - 性能回归检测
 
-5. **性能测试**：添加性能基准测试
+4. **性能测试**：添加性能基准测试
    - 视频加载性能
    - 内存使用情况
    - 滚动流畅度
 
-6. **设备特定测试**：为移动和电视模式添加专门测试
+5. **设备特定测试**：为移动和电视模式添加专门测试
    - 电视遥控器导航
    - 触摸手势
    - 不同屏幕尺寸
