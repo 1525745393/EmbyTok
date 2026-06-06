@@ -155,3 +155,44 @@ export interface UpdateCheckResult {
   latestVersion?: string;
   release?: GitHubRelease;
 }
+
+// Playback Experience Types
+export type PlaybackSpeed = 0.5 | 0.75 | 1.0 | 1.25 | 1.5 | 1.75 | 2.0 | 2.5 | 3.0 | 3.5 | 4.0 | 4.5 | 5.0;
+
+export interface PlaybackSpeedOption {
+  value: PlaybackSpeed;
+  label: string;
+}
+
+export interface BufferingState {
+  isBuffering: boolean;
+  bufferedPercent: number;
+  waitingForData: boolean;
+}
+
+export interface ProgressBarProps {
+  currentTime: number;
+  duration: number;
+  buffered: TimeRanges | null;
+  onSeek: (time: number) => void;
+  onSeekStart?: () => void;
+  onSeekEnd?: () => void;
+  showTime?: boolean;
+  language?: 'zh' | 'en';
+}
+
+export interface SpeedControlPanelProps {
+  currentSpeed: PlaybackSpeed;
+  onSpeedChange: (speed: PlaybackSpeed) => void;
+  onClose: () => void;
+  language?: 'zh' | 'en';
+}
+
+export interface GestureControlsOptions {
+  togglePlay: () => void;
+  onDoubleTap?: () => void;
+  onSwipeDown?: () => void;
+  onLongPress?: () => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  longPressDelay?: number;
+}

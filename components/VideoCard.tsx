@@ -1,11 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { EmbyItem, SubtitleTrack, SubtitleSettings } from '../types';
+import { EmbyItem, SubtitleTrack, SubtitleSettings, PlaybackSpeed } from '../types';
 import { MediaClient } from '../services/MediaClient';
-import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2, Subtitles } from 'lucide-react';
-import { useLazyImage } from '../src/hooks';
+import { Play, AlertCircle, Heart, Info, Disc, ChevronsRight, Rewind, FastForward, Zap, Infinity, Trash2, Subtitles, Loader } from 'lucide-react';
+import { useLazyImage, usePlaybackSpeed, useBuffering } from '../src/hooks';
 import SubtitleControls from './SubtitleControls';
 import SubtitleRenderer from './SubtitleRenderer';
+import ProgressBar from './ProgressBar';
+import SpeedControlPanel from './SpeedControlPanel';
 
 interface VideoCardProps {
   item: EmbyItem;
@@ -111,6 +113,31 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [imageLoadError, setImageLoadError] = useState(false);
   const [showSubtitleControls, setShowSubtitleControls] = useState(false);
   const [subtitleCues, setSubtitleCues] = useState<any[]>([]);
+  const [showSpeedPanel, setShowSpeedPanel] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [bufferedPercent, setBufferedPercent] = useState(0);
+
+  // Playback speed hook
+  const {
+    currentSpeed,
+    setSpeed,
+    isCustomSpeed,
+    presetSpeeds,
+    resetSpeed
+  } = usePlaybackSpeed({
+    initialSpeed: 1.0,
+    onSpeedChange: (speed) => {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = speed;
+      }
+    }
+  });
+
+  // Buffering hook
+  const { showBufferingIndicator } = useBuffering({
+    videoRef,
+    bufferThreshold: 0.1
+  });
 
   // 图片懒加载 hook
   const {
@@ -136,7 +163,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const isDragging = useRef(false);
   const isLongPress = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const speedStartRate = useRef(2.0);
+  const speedStartRate = useRef<PlaybackSpeed>(2.0);
   
   const lastTapTime = useRef<number>(0);
   const progressTapCount = useRef(0);
@@ -392,12 +419,12 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
 
       longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
-          setPlaybackRate(2.0);
           setIsSpeedAdjusting(true);
-          speedStartRate.current = 2.0;
-          if (videoRef.current) videoRef.current.playbackRate = 2.0;
-      }, 500);
-  }, []);
+          speedStartRate.current = currentSpeed || 2.0;
+          setShowSpeedPanel(true);
+          if (videoRef.current) videoRef.current.playbackRate = currentSpeed || 2.0;
+      }, 300);
+  }, [currentSpeed]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
       const currentX = e.touches[0].clientX;
@@ -413,9 +440,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       }
 
       if (isLongPress.current && Math.abs(deltaY) > 20) {
-          let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
-          newRate = Math.max(0.5, Math.min(5.0, newRate));
-          setPlaybackRate(newRate);
+          let newRate: PlaybackSpeed = speedStartRate.current + (-deltaY / 100) * 4.5 as PlaybackSpeed;
+          newRate = Math.max(0.5, Math.min(5.0, newRate)) as PlaybackSpeed;
+          setSpeed(newRate);
           if (videoRef.current) {
               videoRef.current.playbackRate = newRate;
           }
@@ -425,7 +452,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
            const offset = Math.round(deltaX / 5); 
            setSeekOffset(offset);
       }
-  }, []);
+  }, [setSpeed]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
       if (longPressTimer.current) {
@@ -439,8 +466,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       if (isLongPress.current) {
           isLongPress.current = false;
           setIsSpeedAdjusting(false);
-          setPlaybackRate(1.0);
-          if (videoRef.current) videoRef.current.playbackRate = 1.0;
+          if (!showSpeedPanel) {
+            resetSpeed();
+          }
       } else if (isDragging.current) {
           if (videoRef.current && seekOffset !== null) {
               const newTime = videoRef.current.currentTime + seekOffset;
@@ -682,6 +710,17 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
         </div>
       )}
 
+      {showBufferingIndicator && (
+        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+          <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-2 rounded-full">
+            <Loader className="w-4 h-4 text-white animate-spin" />
+            <span className="text-white text-xs">
+              {language === 'zh' ? '缓冲中...' : 'Buffering...'}
+            </span>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence>
           {hearts.map(heart => (
               <motion.div
@@ -707,45 +746,31 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           ))}
       </AnimatePresence>
 
-      {playbackRate !== 1.0 && (
+      {currentSpeed !== 1.0 && !showSpeedPanel && (
           <div 
             className="absolute top-24 left-0 right-0 flex justify-center z-50 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
-              setShowSpeedMenu(!showSpeedMenu);
+              setShowSpeedPanel(true);
             }}
           >
             <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
                 <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-white font-bold text-sm">{playbackRate}x</span>
+                <span className="text-white font-bold text-sm">{currentSpeed}x</span>
             </div>
           </div>
       )}
 
-      {showSpeedMenu && (
-          <div 
-            className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
-              <button
-                key={speed}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPlaybackRate(speed);
-                  if (videoRef.current) {
-                    videoRef.current.playbackRate = speed;
-                  }
-                  setShowSpeedMenu(false);
-                }}
-                className={`w-full px-4 py-2 rounded-lg text-white text-sm transition-colors ${
-                  playbackRate === speed ? 'bg-indigo-600' : 'hover:bg-white/20'
-                }`}
-              >
-                {speed}x
-              </button>
-            ))}
-          </div>
+      {showSpeedPanel && (
+        <SpeedControlPanel
+          currentSpeed={currentSpeed}
+          onSpeedChange={(speed) => {
+            setSpeed(speed);
+            setShowSpeedPanel(false);
+          }}
+          onClose={() => setShowSpeedPanel(false)}
+          language={language}
+        />
       )}
 
       {seekOffset !== null && (
@@ -864,8 +889,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                     tabIndex={0}
                     onTouchStart={stopProp}
                     onMouseDown={stopProp}
-                    onTouchEnd={(e) => handleButtonAction(e, () => setShowSpeedMenu(!showSpeedMenu))}
-                    onClick={(e) => handleButtonAction(e, () => setShowSpeedMenu(!showSpeedMenu))}
+                    onTouchEnd={(e) => handleButtonAction(e, () => setShowSpeedPanel(!showSpeedPanel))}
+                    onClick={(e) => handleButtonAction(e, () => setShowSpeedPanel(!showSpeedPanel))}
                     className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
                       <ChevronsRight className="w-7 h-7 text-white drop-shadow-md" />
@@ -929,58 +954,34 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           </div>
       )}
 
-      {isSpeedAdjusting && (
+      {isSpeedAdjusting && !showSpeedPanel && (
           <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-50">
               <div className="bg-black/70 backdrop-blur-md text-white px-6 py-3 rounded-full flex items-center gap-2 animate-in fade-in zoom-in">
                   <Zap className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <span className="text-xl font-bold">{playbackRate.toFixed(1)}x</span>
+                  <span className="text-xl font-bold">{currentSpeed.toFixed(1)}x</span>
               </div>
           </div>
       )}
 
       {showProgressBar && duration > 0 && (
-          <div 
-            className="absolute bottom-8 left-4 right-4 h-12 flex items-center gap-3 z-50"
-          >
-              <span className="text-white text-xs font-medium drop-shadow-md w-10 text-right pointer-events-none">
-                {formatSecondsToTime(currentTime)}
-              </span>
-
-              <div 
-                ref={progressBarRef}
-                className="flex-1 relative h-12 flex items-center cursor-pointer"
-                onTouchStart={handleProgressTouchStart}
-                onTouchMove={handleProgressTouchMove}
-                onTouchEnd={handleProgressTouchEnd}
-                onMouseDown={handleSeekStart}
-                onMouseMove={handleSeekMove}
-                onMouseUp={handleSeekEnd}
-                onMouseLeave={handleSeekEnd}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    showProgressAndResetTimer();
-                }} 
-              >
-                  <div className="absolute inset-0 -my-4" />
-                  
-                  <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden relative">
-                      <div 
-                          className="h-full bg-indigo-500 transition-all duration-75"
-                          style={{ width: `${(currentTime / duration) * 100}%` }}
-                      />
-                  </div>
-                  <div 
-                      className="absolute w-6 h-6 bg-white rounded-full shadow-lg transform -translate-x-1/2 cursor-grab active:cursor-grabbing"
-                      style={{ left: `${(currentTime / duration) * 100}%` }}
-                  >
-                      <div className="w-full h-full rounded-full border-2 border-indigo-500 bg-white" />
-                  </div>
-              </div>
-
-              <span className="text-white text-xs font-medium drop-shadow-md w-10 pointer-events-none">
-                {formatSecondsToTime(duration)}
-              </span>
-          </div>
+          <ProgressBar
+            currentTime={currentTime}
+            duration={duration}
+            buffered={videoRef.current?.buffered || null}
+            onSeek={(time) => {
+              if (videoRef.current) {
+                videoRef.current.currentTime = time;
+              }
+            }}
+            onSeekStart={() => {
+              setIsSeeking(true);
+            }}
+            onSeekEnd={() => {
+              setIsSeeking(false);
+            }}
+            showTime={true}
+            language={language}
+          />
       )}
 
       {subtitleSettings && (

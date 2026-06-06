@@ -10,6 +10,9 @@ export default {
     autoPlayOn: 'Auto-play enabled',
     doubleSpeed: '2x Speed',
     videoLoadError: 'Failed to load video',
+    buffering: 'Buffering...',
+    playbackSpeed: 'Playback Speed',
+    resetTo1x: 'Reset to 1x',
   },
   login: {
     serverAddress: 'Server Address',

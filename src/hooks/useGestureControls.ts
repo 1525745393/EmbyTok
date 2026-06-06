@@ -4,13 +4,16 @@ interface GestureControlsOptions {
   togglePlay: () => void;
   onDoubleTap?: () => void;
   onSwipeDown?: () => void;
+  onLongPress?: () => void;
   videoRef: React.RefObject<HTMLVideoElement>;
+  longPressDelay?: number;
 }
 
 interface GestureControlsState {
   playbackRate: number;
   seekOffset: number | null;
   hearts: Array<{ id: number; x: number; y: number; rotate: number }>;
+  isLongPressing: boolean;
 }
 
 interface GestureControlsActions {
@@ -23,11 +26,12 @@ interface GestureControlsActions {
 export function useGestureControls(
   options: GestureControlsOptions
 ): GestureControlsState & GestureControlsActions {
-  const { togglePlay, onDoubleTap, onSwipeDown, videoRef } = options;
+  const { togglePlay, onDoubleTap, onSwipeDown, onLongPress, videoRef, longPressDelay = 300 } = options;
 
   const [playbackRate, setPlaybackRate] = useState(1.0);
   const [seekOffset, setSeekOffset] = useState<number | null>(null);
   const [hearts, setHearts] = useState<Array<{ id: number; x: number; y: number; rotate: number }>>([]);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -57,10 +61,14 @@ export function useGestureControls(
 
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
+      setIsLongPressing(true);
       setPlaybackRate(2.0);
       if (videoRef.current) videoRef.current.playbackRate = 2.0;
-    }, 500);
-  }, [videoRef]);
+      if (onLongPress) {
+        onLongPress();
+      }
+    }, longPressDelay);
+  }, [videoRef, longPressDelay, onLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     const currentX = e.touches[0].clientX;
@@ -73,17 +81,25 @@ export function useGestureControls(
       }
     }
 
-    if (!isLongPress.current) {
+    if (isLongPress.current) {
+      const deltaY = currentY - touchStartY.current;
+      if (Math.abs(deltaY) > 20) {
+        let newRate = playbackRate + (-deltaY / 100) * 4.5;
+        newRate = Math.max(0.5, Math.min(5.0, newRate));
+        setPlaybackRate(newRate);
+        if (videoRef.current) videoRef.current.playbackRate = newRate;
+      }
+    } else {
       const deltaX = currentX - touchStartX.current;
       const deltaY = currentY - touchStartY.current;
-      
+
       if (Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
         isDragging.current = true;
         const offset = Math.round(deltaX / 5);
         setSeekOffset(offset);
       }
     }
-  }, []);
+  }, [playbackRate, videoRef]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (longPressTimer.current) {
@@ -94,6 +110,8 @@ export function useGestureControls(
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const deltaY = e.changedTouches[0].clientY - touchStartY.current;
     const touchDuration = Date.now() - touchStartTime.current;
+
+    setIsLongPressing(false);
 
     if (isLongPress.current) {
       isLongPress.current = false;
@@ -108,7 +126,6 @@ export function useGestureControls(
       setSeekOffset(null);
     } else if (touchDuration < 300) {
       if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 50) {
-        // 向下轻扫
         if (onSwipeDown) {
           onSwipeDown();
         }
@@ -142,6 +159,7 @@ export function useGestureControls(
     playbackRate,
     seekOffset,
     hearts,
+    isLongPressing,
     addHeart,
     handleTouchStart,
     handleTouchMove,

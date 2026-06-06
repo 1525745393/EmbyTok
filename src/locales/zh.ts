@@ -10,6 +10,9 @@ export default {
     autoPlayOn: '自动连播已开启',
     doubleSpeed: '2倍速中',
     videoLoadError: '无法加载视频',
+    buffering: '缓冲中...',
+    playbackSpeed: '播放速度',
+    resetTo1x: '恢复1x',
   },
   login: {
     serverAddress: '服务器地址',

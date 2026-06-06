@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, AlertCircle, Zap, ChevronsRight, Rewind, FastForward } from 'lucide-react';
+import { Play, AlertCircle, Zap, ChevronsRight, Rewind, FastForward, Loader } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -14,6 +14,8 @@ interface VideoPlayerProps {
   seekOffset: number | null;
   isAutoPlay: boolean;
   videoObjectFitClass: string;
+  isBuffering?: boolean;
+  bufferedPercent?: number;
   onLoadStart: () => void;
   onCanPlay: () => void;
   onPlaying: () => void;
@@ -21,6 +23,7 @@ interface VideoPlayerProps {
   onLoadedMetadata: () => void;
   onVideoEnded: () => void;
   onError: () => void;
+  onWaiting?: () => void;
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
@@ -36,13 +39,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
   seekOffset,
   isAutoPlay,
   videoObjectFitClass,
+  isBuffering = false,
+  bufferedPercent = 0,
   onLoadStart,
   onCanPlay,
   onPlaying,
   onTimeUpdate,
   onLoadedMetadata,
   onVideoEnded,
-  onError
+  onError,
+  onWaiting
 }) => {
   return (
     <>
@@ -62,6 +68,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
         onLoadedMetadata={onLoadedMetadata}
         onEnded={onVideoEnded}
         onError={onError}
+        onWaiting={onWaiting}
       />
 
       {posterSrc && !hasStarted && (
@@ -83,8 +90,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = React.memo(({
         <div className="absolute top-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
           <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
             <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            <span className="text-white font-bold text-sm">Double Speed</span>
+            <span className="text-white font-bold text-sm">{playbackRate}x</span>
             <ChevronsRight className="w-4 h-4 text-white" />
+          </div>
+        </div>
+      )}
+
+      {isBuffering && (
+        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
+          <div className="flex flex-col items-center gap-2 bg-black/70 backdrop-blur-md px-4 py-3 rounded-full">
+            <Loader className="w-6 h-6 text-white animate-spin" />
+            <span className="text-white text-xs">Buffering...</span>
           </div>
         </div>
       )}
