@@ -130,6 +130,16 @@
   - 渲染与可见性
   - 库选择
   - 菜单切换
+- ✅ `SearchBar.test.tsx` - 搜索栏组件测试
+  - 基本渲染
+  - 查询显示和输入处理
+  - 清空查询按钮
+  - 搜索历史显示和处理
+- ✅ `DeleteConfirmDialog.test.tsx` - 删除确认对话框组件测试
+  - 显示/隐藏控制
+  - 确认和取消操作
+- ✅ `VideoSkeleton.test.tsx` - 视频骨架加载组件测试
+  - 基本渲染
 
 ## 测试运行命令
 
@@ -156,8 +166,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：26 个
-- 总测试用例：221 个
+- 总测试文件：29 个
+- 总测试用例：235 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -186,7 +196,10 @@ npm run test:run
 │   ├── Login.test.tsx
 │   ├── VideoPlayer.test.tsx
 │   ├── HeartAnimation.test.tsx
-│   └── LibrarySelect.test.tsx
+│   ├── LibrarySelect.test.tsx
+│   ├── SearchBar.test.tsx
+│   ├── DeleteConfirmDialog.test.tsx
+│   └── VideoSkeleton.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
