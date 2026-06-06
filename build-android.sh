@@ -46,9 +46,9 @@ if [ -f "$APK_PATH" ]; then
     echo "====================================="
     
     # 复制到项目根目录方便使用
-    cp "$APK_PATH" "EmbyTok-1.9.3.apk"
+    cp "$APK_PATH" "EmbyTok-1.10.0.apk"
     echo ""
-    echo "✅ 已复制到: EmbyTok-1.9.3.apk"
+    echo "✅ 已复制到: EmbyTok-1.10.0.apk"
 else
     echo "❌ 找不到 APK 文件！"
     exit 1
