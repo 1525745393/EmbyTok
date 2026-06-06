@@ -34,7 +34,7 @@ function MobileRoot() {
   // 语言状态补全
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   // 版本号
-  const [appVersion, setAppVersion] = useState<string>('1.2.3');
+  const [appVersion, setAppVersion] = useState<string>('2.3.4');
 
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(() => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'vertical');
   const [hiddenLibIds, setHiddenLibIds] = useState<Set<string>>(() => {
