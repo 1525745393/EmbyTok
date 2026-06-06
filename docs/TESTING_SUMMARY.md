@@ -140,6 +140,17 @@
   - 确认和取消操作
 - ✅ `VideoSkeleton.test.tsx` - 视频骨架加载组件测试
   - 基本渲染
+- ✅ `VideoControls.test.tsx` - 视频控制组件测试
+  - 基本渲染
+  - 按钮点击事件处理
+  - 静音、收藏、自动播放功能
+- ✅ `UpdateNotification.test.tsx` - 更新通知组件测试
+  - 显示/隐藏控制
+  - 语言切换
+  - 关闭和稍后再说按钮
+- ✅ `VideoInfo.test.tsx` - 视频信息组件测试
+  - 视频名称、年份、时长、简介显示
+  - 简介展开/收起功能
 
 ## 测试运行命令
 
@@ -166,8 +177,8 @@ npm run test:run
 - 关键组件：90%+ (多个重要组件已有测试)
 
 测试统计：
-- 总测试文件：29 个
-- 总测试用例：235 个
+- 总测试文件：32 个
+- 总测试用例：252 个
 - 通过率：100% 🎉
 
 ## 已完成的测试文件总览
@@ -199,7 +210,10 @@ npm run test:run
 │   ├── LibrarySelect.test.tsx
 │   ├── SearchBar.test.tsx
 │   ├── DeleteConfirmDialog.test.tsx
-│   └── VideoSkeleton.test.tsx
+│   ├── VideoSkeleton.test.tsx
+│   ├── VideoControls.test.tsx
+│   ├── UpdateNotification.test.tsx
+│   └── VideoInfo.test.tsx
 ├── services/__tests__/
 │   ├── EmbyClient.test.ts
 │   └── PlexClient.test.ts
@@ -216,10 +230,9 @@ npm run test:run
    - `VideoGrid`
    - `VideoCard`
    - `FavoritesManager`
-   - `SearchBar` / `SearchResults`
+   - `SearchResults`
    - `SubtitleControls`
    - `TVDashboard`
-   - `LibrarySelect`
    - 以及其他所有 UI 组件
 
 2. **E2E 测试**：添加端到端测试
