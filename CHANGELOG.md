@@ -1,5 +1,47 @@
 # 版本更新日志 (Changelog)
 
+## v1.10.1
+**日期**: 2026-06-06
+
+### 🚀 新功能与优化
+#### 1. 完整的自动化发布流程
+- **版本管理工具**：自动管理版本号，支持 patch/minor/major 升级
+  - 一键查看当前版本
+  - 自动升级版本并更新 package.json
+  - 自动生成 CHANGELOG 条目模板
+- **CHANGELOG 提取工具**：自动从 CHANGELOG 提取发布说明
+  - 支持指定版本号提取
+  - 自动格式化 GitHub Release 说明
+  - 包含下载链接和功能特性
+- **发布前检查工具**：全面的质量检查
+  - 版本号格式验证
+  - CHANGELOG 更新检查
+  - Git 工作区状态检查
+  - TypeScript 类型检查
+  - 单元测试运行
+  - 项目构建验证
+- **GitHub Actions 工作流**：完整的 CI/CD 流程
+  - Release 工作流：自动测试 → 构建 → 发布
+  - Pre-release 工作流：预发布版本管理
+  - 支持手动触发，可配置参数
+
+### 🔧 技术改进
+- **工作流优化**：测试通过后才执行构建和发布
+- **防重复发布**：自动检查标签是否存在
+- **灵活配置**：可选择是否创建 Release、推送 Docker、构建 APK
+- **多平台支持**：Docker 镜像支持 linux/amd64 和 linux/arm64
+
+### 📁 文件更新
+- `.github/workflows/release.yml` (新增) - 正式发布工作流
+- `.github/workflows/pre-release.yml` (新增) - 预发布工作流
+- `scripts/version-manager.js` (新增) - 版本管理工具
+- `scripts/extract-changelog.js` (新增) - CHANGELOG 提取工具
+- `scripts/pre-release-check.js` (新增) - 发布前检查脚本
+- `RELEASE_GUIDE.md` (新增) - 发布指南文档
+- `package.json` (更新) - 添加版本管理 npm 脚本
+
+---
+
 ## v1.10.0
 **日期**: 2026-06-06
 
