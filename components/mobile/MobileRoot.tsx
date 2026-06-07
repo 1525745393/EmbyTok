@@ -35,6 +35,10 @@ function MobileRoot() {
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   // 版本号
   const [appVersion, setAppVersion] = useState<string>('2.3.4');
+  // 调试模式
+  const [debugMode, setDebugMode] = useState<boolean>(() => {
+    try { const saved = localStorage.getItem('embyDebugMode'); return saved ? JSON.parse(saved) : false; } catch(e) { return false; }
+  });
 
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(() => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'vertical');
   const [hiddenLibIds, setHiddenLibIds] = useState<Set<string>>(() => {
@@ -67,6 +71,12 @@ function MobileRoot() {
       const next = language === 'zh' ? 'en' : 'zh';
       setLanguage(next);
       localStorage.setItem('embyLanguage', next);
+  };
+
+  const toggleDebugMode = () => {
+      const next = !debugMode;
+      setDebugMode(next);
+      localStorage.setItem('embyDebugMode', JSON.stringify(next));
   };
 
   if (!config || !client) return <Login onLogin={setConfig} />;
@@ -109,6 +119,7 @@ function MobileRoot() {
                 hasMore={hasMore} 
                 onLoadMore={() => loadVideos(false)} 
                 language={language}
+                debugMode={debugMode}
             />
         )}
       </div>
@@ -125,6 +136,8 @@ function MobileRoot() {
         serverUrl={config.url} username={config.username} orientationMode={orientationMode} onOrientationChange={setOrientationMode}
         language={language} onToggleLanguage={toggleLanguage}
         version={appVersion}
+        debugMode={debugMode}
+        onToggleDebugMode={toggleDebugMode}
       />
     </div>
   );

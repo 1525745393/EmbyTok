@@ -27,6 +27,9 @@ interface LibrarySelectProps {
   isCheckingUpdates?: boolean;
   updateCheckResult?: { hasUpdate: boolean; latestVersion?: string; release?: GitHubRelease };
   onShowUpdateDialog?: () => void;
+  // 新增：调试模式
+  debugMode?: boolean;
+  onToggleDebugMode?: () => void;
 }
 
 type MenuMode = 'list' | 'settings' | 'about' | 'sponsor';
@@ -47,7 +50,9 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
     onCheckUpdates,
     isCheckingUpdates,
     updateCheckResult,
-    onShowUpdateDialog
+    onShowUpdateDialog,
+    debugMode = false,
+    onToggleDebugMode
 }) => {
   const [mode, setMode] = useState<MenuMode>('list');
 
@@ -82,6 +87,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           updateAvailable: '有新版本',
           noUpdate: '已是最新版本',
           checkFailed: '检查失败',
+          debugMode: '调试模式',
+          debugDesc: '显示视频调试信息',
       },
       en: {
           title: 'Libraries', settings: 'Settings', about: 'About', all: 'All Media',
@@ -111,6 +118,8 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
           updateAvailable: 'Update Available',
           noUpdate: 'You are up to date',
           checkFailed: 'Check failed',
+          debugMode: 'Debug Mode',
+          debugDesc: 'Show video debug information',
       }
   }[language];
 
@@ -205,6 +214,25 @@ const LibrarySelect: React.FC<LibrarySelectProps> = ({
                               );
                           })}
                       </div>
+                  </div>
+
+                  <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">{t.display}</h3>
+                      <button 
+                          onClick={onToggleDebugMode} 
+                          className="w-full flex items-center justify-between p-4 bg-zinc-800 rounded-xl border border-white/5 hover:bg-zinc-700 transition-all"
+                      >
+                          <div className="flex items-center gap-3">
+                              <Terminal className="w-5 h-5 text-indigo-400" />
+                              <div className="text-left">
+                                  <div className="text-sm font-bold text-white">{t.debugMode}</div>
+                                  <div className="text-[10px] text-zinc-500">{t.debugDesc}</div>
+                              </div>
+                          </div>
+                          <div className={`w-12 h-6 rounded-full transition-colors ${debugMode ? 'bg-indigo-600' : 'bg-zinc-600'}`}>
+                              <div className={`w-5 h-5 rounded-full bg-white mt-0.5 transition-transform ${debugMode ? 'ml-6.5' : 'ml-0.5'}`} />
+                          </div>
+                      </button>
                   </div>
 
                   <div className="space-y-3">

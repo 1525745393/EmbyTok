@@ -29,12 +29,14 @@ export interface EmbyLibrary {
 
 export interface MediaSource {
   Id: string;
+  Name?: string;
   Container: string;
   Path: string;
   Protocol: string;
   SupportsDirectPlay?: boolean;
   SupportsDirectStream?: boolean;
   SupportsTranscoding?: boolean;
+  MediaStreams?: any[];
 }
 
 export interface EmbyItem {

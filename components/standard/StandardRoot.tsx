@@ -61,6 +61,10 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   
   // 语言状态
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
+  // 调试模式
+  const [debugMode, setDebugMode] = useState<boolean>(() => {
+    try { const saved = localStorage.getItem('embyDebugMode'); return saved ? JSON.parse(saved) : false; } catch(e) { return false; }
+  });
   
   // 更新检查功能
   const { 
@@ -295,6 +299,12 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
       setLanguage(next);
       localStorage.setItem('embyLanguage', next);
   };
+
+  const toggleDebugMode = () => {
+      const next = !debugMode;
+      setDebugMode(next);
+      localStorage.setItem('embyDebugMode', JSON.stringify(next));
+  };
   
   // 检查更新
   const handleCheckUpdates = useCallback(async () => {
@@ -522,6 +532,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                     subtitleSettings={subtitleSettings}
                     onUpdateSubtitleSettings={handleUpdateSubtitleSettings}
                     onAddToWatchHistory={handleAddToWatchHistory}
+                    debugMode={debugMode}
                 />
             )}
           </>
@@ -539,6 +550,8 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         isCheckingUpdates={isChecking}
         updateCheckResult={updateCheckResult}
         onShowUpdateDialog={handleShowUpdateDialog}
+        debugMode={debugMode}
+        onToggleDebugMode={toggleDebugMode}
       />
       </Suspense>
       

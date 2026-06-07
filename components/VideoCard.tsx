@@ -26,6 +26,7 @@ interface VideoCardProps {
   subtitleSettings?: SubtitleSettings;
   onUpdateSubtitleSettings?: (settings: Partial<SubtitleSettings>) => void;
   onAddToWatchHistory?: (item: EmbyItem, currentTime: number, duration: number) => void;
+  debugMode?: boolean;
 }
 
 const VideoCardComponent: React.FC<VideoCardProps> = ({ 
@@ -46,7 +47,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     subtitleTracks = [],
     subtitleSettings,
     onUpdateSubtitleSettings = () => {},
-    onAddToWatchHistory = () => {}
+    onAddToWatchHistory = () => {},
+    debugMode = false
 }) => {
   const t = useMemo(() => ({
     zh: {
@@ -68,7 +70,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       directMode: '直接播放',
       transcodeMode: '转码播放',
       fallbackMode: '备用模式',
-      switchMode: '切换播放模式'
+      switchMode: '切换播放模式',
+      debugInfo: '调试信息',
+      mediaSources: '媒体源',
+      copyDebugInfo: '复制调试信息'
     },
     en: {
       deleteVideo: 'Delete Video',
@@ -89,7 +94,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       directMode: 'Direct Play',
       transcodeMode: 'Transcode',
       fallbackMode: 'Fallback',
-      switchMode: 'Switch Mode'
+      switchMode: 'Switch Mode',
+      debugInfo: 'Debug Info',
+      mediaSources: 'Media Sources',
+      copyDebugInfo: 'Copy Debug Info'
     }
   }[language]), [language]);
   
@@ -117,6 +125,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
+  const [isTemporarySpeed, setIsTemporarySpeed] = useState(false);
   const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [showSubtitleControls, setShowSubtitleControls] = useState(false);
@@ -393,20 +402,21 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   }, [handleSeekEnd]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-      touchStartX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
-      isDragging.current = false;
-      isLongPress.current = false;
-      setSeekOffset(null);
-      setIsSpeedAdjusting(false);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isDragging.current = false;
+    isLongPress.current = false;
+    setSeekOffset(null);
+    setIsSpeedAdjusting(false);
 
-      longPressTimer.current = setTimeout(() => {
-          isLongPress.current = true;
-          setPlaybackRate(2.0);
-          setIsSpeedAdjusting(true);
-          speedStartRate.current = 2.0;
-          if (videoRef.current) videoRef.current.playbackRate = 2.0;
-      }, 500);
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      setIsTemporarySpeed(true);
+      setPlaybackRate(2.0);
+      setIsSpeedAdjusting(true);
+      speedStartRate.current = 2.0;
+      if (videoRef.current) videoRef.current.playbackRate = 2.0;
+    }, 500);
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
@@ -416,20 +426,22 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       const deltaY = currentY - touchStartY.current;
 
       if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-          if (longPressTimer.current) {
-              clearTimeout(longPressTimer.current);
-              longPressTimer.current = null;
-          }
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
       }
 
       if (isLongPress.current && Math.abs(deltaY) > 20) {
-          let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
-          newRate = Math.max(0.5, Math.min(5.0, newRate));
-          setPlaybackRate(newRate);
-          if (videoRef.current) {
-              videoRef.current.playbackRate = newRate;
-          }
-          speedStartRate.current = newRate;
+        // 用户滑动调整了速度，标记为用户固定速度
+        setIsTemporarySpeed(false);
+        let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
+        newRate = Math.max(0.5, Math.min(5.0, newRate));
+        setPlaybackRate(newRate);
+        if (videoRef.current) {
+          videoRef.current.playbackRate = newRate;
+        }
+        speedStartRate.current = newRate;
       } else if (!isLongPress.current && Math.abs(deltaX) > 20 && Math.abs(deltaX) > Math.abs(deltaY)) {
            isDragging.current = true;
            const offset = Math.round(deltaX / 5); 
@@ -449,47 +461,51 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       if (isLongPress.current) {
           isLongPress.current = false;
           setIsSpeedAdjusting(false);
-          setPlaybackRate(1.0);
-          if (videoRef.current) videoRef.current.playbackRate = 1.0;
+          // 只有临时加速模式才重置为 1.0
+          if (isTemporarySpeed) {
+              setPlaybackRate(1.0);
+              if (videoRef.current) videoRef.current.playbackRate = 1.0;
+          }
+          setIsTemporarySpeed(false);
       } else if (isDragging.current) {
           if (videoRef.current && seekOffset !== null) {
-              const newTime = videoRef.current.currentTime + seekOffset;
-              videoRef.current.currentTime = Math.min(Math.max(newTime, 0), videoRef.current.duration);
+            const newTime = videoRef.current.currentTime + seekOffset;
+            videoRef.current.currentTime = Math.min(Math.max(newTime, 0), videoRef.current.duration);
           }
           isDragging.current = false;
           setSeekOffset(null);
       } else {
           if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-              const currentTime = Date.now();
-              const tapInterval = currentTime - lastTapTime.current;
-              
-              if (tapInterval < 300 && tapInterval > 0) {
-                  const touch = e.changedTouches[0];
-                  addHeart(touch.clientX - 40, touch.clientY - 40);
-                  
-                  if (!isFavorite) {
-                      onToggleFavorite();
-                  }
-                  
-                  showProgressAndResetTimer();
-              } else {
-                  setTimeout(() => {
-                      const newTapTime = Date.now();
-                      const newTapInterval = newTapTime - lastTapTime.current;
-                      if (newTapInterval >= 300) {
-                          if (showProgress) {
-                              togglePlay();
-                          } else {
-                              showProgressAndResetTimer();
-                          }
-                      }
-                  }, 310);
-              }
-              
-              lastTapTime.current = currentTime;
+            const currentTime = Date.now();
+            const tapInterval = currentTime - lastTapTime.current;
+            
+            if (tapInterval < 300 && tapInterval > 0) {
+                const touch = e.changedTouches[0];
+                addHeart(touch.clientX - 40, touch.clientY - 40);
+                
+                if (!isFavorite) {
+                    onToggleFavorite();
+                }
+                
+                showProgressAndResetTimer();
+            } else {
+                setTimeout(() => {
+                    const newTapTime = Date.now();
+                    const newTapInterval = newTapTime - lastTapTime.current;
+                    if (newTapInterval >= 300) {
+                        if (showProgress) {
+                            togglePlay();
+                        } else {
+                            showProgressAndResetTimer();
+                        }
+                    }
+                }, 310);
+            }
+            
+            lastTapTime.current = currentTime;
           }
       }
-  }, [addHeart, isFavorite, onToggleFavorite, showProgress, togglePlay, showProgressAndResetTimer]);
+  }, [addHeart, isFavorite, onToggleFavorite, showProgress, togglePlay, showProgressAndResetTimer, isTemporarySpeed]);
 
   const formatTimeText = useCallback((ticks?: number) => {
     if (!ticks) return '';
@@ -562,8 +578,14 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
 
     if (isActive) {
       setError(null);
-      video.playbackRate = 1.0;
-      setPlaybackRate(1.0);
+      // 只有临时速度才重置为 1.0，用户设置的速度保留
+      if (isTemporarySpeed) {
+        video.playbackRate = 1.0;
+        setPlaybackRate(1.0);
+        setIsTemporarySpeed(false);
+      } else {
+        video.playbackRate = playbackRate;
+      }
       setIsUserPaused(false);
       
       const playPromise = video.play();
@@ -586,7 +608,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       setHasStarted(false);
       setIsUserPaused(false);
     }
-  }, [isActive, isMuted]);
+  }, [isActive, isMuted, isTemporarySpeed, playbackRate]);
 
   return (
     <div 
@@ -757,11 +779,12 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
             className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
             onClick={(e) => e.stopPropagation()}
           >
-            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+            {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0].map((speed) => (
               <button
                 key={speed}
                 onClick={(e) => {
                   e.stopPropagation();
+                  setIsTemporarySpeed(false);
                   setPlaybackRate(speed);
                   if (videoRef.current) {
                     videoRef.current.playbackRate = speed;
@@ -847,6 +870,59 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
               {language === 'zh' ? `重试 (${MAX_RETRIES - retryCount})` : `Retry (${MAX_RETRIES - retryCount})`}
             </button>
           )}
+        </div>
+      )}
+
+      {(debugMode || error) && (
+        <div className="absolute bottom-20 left-4 right-4 z-50">
+          <details className="w-full max-w-lg">
+            <summary className="cursor-pointer text-white/80 text-sm mb-2 flex items-center gap-2 select-none">
+              {t.debugInfo}
+            </summary>
+            <div 
+              className="bg-black/70 p-3 rounded-lg text-left text-xs font-mono text-white/80 max-h-[40vh] overflow-y-auto"
+              style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const debugText = error
+                    ? `${error}\n\nVideo: ${item.Name}\nItem ID: ${item.Id}\nVideo URL: ${videoSrc}\nMedia Sources: ${item.MediaSources?.length || 0}\n${item.MediaSources?.map((src, idx) => `\n  ${idx + 1}. ${src.Name || 'Source ' + (idx + 1)} (${src.Container || 'unknown'})`).join('')}`
+                    : `Video: ${item.Name}\nItem ID: ${item.Id}\nVideo URL: ${videoSrc}\nMedia Sources: ${item.MediaSources?.length || 0}\n${item.MediaSources?.map((src, idx) => `\n  ${idx + 1}. ${src.Name || 'Source ' + (idx + 1)} (${src.Container || 'unknown'})`).join('')}`;
+                  navigator.clipboard.writeText(debugText).catch(() => {});
+                }}
+                className="mb-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white/80 text-xs font-medium"
+              >
+                {t.copyDebugInfo}
+              </button>
+              {error ? (
+                <pre className="whitespace-pre-wrap mb-3">{error}</pre>
+              ) : null}
+              <p><strong>Video:</strong> {item.Name}</p>
+              <p><strong>Item ID:</strong> {item.Id}</p>
+              <p><strong>Video URL:</strong> {videoSrc}</p>
+              <p><strong>Media Sources:</strong> {item.MediaSources?.length || 0}</p>
+              {item.MediaSources && item.MediaSources.length > 0 && (
+                <div className="mt-2">
+                  <p className="mb-1">
+                    <strong>{t.mediaSources}:</strong>
+                  </p>
+                  {item.MediaSources.map((src, idx) => (
+                    <div key={idx} className="border-l-2 border-gray-600 pl-2 mb-1">
+                      <p>
+                        - {src.Name || 'Source ' + (idx + 1)} ({src.Container || 'unknown'})
+                      </p>
+                      {src.MediaStreams && (
+                        <p className="text-white/60">
+                          Streams: {src.MediaStreams.length}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
         </div>
       )}
       
@@ -1128,7 +1204,8 @@ const arePropsEqual = (prevProps: VideoCardProps, nextProps: VideoCardProps) => 
     prevProps.client === nextProps.client &&
     prevProps.subtitleSettings?.enabled === nextProps.subtitleSettings?.enabled &&
     prevProps.subtitleSettings?.selectedTrackId === nextProps.subtitleSettings?.selectedTrackId &&
-    prevProps.subtitleTracks?.length === nextProps.subtitleTracks?.length
+    prevProps.subtitleTracks?.length === nextProps.subtitleTracks?.length &&
+    prevProps.debugMode === nextProps.debugMode
   );
 };
 
