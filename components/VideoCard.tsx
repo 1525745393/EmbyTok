@@ -62,9 +62,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       videoLoadError: '无法加载视频',
       networkError: '网络连接失败，请检查网络后重试',
       fileNotFound: '视频文件不存在',
-      formatNotSupported: '视频格式不支持',
+      formatNotSupported: '视频格式不支持，正在尝试转码...',
       unknownError: '播放出错，请重试',
-      imageLoadError: '图片加载失败'
+      imageLoadError: '图片加载失败',
+      directMode: '直接播放',
+      transcodeMode: '转码播放',
+      fallbackMode: '备用模式',
+      switchMode: '切换播放模式'
     },
     en: {
       deleteVideo: 'Delete Video',
@@ -79,9 +83,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       videoLoadError: 'Failed to load video',
       networkError: 'Network error, please check your connection and try again',
       fileNotFound: 'Video file not found',
-      formatNotSupported: 'Video format not supported',
+      formatNotSupported: 'Video format not supported, trying transcoding...',
       unknownError: 'Playback error, please try again',
-      imageLoadError: 'Image load failed'
+      imageLoadError: 'Image load failed',
+      directMode: 'Direct Play',
+      transcodeMode: 'Transcode',
+      fallbackMode: 'Fallback',
+      switchMode: 'Switch Mode'
     }
   }[language]), [language]);
   
@@ -97,6 +105,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [videoPreload, setVideoPreload] = useState<'metadata' | 'auto' | 'none'>('metadata');
   const MAX_RETRIES = 3;
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [playMode, setPlayMode] = useState<'direct' | 'transcode' | 'fallback'>('direct');
+  const [showModeMenu, setShowModeMenu] = useState(false);
   
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -149,7 +159,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   
   const progressBarRef = useRef<HTMLDivElement>(null);
 
-  const videoSrc = useMemo(() => client.getVideoUrl(item), [client, item]);
+  const videoSrc = useMemo(() => client.getVideoUrl(item, playMode), [client, item, playMode]);
   const posterSrc = useMemo(() => 
     item.ImageTags?.Primary 
       ? client.getImageUrl(item.Id, item.ImageTags.Primary, 'Primary') 
@@ -537,6 +547,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     }
   }, [isActive]);
 
+  // 当视频ID变化时重置播放模式
+  useEffect(() => {
+    setPlayMode('direct');
+    setError(null);
+    setHasStarted(false);
+  }, [item.Id]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -625,14 +642,27 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                 errorMsg = t.networkError;
                 break;
               case video.error.MEDIA_ERR_DECODE:
-                errorMsg = t.formatNotSupported;
-                break;
               case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                errorMsg = t.fileNotFound;
+                // 解码或源不支持错误时，尝试自动降级
+                if (playMode === 'direct') {
+                  errorMsg = t.formatNotSupported;
+                  // 自动切换到转码模式
+                  setPlayMode('transcode');
+                  setError(null);
+                  return;
+                } else if (playMode === 'transcode') {
+                  // 转码也失败，尝试备用模式
+                  setPlayMode('fallback');
+                  setError(null);
+                  return;
+                } else {
+                  errorMsg = t.formatNotSupported;
+                }
                 break;
             }
           }
           setError(errorMsg);
+          console.error('Video playback error:', video.error, 'Play mode:', playMode);
         }}
       />
 
@@ -743,6 +773,40 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                 }`}
               >
                 {speed}x
+              </button>
+            ))}
+          </div>
+      )}
+
+      {showModeMenu && (
+          <div 
+            className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[140px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-white/70 text-xs px-3 py-1 mb-1">
+              {t.switchMode}
+            </div>
+            {(['direct', 'transcode', 'fallback'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlayMode(mode);
+                  setShowModeMenu(false);
+                  // 重置播放状态
+                  setError(null);
+                  setHasStarted(false);
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                  }
+                }}
+                className={`w-full px-4 py-2 rounded-lg text-white text-sm transition-colors ${
+                  playMode === mode ? 'bg-indigo-600' : 'hover:bg-white/20'
+                }`}
+              >
+                {mode === 'direct' ? t.directMode :
+                 mode === 'transcode' ? t.transcodeMode :
+                 t.fallbackMode}
               </button>
             ))}
           </div>
@@ -869,6 +933,21 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                     className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 focus:ring-2 focus:ring-indigo-500 outline-none"
                   >
                       <ChevronsRight className="w-7 h-7 text-white drop-shadow-md" />
+                  </button>
+              </div>
+
+              <div className="flex flex-col items-center gap-1">
+                  <button 
+                    tabIndex={0}
+                    onTouchStart={stopProp}
+                    onMouseDown={stopProp}
+                    onTouchEnd={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
+                    onClick={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
+                    className={`p-2 rounded-full transition-all active:scale-90 focus:ring-2 focus:ring-indigo-500 outline-none shadow-lg ${playMode !== 'direct' ? 'bg-indigo-600/80 text-white' : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'}`}
+                  >
+                      <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
                   </button>
               </div>
 

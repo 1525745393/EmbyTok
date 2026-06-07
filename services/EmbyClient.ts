@@ -151,19 +151,29 @@ export class EmbyClient extends MediaClient {
         };
     }
 
-    getVideoUrl(item: EmbyItem): string {
-        // 直接获取原始文件，完全不转码
-        // 优先从MediaSources中找到可以直接播放的媒体源
-        if (item.MediaSources && item.MediaSources.length > 0) {
-            const directSource = item.MediaSources.find(m => m.SupportsDirectPlay && m.Path);
-            if (directSource) {
-                return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${directSource.Id}&PlaySessionId=${Date.now()}&api_key=${this.config.token}`;
-            }
-        }
-        
-        // 回退到直接流方式，但明确告诉Emby我们不想要转码
-        return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${Date.now()}&RequireAvc=false&RequireNonAnamorphic=false&MaxWidth=3840&MaxHeight=2160&api_key=${this.config.token}`;
+    getVideoUrl(item: EmbyItem, mode: 'direct' | 'transcode' | 'fallback' = 'direct'): string {
+    const playSessionId = Date.now();
+    const baseUrl = this.getCleanUrl();
+    
+    if (mode === 'direct' && item.MediaSources && item.MediaSources.length > 0) {
+      // 直接播放模式：优先从MediaSources中找到可以直接播放的媒体源
+      const directSource = item.MediaSources.find(m => m.SupportsDirectPlay && m.Path);
+      if (directSource) {
+        return `${baseUrl}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${directSource.Id}&PlaySessionId=${playSessionId}&api_key=${this.config.token}`;
+      }
+      
+      // 如果没有找到直接播放源，也尝试直接流
+      return `${baseUrl}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&RequireAvc=false&RequireNonAnamorphic=false&MaxWidth=3840&MaxHeight=2160&api_key=${this.config.token}`;
     }
+    
+    if (mode === 'transcode') {
+      // 转码模式：让Emby服务器转码为兼容格式
+      return `${baseUrl}/Videos/${item.Id}/master.m3u8?MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&VideoCodec=h264&AudioCodec=aac&MaxWidth=1920&MaxHeight=1080&VideoBitrate=4000000&AudioBitrate=192000&api_key=${this.config.token}`;
+    }
+    
+    // 备用模式：更保守的转码设置
+    return `${baseUrl}/Videos/${item.Id}/stream?MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&VideoCodec=h264&AudioCodec=aac&MaxWidth=1280&MaxHeight=720&VideoBitrate=2000000&AudioBitrate=128000&api_key=${this.config.token}`;
+  }
 
     getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {
         if (!tag) return '';
