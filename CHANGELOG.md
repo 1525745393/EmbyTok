@@ -1,4 +1,20 @@
 # Changelog
+## [1.10.15] - 2026-06-07
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+- 修复GitHub Actions中Android keystore解码失败导致整个构建失败的问题
+- 让Android签名变成可选的，即使签名失败也能构建Debug版本
+
+### Security
+
 ## [1.10.14] - 2026-06-07
 
 ### Added
