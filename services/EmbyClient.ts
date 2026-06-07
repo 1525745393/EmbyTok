@@ -179,53 +179,28 @@ export class EmbyClient extends MediaClient {
     };
   }
 
-  getVideoUrl(item: EmbyItem, useTranscode: boolean = false): string {
-    const playSessionId = Date.now().toString();
-
-    if (useTranscode) {
-      // 转码模式：使用兼容的格式（H.264 + AAC）
-      console.log(`[EmbyClient] Using transcoded stream for ${item.Name}`);
-      return `${this.getCleanUrl()}/Videos/${item.Id}/master.m3u8?MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&VideoCodec=h264&AudioCodec=aac&maxWidth=1920&maxHeight=1080&api_key=${this.config.token}`;
-    }
-
-    // 直接播放模式
-    if (item.MediaSources && item.MediaSources.length > 0) {
-      let bestSource = null;
-
-      for (const source of item.MediaSources) {
-        if (!source.SupportsDirectPlay) continue;
-
-        // 优先选择 Android 兼容的编码格式（H.264/AVC）
-        if (source.MediaStreams) {
-          const videoStream = source.MediaStreams.find((s: any) => s.Type === 'Video');
-          if (
-            videoStream &&
-            (videoStream.Codec === 'h264' ||
-              videoStream.Codec === 'avc' ||
-              videoStream.Codec === 'mpeg4')
-          ) {
-            bestSource = source;
-            break;
-          }
-        }
-
-        // 如果没有找到指定编码，用第一个可用的
-        if (!bestSource && source.Path) {
-          bestSource = source;
-        }
+  getVideoUrl(item: EmbyItem, mode: 'direct' | 'transcode' | 'fallback' = 'direct'): string {
+    const playSessionId = Date.now();
+    const baseUrl = this.getCleanUrl();
+    
+    if (mode === 'direct' && item.MediaSources && item.MediaSources.length > 0) {
+      // 直接播放模式：优先从MediaSources中找到可以直接播放的媒体源
+      const directSource = item.MediaSources.find(m => m.SupportsDirectPlay && m.Path);
+      if (directSource) {
+        return `${baseUrl}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${directSource.Id}&PlaySessionId=${playSessionId}&api_key=${this.config.token}`;
       }
-
-      if (bestSource) {
-        console.log(
-          `[EmbyClient] Using direct stream source for ${item.Name}: ${bestSource.Name || bestSource.Id}`
-        );
-        return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${bestSource.Id}&PlaySessionId=${playSessionId}&api_key=${this.config.token}`;
-      }
+      
+      // 如果没有找到直接播放源，也尝试直接流
+      return `${baseUrl}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&RequireAvc=false&RequireNonAnamorphic=false&MaxWidth=3840&MaxHeight=2160&api_key=${this.config.token}`;
     }
-
-    // 回退到直接流方式
-    console.log(`[EmbyClient] Using fallback direct stream for ${item.Name}`);
-    return `${this.getCleanUrl()}/Videos/${item.Id}/stream?Static=true&MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&api_key=${this.config.token}`;
+    
+    if (mode === 'transcode') {
+      // 转码模式：让Emby服务器转码为兼容格式
+      return `${baseUrl}/Videos/${item.Id}/master.m3u8?MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&VideoCodec=h264&AudioCodec=aac&MaxWidth=1920&MaxHeight=1080&VideoBitrate=4000000&AudioBitrate=192000&api_key=${this.config.token}`;
+    }
+    
+    // 备用模式：更保守的转码设置
+    return `${baseUrl}/Videos/${item.Id}/stream?MediaSourceId=${item.Id}&PlaySessionId=${playSessionId}&VideoCodec=h264&AudioCodec=aac&MaxWidth=1280&MaxHeight=720&VideoBitrate=2000000&AudioBitrate=128000&api_key=${this.config.token}`;
   }
 
   getImageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary'): string {

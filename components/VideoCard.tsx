@@ -77,12 +77,16 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           videoLoadError: '无法加载视频',
           networkError: '网络连接失败，请检查网络后重试',
           fileNotFound: '视频文件不存在',
-          formatNotSupported: '视频格式不支持',
+          formatNotSupported: '视频格式不支持，正在尝试转码...',
           unknownError: '播放出错，请重试',
           imageLoadError: '图片加载失败',
           tryTranscode: '尝试转码播放',
           debugInfo: '调试信息',
           mediaSources: '媒体源信息',
+          directMode: '直接播放',
+          transcodeMode: '转码播放',
+          fallbackMode: '备用模式',
+          switchMode: '切换播放模式',
         },
         en: {
           deleteVideo: 'Delete Video',
@@ -97,12 +101,16 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           videoLoadError: 'Failed to load video',
           networkError: 'Network error, please check your connection and try again',
           fileNotFound: 'Video file not found',
-          formatNotSupported: 'Video format not supported',
+          formatNotSupported: 'Video format not supported, trying transcoding...',
           unknownError: 'Playback error, please try again',
           imageLoadError: 'Image load failed',
           tryTranscode: 'Try transcoded playback',
           debugInfo: 'Debug info',
           mediaSources: 'Media sources',
+          directMode: 'Direct Play',
+          transcodeMode: 'Transcode',
+          fallbackMode: 'Fallback',
+          switchMode: 'Switch Mode',
         },
       })[language],
     [language]
@@ -119,7 +127,8 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [videoPreload, setVideoPreload] = useState<'metadata' | 'auto' | 'none'>('metadata');
-  const [useTranscode, setUseTranscode] = useState(false);
+  const [playMode, setPlayMode] = useState<'direct' | 'transcode' | 'fallback'>('direct');
+  const [showModeMenu, setShowModeMenu] = useState(false);
   const MAX_RETRIES = 3;
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const DEBUG_MODE = process.env.NODE_ENV === 'development';
@@ -178,15 +187,15 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   const videoSrc = useMemo(() => {
-    const url = client.getVideoUrl(item, useTranscode);
+    const url = client.getVideoUrl(item, playMode);
     if (DEBUG_MODE) {
       console.log(
-        `[VideoCard] Using ${useTranscode ? 'transcoded' : 'direct'} video URL for ${item.Name}:`,
+        `[VideoCard] Using ${playMode} video URL for ${item.Name}:`,
         url
       );
     }
     return url;
-  }, [client, item, useTranscode, DEBUG_MODE]);
+  }, [client, item, playMode, DEBUG_MODE]);
   const posterSrc = useMemo(
     () =>
       item.ImageTags?.Primary
@@ -605,6 +614,13 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     };
   }, [isActive, isPlaying, saveProgress]);
 
+  // 当视频ID变化时重置播放模式
+  useEffect(() => {
+    setPlayMode('direct');
+    setError(null);
+    setHasStarted(false);
+  }, [item.Id]);
+
   // 根据活跃状态动态调整视频 preload 策略
   useEffect(() => {
     if (isActive) {
@@ -750,8 +766,21 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
             console.error('[VideoCard]', fullDebugInfo);
             setDetailedError(fullDebugInfo);
 
-            if (video.error.code === video.error.MEDIA_ERR_DECODE && !useTranscode) {
-              console.log('[VideoCard] Decode error detected, will offer transcoding option');
+            // 自动降级逻辑
+            if ((video.error.code === video.error.MEDIA_ERR_DECODE || 
+                 video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) && 
+                playMode === 'direct') {
+              console.log('[VideoCard] Decode error in direct mode, auto-switching to transcode');
+              setPlayMode('transcode');
+              setError(null);
+              return;
+            } else if ((video.error.code === video.error.MEDIA_ERR_DECODE || 
+                       video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) && 
+                      playMode === 'transcode') {
+              console.log('[VideoCard] Transcode also failed, auto-switching to fallback');
+              setPlayMode('fallback');
+              setError(null);
+              return;
             }
           }
           setError(errorMsg);
@@ -870,6 +899,40 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
         </div>
       )}
 
+      {showModeMenu && (
+        <div
+          className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[140px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-white/70 text-xs px-3 py-1 mb-1">
+            {t.switchMode}
+          </div>
+          {(['direct', 'transcode', 'fallback'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPlayMode(mode);
+                setShowModeMenu(false);
+                // 重置播放状态
+                setError(null);
+                setHasStarted(false);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              className={`w-full px-4 py-2 rounded-lg text-white text-sm transition-colors ${
+                playMode === mode ? 'bg-indigo-600' : 'hover:bg-white/20'
+              }`}
+            >
+              {mode === 'direct' ? t.directMode :
+               mode === 'transcode' ? t.transcodeMode :
+               t.fallbackMode}
+            </button>
+          ))}
+        </div>
+      )}
+
       {seekOffset !== null && (
         <div className="absolute top-24 left-0 right-0 flex flex-col items-center justify-start z-50 pointer-events-none">
           <div className="flex flex-col items-center gap-1 bg-black/40 backdrop-blur-md px-4 py-2 rounded-xl">
@@ -891,12 +954,12 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
           <p className="text-center mb-4">{error}</p>
 
-          {!useTranscode && (
+          {playMode === 'direct' && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 console.log('[VideoCard] User requested transcoding');
-                setUseTranscode(true);
+                setPlayMode('transcode');
                 setError(null);
                 setRetryCount(0);
                 if (videoRef.current) {
@@ -1067,6 +1130,23 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
               className="p-2 rounded-full bg-white/10 backdrop-blur-sm active:bg-white/20 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
               <ChevronsRight className="w-7 h-7 text-white drop-shadow-md" />
+            </button>
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <button
+              tabIndex={0}
+              onTouchStart={stopProp}
+              onMouseDown={stopProp}
+              onTouchEnd={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
+              onClick={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
+              className={`p-2 rounded-full transition-all active:scale-90 focus:ring-2 focus:ring-indigo-500 outline-none shadow-lg ${
+                playMode !== 'direct' ? 'bg-indigo-600/80 text-white' : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
+              }`}
+            >
+              <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
           </div>
 
