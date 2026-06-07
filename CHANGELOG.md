@@ -1,4 +1,18 @@
 # Changelog
+## [1.10.11] - 2026-06-07
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 
 所有重要的项目变更都会记录在此文件中。
 
