@@ -8,12 +8,15 @@ import {
   OrientationMode,
   SubtitleTrack,
 } from '../types';
+import { getDeviceId } from '../utils/device';
+
+const DEVICE_ID = getDeviceId();
 
 export class EmbyClient extends MediaClient {
   private getHeaders() {
     return {
       'Content-Type': 'application/json',
-      'X-Emby-Authorization': `MediaBrowser Client="EmbyTok Web", Device="Web Browser", DeviceId="embytok-web-emby", Version="1.0.0", Token="${this.config.token}"`,
+      'X-Emby-Authorization': `MediaBrowser Client="EmbyTok Web", Device="Web Browser", DeviceId="${DEVICE_ID}", Version="1.0.0", Token="${this.config.token}"`,
       'X-Emby-Token': this.config.token,
       'X-MediaBrowser-Token': this.config.token,
     };

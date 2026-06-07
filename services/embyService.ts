@@ -1,9 +1,10 @@
 import { EmbyAuthResponse, EmbyItem, EmbyLibrary, FeedType } from '../types';
+import { getDeviceId } from '../utils/device';
 
 const CLIENT_NAME = 'EmbyTok Web';
 const CLIENT_VERSION = '1.0.0';
 const DEVICE_NAME = 'Web Browser';
-const DEVICE_ID = 'embytok-web-client-id-' + Math.random().toString(36).substring(7);
+const DEVICE_ID = getDeviceId();
 
 const getHeaders = (token?: string) => {
   const headers: HeadersInit = {
