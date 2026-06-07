@@ -1,4 +1,30 @@
 # Changelog
+## [1.10.19] - 2026-06-07
+
+### Added
+- **横屏视频全屏观看功能**：在横屏视频底部居中显示仿抖音风格的"全屏观看"按钮，点击后自动进入全屏并锁定横屏方向
+- **搜索功能分页加载**：支持分页显示搜索结果，每页20条，滚动到底部自动加载更多
+- **搜索结果按类型分类**：搜索结果按电影、剧集、单集、视频、音乐、其他分类显示
+- **单个搜索历史项删除**：可以单独删除某个搜索历史记录，而无需清空所有历史
+- 新增 "watchFullscreen" 翻译文案支持中英文
+
+### Changed
+- 优化 useSearch Hook：添加 loadingMore、hasMore 状态管理，支持分页加载
+- 重构 SearchResults 组件：实现分类显示和无限滚动加载
+- 改进 SearchBar 组件：添加单个历史项删除按钮和 hover 效果
+- 在 types.ts 中为 EmbyItem 添加 SeriesName 可选属性
+
+### Deprecated
+
+### Removed
+
+### Fixed
+- 修复 SearchResults 组件的类型问题
+- 修复 StandardRoot 中变量名冲突问题
+- 修复 VideoCard 组件全屏功能的错误处理
+
+### Security
+
 
 ## [1.10.18] - 2026-06-07
 
