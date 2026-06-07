@@ -142,6 +142,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [isSpeedAdjusting, setIsSpeedAdjusting] = useState(false);
+  const [isTemporarySpeed, setIsTemporarySpeed] = useState(false);
   const hideProgressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [showSubtitleControls, setShowSubtitleControls] = useState(false);
@@ -466,8 +467,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     setSeekOffset(null);
     setIsSpeedAdjusting(false);
 
-    longPressTimer.current = setTimeout(() => {
+    longPressTimer.current = setTimeout(() =&gt; {
       isLongPress.current = true;
+      setIsTemporarySpeed(true);
       setPlaybackRate(2.0);
       setIsSpeedAdjusting(true);
       speedStartRate.current = 2.0;
@@ -488,7 +490,9 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       }
     }
 
-    if (isLongPress.current && Math.abs(deltaY) > 20) {
+    if (isLongPress.current &amp;&amp; Math.abs(deltaY) &gt; 20) {
+      // 用户滑动调整了速度，标记为用户固定速度
+      setIsTemporarySpeed(false);
       let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
       newRate = Math.max(0.5, Math.min(5.0, newRate));
       setPlaybackRate(newRate);
@@ -520,8 +524,12 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       if (isLongPress.current) {
         isLongPress.current = false;
         setIsSpeedAdjusting(false);
-        setPlaybackRate(1.0);
-        if (videoRef.current) videoRef.current.playbackRate = 1.0;
+        // 只有临时加速模式才重置为1.0
+        if (isTemporarySpeed) {
+          setPlaybackRate(1.0);
+          if (videoRef.current) videoRef.current.playbackRate = 1.0;
+        }
+        setIsTemporarySpeed(false);
       } else if (isDragging.current) {
         if (videoRef.current && seekOffset !== null) {
           const newTime = videoRef.current.currentTime + seekOffset;
@@ -635,8 +643,14 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
 
     if (isActive) {
       setError(null);
-      video.playbackRate = 1.0;
-      setPlaybackRate(1.0);
+      // 只有临时速度才重置为1.0，用户设置的速度保留
+      if (isTemporarySpeed) {
+        video.playbackRate = 1.0;
+        setPlaybackRate(1.0);
+        setIsTemporarySpeed(false);
+      } else {
+        video.playbackRate = playbackRate;
+      }
       setIsUserPaused(false);
 
       const playPromise = video.play();
@@ -879,11 +893,12 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
           onClick={(e) => e.stopPropagation()}
         >
-          {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+          {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0].map((speed) =&gt; (
             <button
               key={speed}
-              onClick={(e) => {
+              onClick={(e) =&gt; {
                 e.stopPropagation();
+                setIsTemporarySpeed(false);
                 setPlaybackRate(speed);
                 if (videoRef.current) {
                   videoRef.current.playbackRate = speed;
