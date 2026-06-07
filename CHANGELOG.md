@@ -1,44 +1,5 @@
 # 版本更新日志 (Changelog)
 
-## v1.10.1
-**日期**: 2026-06-07
-
-### 🎯 功能完善
-#### 1. 调试模式
-- 在设置界面添加调试模式开关
-- 显示视频详细调试信息（URL、媒体源等）
-- 支持一键复制调试信息
-- 调试信息区域支持文本选择
-- 状态持久化到 localStorage
-
-#### 2. 播放速度优化
-- 增加完整的播放速度档位 (0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0)
-- 区分临时加速（长按）和固定速度（滑动调整/菜单选择）
-- 临时加速松手后自动恢复 1.0 倍速
-- 固定速度在切换视频时保持不变
-
-#### 3. 版本号管理修复
-- 修复 MobileRoot 和 TVRoot 中的硬编码版本号
-- 统一所有平台使用 useUpdateChecker hook
-- 所有版本号从单一源 package.json 读取
-- 避免版本号不一致问题
-
-### 🔧 技术优化
-- 扩展 MediaSource 类型支持 Name 和 MediaStreams 属性
-- 完善 useUpdateChecker hook 的使用
-- 代码组织优化，符合 DRY 原则
-
-### 📁 文件更新
-- `components/LibrarySelect.tsx` (添加调试模式开关)
-- `components/VideoCard.tsx` (调试信息显示、播放速度优化)
-- `components/VideoFeed.tsx` (传递调试模式属性)
-- `components/mobile/MobileRoot.tsx` (修复版本号管理)
-- `components/tv/TVRoot.tsx` (修复版本号管理)
-- `components/standard/StandardRoot.tsx` (已正确使用 hook)
-- `types.ts` (扩展 MediaSource 类型)
-
----
-
 ## v1.10.0
 **日期**: 2026-06-06
 
