@@ -16,8 +16,6 @@ on:
   push:
     tags:
       - v*
-    branches:
-      - main  # 推送 main 分支时也触发（用于自动发布）
 
   # 方式3: 手动触发（workflow_dispatch）
   workflow_dispatch:
@@ -274,59 +272,11 @@ jobs:
           path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
 
   # -------------------------------------------
-  # 任务4: 创建 tag（仅在 main 分支推送时执行）
-  # -------------------------------------------
-  create-tag:
-    needs: [build-app]  # 等待构建完成
-    runs-on: ubuntu-latest
-    # 仅在推送 main 分支且不是标签推送时执行
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code - 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Set up Node.js - 设置 Node.js 环境
-        uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-
-      - name: Get version from package.json - 获取版本号
-        id: get-version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=v$VERSION" >> $GITHUB_OUTPUT
-          echo "当前版本: $VERSION"
-
-      - name: Check if tag exists - 检查标签是否已存在
-        id: check-tag
-        run: |
-          VERSION="${{ steps.get-version.outputs.version }}"
-          if git tag | grep -q "^${VERSION}$"; then
-            echo "tag_exists=true" >> $GITHUB_OUTPUT
-            echo "标签 $VERSION 已存在，跳过创建"
-          else
-            echo "tag_exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create tag - 创建标签
-        if: steps.check-tag.outputs.tag_exists == 'false'
-        run: |
-          VERSION="${{ steps.get-version.outputs.version }}"
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          echo "✅ 已创建标签: $VERSION"
-
-  # -------------------------------------------
-  # 任务5: 创建统一的 Release
+  # 任务4: 创建统一的 Release
   # 下载所有构建产物并创建 Release
   # -------------------------------------------
   create-release:
-    needs: build-app  # 等待构建完成（create-tag 可能在不同的工作流运行中）
+    needs: [build-app] # 等待所有构建完成
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository - 检出代码
@@ -352,13 +302,6 @@ jobs:
       - name: Install dependencies - 安装依赖
         run: npm ci
 
-      - name: Get version from package.json - 获取版本号
-        id: get-version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=v$VERSION" >> $GITHUB_OUTPUT
-          echo "当前版本: $VERSION"
-
       - name: Get changelog - 获取发布说明
         id: get-changelog
         shell: bash
@@ -372,7 +315,7 @@ jobs:
           delimiter="__EMBYTOK_CHANGELOG_EOF__"
           {
             echo "CHANGELOG<<$delimiter"
-            node scripts/extract-changelog.js ${{ steps.get-version.outputs.version }}
+            node scripts/extract-changelog.js ${{ github.event.inputs.tag || github.ref_name }}
             echo
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
@@ -396,6 +339,6 @@ jobs:
             artifacts/apk-debug/*.apk
             artifacts/apk-release/*.apk
           body: ${{ steps.get-changelog.outputs.CHANGELOG }}
-          tag_name: ${{ steps.get-version.outputs.version }}
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           prerelease: ${{ steps.release-type.outputs.prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}
