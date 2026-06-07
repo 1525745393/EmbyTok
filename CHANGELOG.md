@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.10.18] - 2026-06-07
+
+### Fixed
+- **修复设备 ID 每次刷新重新生成的问题**：创建设备 ID 管理工具，使用 localStorage 持久化保存设备 ID
+- **修复 MobileRoot 和 TVRoot 硬编码版本号问题**：统一从环境变量读取真实版本号
+- 优化视频播放控制性能，避免频繁状态更新
+
+### Changed
+- 重构设备 ID 管理：创建 utils/device.ts 共享工具函数
+- 统一 EmbyClient 和 embyService 使用相同的设备 ID 源
+- 添加对 localStorage 不可用情况的错误处理
+
 ## [1.10.17] - 2026-06-07
 
 ### Fixed
