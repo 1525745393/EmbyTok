@@ -28,11 +28,12 @@ function checkChangelog(version) {
   }
 
   const content = fs.readFileSync(CHANGELOG_PATH, 'utf-8');
-  const hasVersion = content.includes(`## v${version}`);
+  const hasVersion1 = content.includes(`## v${version}`);
+  const hasVersion2 = content.includes(`## [${version}]`);
 
   return {
-    passed: hasVersion,
-    message: hasVersion
+    passed: hasVersion1 || hasVersion2,
+    message: hasVersion1 || hasVersion2
       ? `CHANGELOG 包含 v${version} 更新说明`
       : `CHANGELOG 中未找到 v${version} 的更新说明`,
   };
