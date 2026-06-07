@@ -189,10 +189,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
   const videoSrc = useMemo(() => {
     const url = client.getVideoUrl(item, playMode);
     if (DEBUG_MODE) {
-      console.log(
-        `[VideoCard] Using ${playMode} video URL for ${item.Name}:`,
-        url
-      );
+      console.log(`[VideoCard] Using ${playMode} video URL for ${item.Name}:`, url);
     }
     return url;
   }, [client, item, playMode, DEBUG_MODE]);
@@ -767,16 +764,20 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
             setDetailedError(fullDebugInfo);
 
             // 自动降级逻辑
-            if ((video.error.code === video.error.MEDIA_ERR_DECODE || 
-                 video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) && 
-                playMode === 'direct') {
+            if (
+              (video.error.code === video.error.MEDIA_ERR_DECODE ||
+                video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) &&
+              playMode === 'direct'
+            ) {
               console.log('[VideoCard] Decode error in direct mode, auto-switching to transcode');
               setPlayMode('transcode');
               setError(null);
               return;
-            } else if ((video.error.code === video.error.MEDIA_ERR_DECODE || 
-                       video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) && 
-                      playMode === 'transcode') {
+            } else if (
+              (video.error.code === video.error.MEDIA_ERR_DECODE ||
+                video.error.code === video.error.MEDIA_ERR_SRC_NOT_SUPPORTED) &&
+              playMode === 'transcode'
+            ) {
               console.log('[VideoCard] Transcode also failed, auto-switching to fallback');
               setPlayMode('fallback');
               setError(null);
@@ -904,9 +905,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[140px]"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="text-white/70 text-xs px-3 py-1 mb-1">
-            {t.switchMode}
-          </div>
+          <div className="text-white/70 text-xs px-3 py-1 mb-1">{t.switchMode}</div>
           {(['direct', 'transcode', 'fallback'] as const).map((mode) => (
             <button
               key={mode}
@@ -925,9 +924,11 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
                 playMode === mode ? 'bg-indigo-600' : 'hover:bg-white/20'
               }`}
             >
-              {mode === 'direct' ? t.directMode :
-               mode === 'transcode' ? t.transcodeMode :
-               t.fallbackMode}
+              {mode === 'direct'
+                ? t.directMode
+                : mode === 'transcode'
+                  ? t.transcodeMode
+                  : t.fallbackMode}
             </button>
           ))}
         </div>
@@ -1141,11 +1142,23 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
               onTouchEnd={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
               onClick={(e) => handleButtonAction(e, () => setShowModeMenu(!showModeMenu))}
               className={`p-2 rounded-full transition-all active:scale-90 focus:ring-2 focus:ring-indigo-500 outline-none shadow-lg ${
-                playMode !== 'direct' ? 'bg-indigo-600/80 text-white' : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
+                playMode !== 'direct'
+                  ? 'bg-indigo-600/80 text-white'
+                  : 'bg-white/10 backdrop-blur-sm text-white hover:bg-white/20'
               }`}
             >
-              <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="w-7 h-7 text-white drop-shadow-md"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
