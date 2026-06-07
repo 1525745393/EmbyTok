@@ -50,7 +50,7 @@ const logger = {
 const runCommand = (cmd, options = {}) => {
   const { cwd = PROJECT_ROOT, silent = false, env = process.env } = options;
   logger.debug(`执行命令: ${cmd}`);
-  
+
   try {
     const result = execSync(cmd, {
       cwd,
@@ -70,14 +70,14 @@ const runCommand = (cmd, options = {}) => {
 // 检查环境
 const checkEnvironment = () => {
   logger.section('环境检查');
-  
+
   const checks = [
     { name: 'Node.js', cmd: 'node --version' },
     { name: 'npm', cmd: 'npm --version' },
   ];
-  
+
   let allPassed = true;
-  
+
   for (const check of checks) {
     try {
       const version = runCommand(check.cmd, { silent: true }).trim();
@@ -87,13 +87,13 @@ const checkEnvironment = () => {
       allPassed = false;
     }
   }
-  
+
   // 检查必要文件
   const requiredFiles = [
     path.join(PROJECT_ROOT, 'package.json'),
     path.join(PROJECT_ROOT, 'vite.config.ts'),
   ];
-  
+
   for (const file of requiredFiles) {
     if (fs.existsSync(file)) {
       logger.debug(`找到文件: ${file}`);
@@ -102,30 +102,30 @@ const checkEnvironment = () => {
       allPassed = false;
     }
   }
-  
+
   if (!allPassed) {
     throw new Error('环境检查失败，请修复上述问题后重试');
   }
-  
+
   logger.success('环境检查通过');
 };
 
 // 清理旧文件
 const cleanOldFiles = () => {
   logger.section('清理旧文件');
-  
+
   const cleanPaths = [
     path.join(PROJECT_ROOT, 'dist'),
     path.join(PROJECT_ROOT, 'android', 'app', 'build'),
   ];
-  
+
   for (const cleanPath of cleanPaths) {
     if (fs.existsSync(cleanPath)) {
       logger.info(`删除: ${cleanPath}`);
       fs.rmSync(cleanPath, { recursive: true, force: true });
     }
   }
-  
+
   // 清理旧的 APK 文件
   const apkPattern = /^EmbyTok-v.*\.apk$/;
   const files = fs.readdirSync(PROJECT_ROOT);
@@ -135,7 +135,7 @@ const cleanOldFiles = () => {
       fs.unlinkSync(path.join(PROJECT_ROOT, file));
     }
   }
-  
+
   logger.success('清理完成');
 };
 
@@ -150,53 +150,53 @@ const readVersion = () => {
 // 构建 Web 前端
 const buildWeb = () => {
   logger.section('构建 Web 前端');
-  
+
   logger.info('执行 npm run build...');
   runCommand('npm run build');
-  
+
   if (!fs.existsSync(CONFIG.distDir)) {
     throw new Error('Web 构建失败：dist 目录不存在');
   }
-  
+
   const distFiles = fs.readdirSync(CONFIG.distDir);
   logger.debug(`dist 目录内容: ${distFiles.join(', ')}`);
-  
+
   logger.success('Web 前端构建完成');
 };
 
 // 同步 Capacitor
 const syncCapacitor = () => {
   logger.section('同步 Capacitor');
-  
+
   logger.info('执行 npx cap sync android...');
   runCommand('npx cap sync android');
-  
+
   logger.success('Capacitor 同步完成');
 };
 
 // 构建 Android APK
 const buildAndroid = () => {
   logger.section('构建 Android APK');
-  
+
   const androidDir = CONFIG.androidDir;
   if (!fs.existsSync(androidDir)) {
     throw new Error('Android 项目目录不存在');
   }
-  
+
   // 确保 gradlew 可执行
   const gradlewPath = path.join(androidDir, 'gradlew');
   if (process.platform !== 'win32') {
     fs.chmodSync(gradlewPath, '755');
   }
-  
+
   // 构建 Debug APK
   logger.info('构建 Debug APK...');
   runCommand('./gradlew assembleDebug --no-daemon', { cwd: androidDir });
-  
+
   // 检查是否有签名配置，构建 Release APK
   let buildRelease = false;
   const keystorePath = path.join(androidDir, 'app', 'embytok-release.keystore');
-  
+
   if (fs.existsSync(keystorePath) || process.env.ANDROID_KEYSTORE) {
     logger.info('找到签名配置，构建 Release APK...');
     try {
@@ -208,7 +208,7 @@ const buildAndroid = () => {
   } else {
     logger.warn('未找到签名配置，仅构建 Debug APK');
   }
-  
+
   logger.success('Android APK 构建完成');
   return buildRelease;
 };
@@ -216,10 +216,10 @@ const buildAndroid = () => {
 // 复制和重命名 APK
 const copyAndRenameApk = (buildRelease) => {
   logger.section('处理构建产物');
-  
+
   const version = CONFIG.version;
   const outputs = [];
-  
+
   // 处理 Debug APK
   const debugApkSrc = path.join(
     CONFIG.androidDir,
@@ -231,7 +231,7 @@ const copyAndRenameApk = (buildRelease) => {
     'app-debug.apk'
   );
   const debugApkDest = path.join(PROJECT_ROOT, `EmbyTok-v${version}-debug.apk`);
-  
+
   if (fs.existsSync(debugApkSrc)) {
     logger.info(`复制 Debug APK: ${debugApkDest}`);
     fs.copyFileSync(debugApkSrc, debugApkDest);
@@ -239,7 +239,7 @@ const copyAndRenameApk = (buildRelease) => {
   } else {
     logger.warn('未找到 Debug APK');
   }
-  
+
   // 处理 Release APK
   if (buildRelease) {
     const releaseApkSrc = path.join(
@@ -252,7 +252,7 @@ const copyAndRenameApk = (buildRelease) => {
       'app-release.apk'
     );
     const releaseApkDest = path.join(PROJECT_ROOT, `EmbyTok-v${version}-release.apk`);
-    
+
     if (fs.existsSync(releaseApkSrc)) {
       logger.info(`复制 Release APK: ${releaseApkDest}`);
       fs.copyFileSync(releaseApkSrc, releaseApkDest);
@@ -261,16 +261,16 @@ const copyAndRenameApk = (buildRelease) => {
       logger.warn('未找到 Release APK');
     }
   }
-  
+
   return outputs;
 };
 
 // 验证构建产物
 const verifyBuild = (outputs) => {
   logger.section('验证构建产物');
-  
+
   let allValid = true;
-  
+
   for (const output of outputs) {
     if (fs.existsSync(output)) {
       const stats = fs.statSync(output);
@@ -281,21 +281,21 @@ const verifyBuild = (outputs) => {
       allValid = false;
     }
   }
-  
+
   if (!allValid) {
     throw new Error('构建产物验证失败');
   }
-  
+
   return allValid;
 };
 
 // 解析命令行参数
 const parseArgs = () => {
   const args = process.argv.slice(2);
-  
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    
+
     switch (arg) {
       case '--version':
       case '-v':
@@ -347,21 +347,21 @@ EmbyTok 构建脚本
 // 主函数
 const main = async () => {
   const startTime = Date.now();
-  
+
   try {
     // 解析参数
     parseArgs();
-    
+
     // 打印欢迎信息
     console.log('\n' + '='.repeat(60));
     console.log('       EmbyTok 构建脚本');
     console.log('='.repeat(60));
-    
+
     // 读取版本号（如果未指定）
     if (!CONFIG.version) {
       readVersion();
     }
-    
+
     // 执行构建流程
     checkEnvironment();
     cleanOldFiles();
@@ -370,7 +370,7 @@ const main = async () => {
     const buildRelease = buildAndroid();
     const outputs = copyAndRenameApk(buildRelease);
     verifyBuild(outputs);
-    
+
     // 完成
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.section('构建完成');
@@ -378,11 +378,10 @@ const main = async () => {
 🎉 构建成功！
 
 构建产物:
-${outputs.map(f => `  - ${path.basename(f)}`).join('\n')}
+${outputs.map((f) => `  - ${path.basename(f)}`).join('\n')}
 
 用时: ${duration} 秒
 `);
-    
   } catch (error) {
     logger.error(error.message);
     if (CONFIG.debug && error.stack) {

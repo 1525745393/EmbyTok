@@ -48,6 +48,7 @@ MAJOR.MINOR.PATCH[-PRE_RELEASE][+BUILD]
 ```
 
 示例：
+
 - `1.10.8` - 正式发布版本
 - `1.11.0-beta.1` - 测试版
 - `1.11.0-rc.1` - 候选发布版
@@ -58,11 +59,11 @@ MAJOR.MINOR.PATCH[-PRE_RELEASE][+BUILD]
 
 根据变更内容确定升级类型：
 
-| 变更类型 | 命令 | 版本示例 |
-|---------|------|---------|
-| 仅修复 bug | `npm run version:patch` | 1.10.8 → 1.10.9 |
-| 新增功能 | `npm run version:minor` | 1.10.8 → 1.11.0 |
-| 不兼容的变更 | `npm run version:major` | 1.10.8 → 2.0.0 |
+| 变更类型     | 命令                    | 版本示例        |
+| ------------ | ----------------------- | --------------- |
+| 仅修复 bug   | `npm run version:patch` | 1.10.8 → 1.10.9 |
+| 新增功能     | `npm run version:minor` | 1.10.8 → 1.11.0 |
+| 不兼容的变更 | `npm run version:major` | 1.10.8 → 2.0.0  |
 
 ### 2. 执行版本升级
 
@@ -121,13 +122,16 @@ node scripts/version-manager.js set 1.11.0
 ## [1.11.0] - 2026-06-06
 
 ### Added
+
 - 新增 AI 推荐功能
 - 支持更多字幕格式
 
 ### Changed
+
 - 优化视频加载性能
 
 ### Fixed
+
 - 修复 Android 12 兼容性问题
 ```
 
@@ -138,6 +142,7 @@ npm run release:check
 ```
 
 此命令会检查：
+
 - 版本号格式是否正确
 - CHANGELOG.md 是否已更新
 - Git 工作区状态
@@ -255,12 +260,14 @@ A: 会的，只要标签格式正确，GitHub Actions 会自动构建并发布�
 ### Q: 我需要更新哪些文件？
 
 A: 通常只需要：
+
 - `package.json`（自动更新）
 - `CHANGELOG.md`（需要手动填写内容）
 
 ### Q: 如何查看当前版本？
 
-A: 
+A:
+
 ```bash
 npm run version:current
 # 或

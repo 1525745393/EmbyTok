@@ -30,18 +30,18 @@
 
 ## 类型说明
 
-| 类型 | 说明 | 对应 CHANGELOG |
-|------|------|---------------|
-| `feat` | 新功能 | Added |
-| `fix` | 修复 bug | Fixed |
-| `docs` | 仅文档变更 | - |
-| `style` | 代码格式（不影响代码运行） | - |
-| `refactor` | 重构（既不是新增功能，也不是修复 bug） | Changed |
-| `perf` | 性能优化 | Changed |
-| `test` | 增加或修正测试 | - |
-| `chore` | 构建过程或辅助工具的变动 | - |
-| `ci` | CI 配置相关修改 | - |
-| `revert` | 回退之前的提交 | - |
+| 类型       | 说明                                   | 对应 CHANGELOG |
+| ---------- | -------------------------------------- | -------------- |
+| `feat`     | 新功能                                 | Added          |
+| `fix`      | 修复 bug                               | Fixed          |
+| `docs`     | 仅文档变更                             | -              |
+| `style`    | 代码格式（不影响代码运行）             | -              |
+| `refactor` | 重构（既不是新增功能，也不是修复 bug） | Changed        |
+| `perf`     | 性能优化                               | Changed        |
+| `test`     | 增加或修正测试                         | -              |
+| `chore`    | 构建过程或辅助工具的变动               | -              |
+| `ci`       | CI 配置相关修改                        | -              |
+| `revert`   | 回退之前的提交                         | -              |
 
 ## 作用域
 
@@ -188,13 +188,13 @@ Closes #789
 
 提交信息会影响 CHANGELOG.md 的生成：
 
-| 提交类型 | CHANGELOG 分类 |
-|---------|---------------|
-| `feat` | Added |
-| `fix` | Fixed |
-| `refactor`, `perf` | Changed |
-| `docs`, `style`, `test`, `chore` | 不加入 CHANGELOG |
-| 带有 `BREAKING CHANGE` | Added/Changed 并特别标注 |
+| 提交类型                         | CHANGELOG 分类           |
+| -------------------------------- | ------------------------ |
+| `feat`                           | Added                    |
+| `fix`                            | Fixed                    |
+| `refactor`, `perf`               | Changed                  |
+| `docs`, `style`, `test`, `chore` | 不加入 CHANGELOG         |
+| 带有 `BREAKING CHANGE`           | Added/Changed 并特别标注 |
 
 ## 提交前检查清单
 
@@ -247,7 +247,7 @@ A: 可以。建议使用中文，方便团队协作。
 
 ### Q: 如何修改之前的提交信息？
 
-A: 
+A:
 
 ```bash
 # 修改最后一次提交

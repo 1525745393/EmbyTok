@@ -27,13 +27,14 @@ export const VERSION = packageJson.version;
  * @returns {{ major: number, minor: number, patch: number, preRelease?: string, build?: string }}
  */
 export function parseVersion(version) {
-  const regex = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
+  const regex =
+    /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
   const match = version.match(regex);
-  
+
   if (!match) {
     throw new Error(`Invalid version format: ${version}`);
   }
-  
+
   return {
     major: parseInt(match[1], 10),
     minor: parseInt(match[2], 10),
@@ -50,15 +51,15 @@ export function parseVersion(version) {
  */
 export function formatVersion(parsed) {
   let version = `${parsed.major}.${parsed.minor}.${parsed.patch}`;
-  
+
   if (parsed.preRelease) {
     version += `-${parsed.preRelease}`;
   }
-  
+
   if (parsed.build) {
     version += `+${parsed.build}`;
   }
-  
+
   return version;
 }
 
@@ -71,22 +72,22 @@ export function formatVersion(parsed) {
 export function compareVersions(versionA, versionB) {
   const a = parseVersion(versionA);
   const b = parseVersion(versionB);
-  
+
   // 比较主版本号
   if (a.major !== b.major) {
     return a.major > b.major ? 1 : -1;
   }
-  
+
   // 比较次版本号
   if (a.minor !== b.minor) {
     return a.minor > b.minor ? 1 : -1;
   }
-  
+
   // 比较修订号
   if (a.patch !== b.patch) {
     return a.patch > b.patch ? 1 : -1;
   }
-  
+
   // 比较预发布版本
   if (a.preRelease && !b.preRelease) {
     return -1; // 有预发布标签的版本更小
@@ -97,17 +98,17 @@ export function compareVersions(versionA, versionB) {
   if (a.preRelease && b.preRelease) {
     const aParts = a.preRelease.split('.');
     const bParts = b.preRelease.split('.');
-    
+
     for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
       const aPart = aParts[i];
       const bPart = bParts[i];
-      
+
       if (aPart === undefined) return -1;
       if (bPart === undefined) return 1;
-      
+
       const aNum = parseInt(aPart, 10);
       const bNum = parseInt(bPart, 10);
-      
+
       if (!isNaN(aNum) && !isNaN(bNum)) {
         if (aNum !== bNum) {
           return aNum > bNum ? 1 : -1;
@@ -119,7 +120,7 @@ export function compareVersions(versionA, versionB) {
       }
     }
   }
-  
+
   return 0;
 }
 
@@ -169,7 +170,7 @@ export function getPatch(version) {
  */
 export function bumpVersion(version, type, preId = 'beta') {
   const parsed = parseVersion(version);
-  
+
   switch (type) {
     case 'major':
       parsed.major += 1;
@@ -177,18 +178,18 @@ export function bumpVersion(version, type, preId = 'beta') {
       parsed.patch = 0;
       parsed.preRelease = undefined;
       break;
-      
+
     case 'minor':
       parsed.minor += 1;
       parsed.patch = 0;
       parsed.preRelease = undefined;
       break;
-      
+
     case 'patch':
       parsed.patch += 1;
       parsed.preRelease = undefined;
       break;
-      
+
     case 'pre':
       if (!parsed.preRelease) {
         parsed.patch += 1;
@@ -197,7 +198,7 @@ export function bumpVersion(version, type, preId = 'beta') {
         const preParts = parsed.preRelease.split('.');
         const lastPart = preParts[preParts.length - 1];
         const num = parseInt(lastPart, 10);
-        
+
         if (!isNaN(num)) {
           preParts[preParts.length - 1] = (num + 1).toString();
           parsed.preRelease = preParts.join('.');
@@ -206,29 +207,29 @@ export function bumpVersion(version, type, preId = 'beta') {
         }
       }
       break;
-      
+
     case 'pre-major':
       parsed.major += 1;
       parsed.minor = 0;
       parsed.patch = 0;
       parsed.preRelease = `${preId}.1`;
       break;
-      
+
     case 'pre-minor':
       parsed.minor += 1;
       parsed.patch = 0;
       parsed.preRelease = `${preId}.1`;
       break;
-      
+
     case 'pre-patch':
       parsed.patch += 1;
       parsed.preRelease = `${preId}.1`;
       break;
-      
+
     default:
       throw new Error(`Unknown version bump type: ${type}`);
   }
-  
+
   return formatVersion(parsed);
 }
 
@@ -241,7 +242,7 @@ export function bumpVersion(version, type, preId = 'beta') {
 export function checkForUpdate(currentVersion, latestVersion) {
   const comparison = compareVersions(currentVersion, latestVersion);
   const hasUpdate = comparison < 0;
-  
+
   if (!hasUpdate) {
     return {
       hasUpdate: false,
@@ -251,15 +252,18 @@ export function checkForUpdate(currentVersion, latestVersion) {
       isPreRelease: false,
     };
   }
-  
+
   const current = parseVersion(currentVersion);
   const latest = parseVersion(latestVersion);
-  
+
   return {
     hasUpdate: true,
     isMajor: latest.major > current.major,
     isMinor: latest.major === current.major && latest.minor > current.minor,
-    isPatch: latest.major === current.major && latest.minor === current.minor && latest.patch > current.patch,
+    isPatch:
+      latest.major === current.major &&
+      latest.minor === current.minor &&
+      latest.patch > current.patch,
     isPreRelease: isPreRelease(latestVersion),
   };
 }

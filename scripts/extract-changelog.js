@@ -40,7 +40,10 @@ function extractLatestVersion(content) {
 
 function extractVersionContent(content, version) {
   // 查找指定版本的开始位置（支持两种格式）
-  const startRegex = new RegExp(`^## \\[${version.replace(/\./g, '\\.')}\\]|^## v${version.replace(/\./g, '\\.')}`, 'm');
+  const startRegex = new RegExp(
+    `^## \\[${version.replace(/\./g, '\\.')}\\]|^## v${version.replace(/\./g, '\\.')}`,
+    'm'
+  );
   const startMatch = content.search(startRegex);
 
   if (startMatch === -1) {

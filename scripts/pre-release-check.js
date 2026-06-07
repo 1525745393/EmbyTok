@@ -33,9 +33,10 @@ function checkChangelog(version) {
 
   return {
     passed: hasVersion1 || hasVersion2,
-    message: hasVersion1 || hasVersion2
-      ? `CHANGELOG 包含 v${version} 更新说明`
-      : `CHANGELOG 中未找到 v${version} 的更新说明`,
+    message:
+      hasVersion1 || hasVersion2
+        ? `CHANGELOG 包含 v${version} 更新说明`
+        : `CHANGELOG 中未找到 v${version} 的更新说明`,
   };
 }
 

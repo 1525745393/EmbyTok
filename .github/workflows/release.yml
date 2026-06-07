@@ -11,32 +11,32 @@ on:
   # 方式1: Release 事件触发（当 Release 被发布时）
   release:
     types: [published]
-  
+
   # 方式2: 推送标签触发（格式: v1.0.0, v2.1.3 等）
   push:
     tags:
       - v*
-  
+
   # 方式3: 手动触发（workflow_dispatch）
   workflow_dispatch:
     inputs:
       # 输入: 标签名称（必填）
       tag:
-        description: "Tag - 版本标签，例如 v1.0.0"
+        description: 'Tag - 版本标签，例如 v1.0.0'
         required: true
-      
+
       # 输入: 是否作为预发布版本（可选）
       prerelease:
-        description: "是否作为预发布版本（pre-release）"
+        description: '是否作为预发布版本（pre-release）'
         required: false
-        default: "false"
+        default: 'false'
 
 # ============================================
 # 工作流权限配置
 # ============================================
 permissions:
-  contents: write  # 需要写入权限来创建 Release 和上传文件
-  packages: write  # 如果需要发布到 GitHub Packages
+  contents: write # 需要写入权限来创建 Release 和上传文件
+  packages: write # 如果需要发布到 GitHub Packages
 
 # ============================================
 # 任务定义
@@ -55,10 +55,10 @@ jobs:
         id: set-matrix
         run: |
           items=()
-          
+
           # 添加 Docker 构建配置
           items+=('{"build": "docker", "os": "ubuntu-latest"}')
-          
+
           # 添加 Android 构建配置
           items+=('{"build": "android", "os": "ubuntu-latest"}')
 
@@ -71,7 +71,7 @@ jobs:
             fi
           done
           matrix+="]"
-          
+
           # 输出到 GitHub Actions 环境变量
           echo $matrix >> $GITHUB_OUTPUT
 
@@ -88,8 +88,8 @@ jobs:
       - name: Set up Node.js - 设置 Node.js 环境
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
-          cache: "npm"  # 缓存 npm 依赖，加速构建
+          node-version: '20'
+          cache: 'npm' # 缓存 npm 依赖，加速构建
 
       - name: Install dependencies - 安装依赖
         run: npm ci
@@ -108,13 +108,13 @@ jobs:
   # 根据矩阵配置在不同平台上构建，仅上传 Artifacts
   # -------------------------------------------
   build-app:
-    needs: [init-matrix, test]  # 依赖前两个任务完成
+    needs: [init-matrix, test] # 依赖前两个任务完成
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # 一个平台失败不影响其他平台
+      fail-fast: false # 一个平台失败不影响其他平台
       matrix:
         include: ${{fromJson(needs.init-matrix.outputs.matrix)}}
-    
+
     steps:
       # ========================================
       # 步骤1: 代码检出
@@ -122,8 +122,8 @@ jobs:
       - name: Checkout code - 检出代码
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史，用于 changelog 生成
-          fetch-tags: true  # 获取所有标签
+          fetch-depth: 0 # 获取完整历史，用于 changelog 生成
+          fetch-tags: true # 获取所有标签
 
       # ========================================
       # 步骤2: 环境设置
@@ -131,8 +131,8 @@ jobs:
       - name: Set up Node.js - 设置 Node.js 环境
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies - 安装依赖
         run: npm ci
@@ -158,7 +158,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64  # 多平台支持
+          platforms: linux/amd64,linux/arm64 # 多平台支持
           tags: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:${{ github.event.inputs.tag || github.ref_name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/embytok:latest
@@ -180,8 +180,8 @@ jobs:
         if: ${{ matrix.build == 'android' }}
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
-          distribution: "temurin"
+          java-version: '17'
+          distribution: 'temurin'
 
       - name: Prepare Android signing - 准备 Android 签名
         if: ${{ matrix.build == 'android' }}
@@ -206,7 +206,7 @@ jobs:
         if: ${{ matrix.build == 'android' }}
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: "8.2.1"
+          gradle-version: '8.2.1'
           cache-read-only: false
 
       - name: Build Debug APK - 构建 Debug APK
@@ -263,14 +263,14 @@ jobs:
   # 下载所有构建产物并创建 Release
   # -------------------------------------------
   create-release:
-    needs: [build-app]  # 等待所有构建完成
+    needs: [build-app] # 等待所有构建完成
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository - 检出代码
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史
-          fetch-tags: true  # 获取所有标签
+          fetch-depth: 0 # 获取完整历史
+          fetch-tags: true # 获取所有标签
 
       - name: Download artifacts - 下载所有构建产物
         uses: actions/download-artifact@v4
@@ -283,8 +283,8 @@ jobs:
       - name: Set up Node.js - 设置 Node.js 环境
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies - 安装依赖
         run: npm ci
@@ -297,7 +297,7 @@ jobs:
             echo "CHANGELOG.md 不存在或为空，无法生成 Release 说明。"
             exit 1
           fi
-          
+
           # 使用分隔符安全处理多行内容
           delimiter="__EMBYTOK_CHANGELOG_EOF__"
           {
