@@ -62,13 +62,10 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   // 使用智能视频预加载
-  const { isPreloaded, getCacheStatus, updateScrollSpeed } = useSmartVideoPreload(
+  const { isPreloaded, getCacheStatus, updateScrollSpeed, scrollSpeed } = useSmartVideoPreload(
     videos,
     activeIndex
   );
-
-  // 根据滚动速度动态调整可见视频数量
-  const [currentScrollSpeed, setCurrentScrollSpeed] = useState<number>(0);
 
   // 根据滚动速度动态确定渲染的视频范围
   const visibleIndices = useMemo(() => {
@@ -76,9 +73,9 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     let range = 1; // 默认渲染前后各1个
 
     // 根据滚动速度调整范围
-    if (currentScrollSpeed < 0.5) {
+    if (scrollSpeed < 0.5) {
       range = 2; // 慢速滚动时渲染更多
-    } else if (currentScrollSpeed > 2) {
+    } else if (scrollSpeed > 2) {
       range = 1; // 快速滚动时减少渲染
     }
 
@@ -91,7 +88,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
     }
 
     return indices;
-  }, [activeIndex, videos.length, currentScrollSpeed]);
+  }, [activeIndex, videos.length, scrollSpeed]);
 
   // 记忆化的 toggle favorite 回调
   const createToggleFavorite = useCallback(
@@ -113,7 +110,6 @@ const VideoFeed: React.FC<VideoFeedProps> = ({
   const handleScroll = useCallback(() => {
     if (containerRef.current) {
       updateScrollSpeed(containerRef.current.scrollTop);
-      setCurrentScrollSpeed(containerRef.current.scrollTop); // 简化实现
     }
   }, [updateScrollSpeed]);
 
