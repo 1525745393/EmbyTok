@@ -1,4 +1,20 @@
 # Changelog
+## [1.10.14] - 2026-06-07
+
+### Added
+
+### Changed
+- 将 CHANGELOG.md 添加到 .prettierignore，避免格式检查导致 CI 失败
+
+### Deprecated
+
+### Removed
+
+### Fixed
+- 修复 CHANGELOG.md 格式导致的 CI lint 检查失败问题
+
+### Security
+
 
 ## [1.10.12] - 2026-06-07
 
