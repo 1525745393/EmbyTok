@@ -183,14 +183,6 @@ export class EmbyClient extends MediaClient {
     const playSessionId = Date.now();
     const baseUrl = this.getCleanUrl();
 
-    // 检测容器类型：.ts 格式需要转码，不支持直接播放
-    const needsTranscode = item.MediaSources?.some(
-      (m) => m.Container?.toLowerCase().includes('ts')
-    );
-    if (needsTranscode) {
-      mode = 'transcode';
-    }
-
     if (mode === 'direct' && item.MediaSources && item.MediaSources.length > 0) {
       // 直接播放模式：优先从MediaSources中找到可以直接播放的媒体源
       const directSource = item.MediaSources.find((m) => m.SupportsDirectPlay && m.Path);
