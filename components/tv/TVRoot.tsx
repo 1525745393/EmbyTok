@@ -81,7 +81,8 @@ function TVRoot({ onToggleMode }: TVRootProps) {
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(
     () => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'horizontal'
   );
-  const [appVersion, setAppVersion] = useState<string>('1.2.3');
+  // 版本号 - 从 package.json 读取
+  const appVersion = import.meta.env.VITE_APP_VERSION;
 
   const visibleLibraries = useMemo(
     () => libraries.filter((l) => !hiddenLibIds.has(l.Id)),

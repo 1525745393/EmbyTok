@@ -48,8 +48,8 @@ function MobileRoot() {
   const [language, setLanguage] = useState<'zh' | 'en'>(
     () => (localStorage.getItem('embyLanguage') as any) || 'zh'
   );
-  // 版本号
-  const [appVersion, setAppVersion] = useState<string>('2.3.4');
+  // 版本号 - 从 package.json 读取
+  const appVersion = import.meta.env.VITE_APP_VERSION;
 
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(
     () => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'vertical'
