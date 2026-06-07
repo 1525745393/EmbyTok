@@ -105,7 +105,7 @@ jobs:
 
   # -------------------------------------------
   # 任务3: 构建应用（矩阵并行构建）
-  # 根据矩阵配置在不同平台上构建
+  # 根据矩阵配置在不同平台上构建，仅上传 Artifacts
   # -------------------------------------------
   build-app:
     needs: [init-matrix, test]  # 依赖前两个任务完成
@@ -248,19 +248,47 @@ jobs:
         if: ${{ matrix.build == 'android' }}
         uses: actions/upload-artifact@v4
         with:
-          name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug
+          name: apk-debug
           path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
 
       - name: Upload Release APK artifact - 上传 Release APK 到 Artifacts
         if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release
+          name: apk-release
           path: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
 
-      # ========================================
-      # 步骤5: 获取 Changelog
-      # ========================================
+  # -------------------------------------------
+  # 任务4: 创建统一的 Release
+  # 下载所有构建产物并创建 Release
+  # -------------------------------------------
+  create-release:
+    needs: [build-app]  # 等待所有构建完成
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository - 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史
+          fetch-tags: true  # 获取所有标签
+
+      - name: Download artifacts - 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: List downloaded artifacts - 列出下载的文件
+        run: ls -la artifacts/
+
+      - name: Set up Node.js - 设置 Node.js 环境
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies - 安装依赖
+        run: npm ci
+
       - name: Get changelog - 获取发布说明
         id: get-changelog
         shell: bash
@@ -279,9 +307,6 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
-      # ========================================
-      # 步骤6: 确定发布类型（正式版/预发布）
-      # ========================================
       - name: Resolve release type - 确定发布类型
         id: release-type
         shell: bash
@@ -294,29 +319,13 @@ jobs:
           fi
           echo "prerelease=$prerelease" >> $GITHUB_OUTPUT
 
-      # ========================================
-      # 步骤7: 创建 Release 并上传文件（Android）
-      # ========================================
-      - name: Create Release - Android Debug APK
-        uses: svenstaro/upload-release-action@v2
-        if: ${{ matrix.build == 'android' }}
+      - name: Create Release - 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          overwrite: true
-          asset_name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
-          file: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-debug.apk
-          prerelease: ${{ steps.release-type.outputs.prerelease }}
+          files: |
+            artifacts/apk-debug/*.apk
+            artifacts/apk-release/*.apk
           body: ${{ steps.get-changelog.outputs.CHANGELOG }}
-          tag: ${{ github.event.inputs.tag || github.ref }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release - Android Release APK
-        uses: svenstaro/upload-release-action@v2
-        if: ${{ matrix.build == 'android' && steps.check-release.outputs.has_release_apk == 'true' }}
-        with:
-          overwrite: true
-          asset_name: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
-          file: EmbyTok-${{ github.event.inputs.tag || github.ref_name }}-release.apk
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           prerelease: ${{ steps.release-type.outputs.prerelease }}
-          body: ${{ steps.get-changelog.outputs.CHANGELOG }}
-          tag: ${{ github.event.inputs.tag || github.ref }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}

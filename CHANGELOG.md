@@ -14,6 +14,17 @@
 ### Fixed
 ### Security
 
+## [1.10.10] - 2026-06-07
+
+### Added
+- 新增 create-release 任务统一管理 Release 创建
+- 新增诊断报告文档
+
+### Fixed
+- 修复 GitHub Actions 工作流中 Release 创建冲突问题
+- 修复矩阵构建中多任务同时尝试创建 Release 的冲突
+- 使用官方的 softprops/action-gh-release 替代 svenstaro/upload-release-action
+
 ## [1.10.9] - 2026-06-07
 
 ### Added
