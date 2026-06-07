@@ -11,6 +11,7 @@ interface SearchBarProps {
   onFocus: () => void;
   onBlur: () => void;
   onHistoryItemClick: (query: string) => void;
+  onRemoveHistoryItem: (query: string) => void;
   onClearHistory: () => void;
   onClearQuery: () => void;
 }
@@ -23,6 +24,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onFocus,
   onBlur,
   onHistoryItemClick,
+  onRemoveHistoryItem,
   onClearHistory,
   onClearQuery,
 }) => {
@@ -42,6 +44,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
       }
     },
     [onBlur]
+  );
+
+  const handleRemoveHistoryItem = useCallback(
+    (e: React.MouseEvent, query: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onRemoveHistoryItem(query);
+    },
+    [onRemoveHistoryItem]
   );
 
   return (
@@ -88,14 +99,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </div>
           <div className="max-h-64 overflow-y-auto">
             {searchHistory.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => onHistoryItemClick(item.query)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 transition-colors text-left"
-              >
-                <Clock size={16} className="text-zinc-500 flex-shrink-0" />
-                <span className="text-white text-sm truncate">{item.query}</span>
-              </button>
+              <div key={index} className="flex items-center group">
+                <button
+                  onClick={() => onHistoryItemClick(item.query)}
+                  className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 transition-colors text-left"
+                >
+                  <Clock size={16} className="text-zinc-500 flex-shrink-0" />
+                  <span className="text-white text-sm truncate">{item.query}</span>
+                </button>
+                <button
+                  onClick={(e) => handleRemoveHistoryItem(e, item.query)}
+                  className="px-4 py-3 text-zinc-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                  aria-label="删除"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             ))}
           </div>
         </div>

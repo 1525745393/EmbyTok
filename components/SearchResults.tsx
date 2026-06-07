@@ -1,25 +1,127 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { EmbyItem } from '../types';
 import { MediaClient } from '../services/MediaClient';
-import { Play, Search as SearchIcon } from 'lucide-react';
+import { Play, Search as SearchIcon, Video, Film, Music, Folder } from 'lucide-react';
 import { useTranslation } from '../src/hooks';
 
 interface SearchResultsProps {
   results: EmbyItem[];
   loading: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
   query: string;
   client: MediaClient | null;
   onSelectVideo: (item: EmbyItem) => void;
+  onLoadMore?: () => void;
 }
+
+type ItemCategory = 'Movie' | 'Series' | 'Episode' | 'Video' | 'Music' | 'Other';
 
 const SearchResults: React.FC<SearchResultsProps> = ({
   results,
   loading,
+  loadingMore = false,
+  hasMore = false,
   query,
   client,
   onSelectVideo,
+  onLoadMore,
 }) => {
   const { t } = useTranslation();
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const categorizedItems = useMemo(() => {
+    const categories: Record<ItemCategory, EmbyItem[]> = {
+      Movie: [],
+      Series: [],
+      Episode: [],
+      Video: [],
+      Music: [],
+      Other: [],
+    };
+
+    results.forEach((item) => {
+      let category: ItemCategory = 'Other';
+
+      if (item.Type === 'Movie') {
+        category = 'Movie';
+      } else if (item.Type === 'Series') {
+        category = 'Series';
+      } else if (item.Type === 'Episode') {
+        category = 'Episode';
+      } else if (item.Type === 'Video') {
+        category = 'Video';
+      } else if (
+        item.Type === 'Audio' ||
+        item.Type === 'MusicAlbum' ||
+        item.Type === 'MusicArtist'
+      ) {
+        category = 'Music';
+      }
+
+      categories[category].push(item);
+    });
+
+    return categories;
+  }, [results]);
+
+  const getCategoryIcon = (category: ItemCategory) => {
+    switch (category) {
+      case 'Movie':
+      case 'Video':
+        return <Video size={20} />;
+      case 'Series':
+      case 'Episode':
+        return <Film size={20} />;
+      case 'Music':
+        return <Music size={20} />;
+      default:
+        return <Folder size={20} />;
+    }
+  };
+
+  const getCategoryLabel = (category: ItemCategory) => {
+    switch (category) {
+      case 'Movie':
+        return '电影';
+      case 'Series':
+        return '剧集';
+      case 'Episode':
+        return '单集';
+      case 'Video':
+        return '视频';
+      case 'Music':
+        return '音乐';
+      default:
+        return '其他';
+    }
+  };
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loadingMore) {
+      return;
+    }
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [onLoadMore, hasMore, loadingMore]);
 
   if (loading) {
     return (
@@ -57,14 +159,19 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     );
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-4">
-        <p className="text-zinc-400 text-sm mb-4">
-          {t.search?.results || '搜索结果'} ({results.length})
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {results.map((item) => {
+  const renderCategoryItems = (category: ItemCategory, items: EmbyItem[]) => {
+    if (items.length === 0) return null;
+
+    return (
+      <div key={category} className="mb-6">
+        <div className="flex items-center gap-2 mb-4 px-4">
+          <div className="text-indigo-400">{getCategoryIcon(category)}</div>
+          <h3 className="text-white font-medium">
+            {getCategoryLabel(category)} ({items.length})
+          </h3>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 px-4">
+          {items.map((item) => {
             const imageUrl = client?.getImageUrl(item.Id, item.ImageTags?.Primary || '', 'Primary');
 
             return (
@@ -92,12 +199,50 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                   {item.ProductionYear && (
                     <p className="text-zinc-500 text-xs mt-1">{item.ProductionYear}</p>
                   )}
+                  {item.SeriesName && (
+                    <p className="text-zinc-500 text-xs mt-1 truncate">{item.SeriesName}</p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="p-4">
+        <p className="text-zinc-400 text-sm mb-4">
+          {t.search?.results || '搜索结果'} ({results.length})
+        </p>
+      </div>
+
+      {renderCategoryItems('Movie', categorizedItems.Movie)}
+      {renderCategoryItems('Series', categorizedItems.Series)}
+      {renderCategoryItems('Episode', categorizedItems.Episode)}
+      {renderCategoryItems('Video', categorizedItems.Video)}
+      {renderCategoryItems('Music', categorizedItems.Music)}
+      {renderCategoryItems('Other', categorizedItems.Other)}
+
+      {(hasMore || loadingMore) && (
+        <div ref={loadMoreRef} className="p-4 flex items-center justify-center">
+          {loadingMore ? (
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-3 border-white/30 border-t-indigo-500 rounded-full animate-spin" />
+              <span className="text-zinc-500 text-sm">加载更多...</span>
+            </div>
+          ) : (
+            <button
+              onClick={onLoadMore}
+              className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm rounded-lg transition-colors"
+            >
+              加载更多
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -73,6 +73,7 @@ export interface EmbyItem {
     Played: boolean;
     LastPlayedDate?: string;
   };
+  SeriesName?: string;
   /** Internal key used by Plex to store the media part path */
   _PlexKey?: string;
 }

@@ -6,16 +6,21 @@ import type { MediaClient } from '../../services/MediaClient';
 const SEARCH_HISTORY_KEY = 'embytok_search_history';
 const MAX_SEARCH_HISTORY = 20;
 const DEBOUNCE_DELAY = 300;
+const PAGE_SIZE = 20;
 
 export function useSearch(client: MediaClient | null) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult>({ items: [], totalRecordCount: 0 });
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [searchHistory, setSearchHistory] = useLocalStorageState<SearchHistoryItem[]>(
     SEARCH_HISTORY_KEY,
     []
   );
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentSearchQueryRef = useRef('');
 
   const addToHistory = useCallback(
     (searchQuery: string) => {
@@ -48,29 +53,73 @@ export function useSearch(client: MediaClient | null) {
   }, [setSearchHistory]);
 
   const performSearch = useCallback(
-    async (searchQuery: string) => {
+    async (searchQuery: string, isLoadMore = false) => {
       if (!client || !searchQuery.trim()) {
         setResults({ items: [], totalRecordCount: 0 });
+        setHasMore(false);
+        setCurrentPage(0);
         return;
       }
 
-      setLoading(true);
+      const page = isLoadMore ? currentPage + 1 : 0;
+      const startIndex = page * PAGE_SIZE;
+
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        currentSearchQueryRef.current = searchQuery;
+      }
+
       try {
         const items = await client.searchItems(searchQuery);
-        setResults({
-          items,
-          totalRecordCount: items.length,
-        });
-        addToHistory(searchQuery);
+
+        if (isLoadMore && currentSearchQueryRef.current !== searchQuery) {
+          return;
+        }
+
+        const hasMoreItems = items.length > startIndex + PAGE_SIZE;
+        const pageItems = items.slice(startIndex, startIndex + PAGE_SIZE);
+
+        if (isLoadMore) {
+          setResults((prev) => ({
+            items: [...prev.items, ...pageItems],
+            totalRecordCount: items.length,
+          }));
+        } else {
+          setResults({
+            items: pageItems,
+            totalRecordCount: items.length,
+          });
+        }
+
+        setCurrentPage(page);
+        setHasMore(hasMoreItems);
+
+        if (!isLoadMore) {
+          addToHistory(searchQuery);
+        }
       } catch (error) {
         console.error('Search error:', error);
-        setResults({ items: [], totalRecordCount: 0 });
+        if (!isLoadMore) {
+          setResults({ items: [], totalRecordCount: 0 });
+          setHasMore(false);
+          setCurrentPage(0);
+        }
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     },
-    [client, addToHistory]
+    [client, addToHistory, currentPage]
   );
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMore || loading) {
+      return;
+    }
+    performSearch(query, true);
+  }, [hasMore, loadingMore, loading, query, performSearch]);
 
   const debouncedSearch = useCallback(
     (searchQuery: string) => {
@@ -86,6 +135,8 @@ export function useSearch(client: MediaClient | null) {
         }, DEBOUNCE_DELAY);
       } else {
         setResults({ items: [], totalRecordCount: 0 });
+        setHasMore(false);
+        setCurrentPage(0);
       }
     },
     [performSearch]
@@ -103,6 +154,8 @@ export function useSearch(client: MediaClient | null) {
     query,
     results,
     loading,
+    loadingMore,
+    hasMore,
     searchHistory,
     setQuery,
     debouncedSearch,
@@ -110,5 +163,6 @@ export function useSearch(client: MediaClient | null) {
     addToHistory,
     removeFromHistory,
     clearHistory,
+    loadMore,
   };
 }

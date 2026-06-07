@@ -118,10 +118,14 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     query: searchQuery,
     results: searchResults,
     loading: searchLoading,
+    loadingMore: searchLoadingMore,
+    hasMore: searchHasMore,
     searchHistory,
     debouncedSearch,
     performSearch,
-    clearHistory,
+    removeFromHistory: removeFromSearchHistory,
+    clearHistory: clearSearchHistory,
+    loadMore,
   } = useSearch(client);
 
   // 观看历史相关状态 - 使用 useWatchHistory Hook
@@ -549,7 +553,10 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                     onHistoryItemClick={(q) => {
                       performSearch(q);
                     }}
-                    onClearHistory={() => clearHistory()}
+                    onRemoveHistoryItem={(q) => {
+                      removeFromSearchHistory(q);
+                    }}
+                    onClearHistory={() => clearSearchHistory()}
                     onClearQuery={() => {
                       debouncedSearch('');
                     }}
@@ -561,6 +568,8 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                   <SearchResultsComponent
                     results={searchResults.items}
                     loading={searchLoading}
+                    loadingMore={searchLoadingMore}
+                    hasMore={searchHasMore}
                     query={searchQuery}
                     client={client}
                     onSelectVideo={(item) => {
@@ -575,6 +584,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
                       setShowSearch(false);
                       setViewMode('feed');
                     }}
+                    onLoadMore={loadMore}
                   />
                 </Suspense>
               </div>
