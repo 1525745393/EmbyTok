@@ -32,7 +32,7 @@ export abstract class MediaClient {
     includeIds?: string
   ): Promise<VideoResponse>;
 
-  abstract getVideoUrl(item: EmbyItem, useTranscode?: boolean): string;
+  abstract getVideoUrl(item: EmbyItem, mode?: 'direct' | 'transcode' | 'fallback'): string;
 
   abstract getImageUrl(itemId: string, tag?: string, type?: 'Primary' | 'Backdrop'): string;
 
