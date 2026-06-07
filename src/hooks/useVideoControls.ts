@@ -57,7 +57,7 @@ export function useVideoControls(
   const [isSeeking, setIsSeeking] = useState(false);
   const [isUserPaused, setIsUserPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // 用于节流时间更新的 refs
   const lastUpdateTimeRef = useRef<number>(0);
   const rafIdRef = useRef<number | null>(null);
@@ -137,14 +137,15 @@ export function useVideoControls(
     if (videoRef.current && !isSeeking) {
       const now = Date.now();
       const newTime = videoRef.current.currentTime;
-      
+
       // 使用 requestAnimationFrame 节流，限制更新频率
-      if (now - lastUpdateTimeRef.current >= 100) { // 每100ms最多更新一次
+      if (now - lastUpdateTimeRef.current >= 100) {
+        // 每100ms最多更新一次
         // 如果有pending的 RAF，取消它
         if (rafIdRef.current !== null) {
           cancelAnimationFrame(rafIdRef.current);
         }
-        
+
         rafIdRef.current = requestAnimationFrame(() => {
           setCurrentTime(newTime);
           lastUpdateTimeRef.current = Date.now();
