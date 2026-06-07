@@ -467,7 +467,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     setSeekOffset(null);
     setIsSpeedAdjusting(false);
 
-    longPressTimer.current = setTimeout(() =&gt; {
+    longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
       setIsTemporarySpeed(true);
       setPlaybackRate(2.0);
@@ -490,7 +490,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
       }
     }
 
-    if (isLongPress.current &amp;&amp; Math.abs(deltaY) &gt; 20) {
+    if (isLongPress.current && Math.abs(deltaY) > 20) {
       // 用户滑动调整了速度，标记为用户固定速度
       setIsTemporarySpeed(false);
       let newRate = speedStartRate.current + (-deltaY / 100) * 4.5;
@@ -893,10 +893,10 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           className="absolute top-32 left-1/2 -translate-x-1/2 z-50 bg-black/80 backdrop-blur-md rounded-2xl p-2 min-w-[120px]"
           onClick={(e) => e.stopPropagation()}
         >
-          {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0].map((speed) =&gt; (
+          {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0, 5.0].map((speed) => (
             <button
               key={speed}
-              onClick={(e) =&gt; {
+              onClick={(e) => {
                 e.stopPropagation();
                 setIsTemporarySpeed(false);
                 setPlaybackRate(speed);
