@@ -10,7 +10,6 @@ export default {
     autoPlayOn: 'Auto-play enabled',
     doubleSpeed: '2x Speed',
     videoLoadError: 'Failed to load video',
-    watchFullscreen: 'Watch Fullscreen',
   },
   login: {
     serverAddress: 'Server Address',

@@ -15,7 +15,6 @@ import {
   Infinity,
   Trash2,
   Subtitles,
-  Maximize,
 } from 'lucide-react';
 import { useLazyImage } from '../src/hooks';
 import SubtitleControls from './SubtitleControls';
@@ -88,7 +87,6 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           transcodeMode: '转码播放',
           fallbackMode: '备用模式',
           switchMode: '切换播放模式',
-          watchFullscreen: '全屏观看',
         },
         en: {
           deleteVideo: 'Delete Video',
@@ -113,7 +111,6 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           transcodeMode: 'Transcode',
           fallbackMode: 'Fallback',
           switchMode: 'Switch Mode',
-          watchFullscreen: 'Watch Fullscreen',
         },
       })[language],
     [language]
@@ -292,33 +289,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     }
   }, []);
 
-  const enterFullscreen = useCallback(async () => {
-    const container = containerRef.current;
-    if (!container) return;
 
-    try {
-      if (container.requestFullscreen) {
-        await container.requestFullscreen();
-      } else if ((container as any).webkitRequestFullscreen) {
-        await (container as any).webkitRequestFullscreen();
-      } else if ((container as any).mozRequestFullScreen) {
-        await (container as any).mozRequestFullScreen();
-      } else if ((container as any).msRequestFullscreen) {
-        await (container as any).msRequestFullscreen();
-      }
-
-      // 尝试锁定屏幕方向为横屏
-      if (screen.orientation && (screen.orientation as any).lock) {
-        try {
-          await (screen.orientation as any).lock('landscape');
-        } catch (err) {
-          console.warn('无法锁定屏幕方向:', err);
-        }
-      }
-    } catch (err) {
-      console.warn('进入全屏失败:', err);
-    }
-  }, []);
 
   const handlePlaying = useCallback(() => {
     setIsPlaying(true);
@@ -1097,29 +1068,7 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
         </button>
       </div>
 
-      {/* 全屏观看按钮 - 仅在横屏视频且活跃时显示 */}
-      {renderUI && isActive && isContentLandscape && (
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-40 flex flex-col items-center justify-center pointer-events-auto"
-          >
-            <button
-              onTouchStart={stopProp}
-              onMouseDown={stopProp}
-              onTouchEnd={(e) => handleButtonAction(e, enterFullscreen)}
-              onClick={(e) => handleButtonAction(e, enterFullscreen)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white transition-all active:scale-95 focus:ring-2 focus:ring-white/30 outline-none shadow-lg"
-            >
-              <Maximize className="w-5 h-5" />
-              <span className="text-sm font-medium">{t.watchFullscreen}</span>
-            </button>
-          </motion.div>
-        </AnimatePresence>
-      )}
+
 
       {renderUI && (
         <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 z-30 pointer-events-auto">

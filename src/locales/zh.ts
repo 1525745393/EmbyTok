@@ -10,7 +10,6 @@ export default {
     autoPlayOn: '自动连播已开启',
     doubleSpeed: '2倍速中',
     videoLoadError: '无法加载视频',
-    watchFullscreen: '全屏观看',
   },
   login: {
     serverAddress: '服务器地址',
