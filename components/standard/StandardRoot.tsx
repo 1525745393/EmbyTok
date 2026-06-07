@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useCallback,
   useLayoutEffect,
+  useRef,
   lazy,
   Suspense,
 } from 'react';
@@ -162,6 +163,13 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   const [subtitleTracksMap, setSubtitleTracksMap] = useState<Map<string, SubtitleTrack[]>>(
     new Map()
   );
+  // 使用 ref 来存储 subtitleTracksMap，避免依赖问题
+  const subtitleTracksMapRef = useRef(subtitleTracksMap);
+
+  // 同步 ref 到最新状态
+  useEffect(() => {
+    subtitleTracksMapRef.current = subtitleTracksMap;
+  }, [subtitleTracksMap]);
 
   // 用于收藏管理的视频详情映射
   const [itemDetailsMap, setItemDetailsMap] = useState<Map<string, EmbyItem>>(new Map());
@@ -189,12 +197,13 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
     else localStorage.removeItem('embyConfig');
   }, [config]);
 
-  useEffect(() => {
-    if (client) fetchLibraries();
-  }, [client]);
   const fetchLibraries = async () => {
     if (client) setLibraries(await client.getLibraries());
   };
+
+  useEffect(() => {
+    if (client) fetchLibraries();
+  }, [client]);
 
   // 添加到观看历史 - 使用 useWatchHistory hook
   const handleAddToWatchHistory = useCallback(
@@ -290,7 +299,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   // 加载当前视频的字幕轨道
   const loadSubtitleTracksForItem = useCallback(
     async (itemId: string) => {
-      if (!client || subtitleTracksMap.has(itemId)) return;
+      if (!client || subtitleTracksMapRef.current.has(itemId)) return;
 
       try {
         const tracks = await client.getSubtitleTracks(itemId);
@@ -303,7 +312,7 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
         console.error('Failed to load subtitle tracks:', error);
       }
     },
-    [client, subtitleTracksMap]
+    [client]
   );
 
   // 监听当前视频变化，加载字幕轨道
@@ -318,21 +327,23 @@ function StandardRoot({ onToggleMode }: StandardRootProps) {
   useEffect(() => {
     if (videos.length > 0 && currentIndex < videos.length && subtitleSettings.selectedTrackId) {
       const currentItem = videos[currentIndex];
-      const tracks = subtitleTracksMap.get(currentItem.Id) || [];
+      const tracks = subtitleTracksMapRef.current.get(currentItem.Id) || [];
       const selectedTrack = tracks.find((t) => t.id === subtitleSettings.selectedTrackId);
       if (selectedTrack) {
         loadSubtitles(selectedTrack);
       }
     }
-  }, [videos, currentIndex, subtitleSettings.selectedTrackId, subtitleTracksMap, loadSubtitles]);
+  }, [videos, currentIndex, subtitleSettings.selectedTrackId, loadSubtitles]);
 
   // 将视频添加到 itemDetailsMap 以便收藏管理使用
   useEffect(() => {
-    const newMap = new Map(itemDetailsMap);
-    videos.forEach((video) => {
-      newMap.set(video.Id, video);
+    setItemDetailsMap((prevMap) => {
+      const newMap = new Map(prevMap);
+      videos.forEach((video) => {
+        newMap.set(video.Id, video);
+      });
+      return newMap;
     });
-    setItemDetailsMap(newMap);
   }, [videos]);
 
   const loadVideos = async (reset: boolean = false, overrideParentId?: string) => {
