@@ -190,11 +190,11 @@ jobs:
           if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
             echo "开始解码 keystore 文件..."
             
-            # 尝试使用更可靠的解码方法
-            echo "${{ secrets.ANDROID_KEYSTORE }}" | tr -d '[:space:]' | base64 -d > android/app/embytok-release.keystore 2>/dev/null || true
+            # 使用更可靠的解码方法 - 清理 Base64 编码中的空白字符并解码
+            echo "${{ secrets.ANDROID_KEYSTORE }}" | tr -d '[:space:]' | base64 -d > android/app/embytok-release.keystore
             
             # 验证文件是否成功创建
-            if [ -f "android/app/embytok-release.keystore" ] && [ -s "android/app/embytok-release.keystore" ]; then
+            if [ -f "android/app/embytok-release.keystore" ]; then
               KEYSTORE_SIZE=$(ls -la android/app/embytok-release.keystore | awk '{print $5}')
               echo "✅ Keystore 文件已创建，大小: $KEYSTORE_SIZE 字节"
               
@@ -206,13 +206,11 @@ jobs:
               echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
               echo "signing_enabled=true" >> $GITHUB_OUTPUT
             else
-              echo "⚠️ Keystore 文件解码失败，将跳过 Release APK 构建"
-              # 清理可能的空文件
-              rm -f android/app/embytok-release.keystore
-              echo "signing_enabled=false" >> $GITHUB_OUTPUT
+              echo "❌ Keystore 文件创建失败"
+              exit 1
             fi
           else
-            echo "⚠️ 未提供 ANDROID_KEYSTORE，将跳过签名构建"
+            echo "⚠️  未提供 ANDROID_KEYSTORE，将跳过签名构建"
             echo "signing_enabled=false" >> $GITHUB_OUTPUT
           fi
 
@@ -231,10 +229,12 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Release APK - 构建 Release APK
-        if: ${{ matrix.build == 'android' && steps.prepare-signing.outputs.signing_enabled == 'true' }}
+        if: ${{ matrix.build == 'android' }}
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            ./gradlew assembleRelease --no-daemon --stacktrace
+          fi
 
       - name: Rename APKs - 重命名 APK 文件
         if: ${{ matrix.build == 'android' }}
