@@ -7,6 +7,7 @@ import LibrarySelect from '../LibrarySelect';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { Menu, LayoutGrid, Smartphone, Volume2, VolumeX, Maximize, Minimize, ChevronLeft } from 'lucide-react';
+import { useUpdateChecker } from '../../src/hooks';
 
 type ViewMode = 'feed' | 'grid';
 const PAGE_SIZE = 15;
@@ -34,7 +35,7 @@ function MobileRoot() {
   // 语言状态补全
   const [language, setLanguage] = useState<'zh' | 'en'>(() => (localStorage.getItem('embyLanguage') as any) || 'zh');
   // 版本号
-  const [appVersion, setAppVersion] = useState<string>('2.3.4');
+  const { currentVersion: appVersion } = useUpdateChecker();
   // 调试模式
   const [debugMode, setDebugMode] = useState<boolean>(() => {
     try { const saved = localStorage.getItem('embyDebugMode'); return saved ? JSON.parse(saved) : false; } catch(e) { return false; }

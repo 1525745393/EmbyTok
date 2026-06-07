@@ -9,6 +9,7 @@ import TVSettings from './TVSettings';
 import { ServerConfig, EmbyLibrary, EmbyItem, FeedType, OrientationMode } from '../../types';
 import { ClientFactory } from '../../services/clientFactory';
 import { LayoutGrid, Library, Settings, LogOut, Clock, Star, RefreshCcw, Monitor, Eye, EyeOff, User, Info, CheckCircle2, Smartphone, Square, Search, Globe } from 'lucide-react';
+import { useUpdateChecker } from '../../src/hooks';
 
 interface TVRootProps {
     onToggleMode?: () => void;
@@ -45,7 +46,7 @@ function TVRoot({ onToggleMode }: TVRootProps) {
       try { const s = localStorage.getItem('embyHiddenLibs'); return s ? new Set(JSON.parse(s)) : new Set(); } catch(e) { return new Set(); }
   });
   const [orientationMode, setOrientationMode] = useState<OrientationMode>(() => (localStorage.getItem('embyOrientationMode') as OrientationMode) || 'horizontal');
-  const [appVersion, setAppVersion] = useState<string>('1.2.3');
+  const { currentVersion: appVersion } = useUpdateChecker();
 
   const visibleLibraries = useMemo(() => libraries.filter(l => !hiddenLibIds.has(l.Id)), [libraries, hiddenLibIds]);
   const switchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
