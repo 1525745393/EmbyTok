@@ -1,243 +1,258 @@
 package com.embytok.app.ui.screens.login
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.embytok.app.viewmodel.LoginViewModel
 import com.embytok.domain.model.ServerType
 
 /**
- * 登录屏幕
+ * 登录页面。
  *
- * 支持两种模式：
- *  - Emby: 通过 用户名 + 密码 认证
- *  - Plex: 通过 Token 认证
+ * 支持两种服务器类型（Emby / Plex），根据类型动态显示不同凭据字段。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginSuccess: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val serverType by viewModel.serverType.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
-    // 当 isLoggedIn 变为 true 时触发回调
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
-            onLoginSuccess()
-        }
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) onLoginSuccess()
     }
+
+    // 本地 UI 状态
+    var serverTypeExpanded by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    val url by viewModel.serverUrl.collectAsState()
+    val username by viewModel.username.collectAsState()
+    val password by viewModel.password.collectAsState()
+    val apiKey by viewModel.apiKey.collectAsState()
+    val accessToken by viewModel.accessToken.collectAsState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo / Title
             Text(
                 text = "EmbyTok",
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 36.sp
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFE91E63)
             )
-
-            Text(
-                text = "为 Emby/Plex 打造的竖屏视频体验",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // 服务器类型切换
-            ServerTypeSelector(
-                selected = uiState.serverType,
-                onSelected = viewModel::updateServerType
-            )
-
-            // URL 输入
-            TextField(
-                value = uiState.url,
-                onValueChange = viewModel::updateUrl,
-                label = { Text("服务器地址") },
-                placeholder = { Text("https://emby.example.com") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-            )
-
-            // 条件字段：根据服务器类型显示不同的输入
-            if (uiState.serverType == ServerType.EMBY) {
-                // Emby: 用户名 + 密码
-                TextField(
-                    value = uiState.username,
-                    onValueChange = viewModel::updateUsername,
-                    label = { Text("用户名") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                )
-
-                PasswordField(
-                    value = uiState.password,
-                    onValueChange = viewModel::updatePassword,
-                    label = "密码"
-                )
-            } else {
-                // Plex: Token
-                TextField(
-                    value = uiState.token,
-                    onValueChange = viewModel::updateToken,
-                    label = { Text("Plex Token") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    visualTransformation = PasswordVisualTransformation()
-                )
-
-                Text(
-                    text = "提示：在 plex.tv 网页版登录后，访问 https://plex.tv/api/resources 可获取 token",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // 错误提示
-            if (uiState.error != null) {
-                Text(
-                    text = uiState.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
             Spacer(Modifier.height(8.dp))
+            Text(
+                text = "以竖屏视频流的方式浏览个人媒体库",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFB3B3B3)
+            )
+            Spacer(Modifier.height(48.dp))
 
-            // 登录按钮
+            // ===== 服务器类型选择 =====
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = if (serverType == ServerType.EMBY) "Emby" else "Plex",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("服务器类型") },
+                    trailingIcon = {
+                        IconButton(onClick = { serverTypeExpanded = !serverTypeExpanded }) {
+                            Text("▼", color = Color.White)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedTextFieldColors()
+                )
+                DropdownMenu(
+                    expanded = serverTypeExpanded,
+                    onDismissRequest = { serverTypeExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Emby") },
+                        onClick = {
+                            viewModel.setServerType(ServerType.EMBY)
+                            serverTypeExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Plex") },
+                        onClick = {
+                            viewModel.setServerType(ServerType.PLEX)
+                            serverTypeExpanded = false
+                        }
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // ===== 服务器地址 =====
+            OutlinedTextField(
+                value = url,
+                onValueChange = viewModel::setServerUrl,
+                label = { Text("服务器地址") },
+                placeholder = { Text("http://192.168.1.10:8096") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = outlinedTextFieldColors()
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // ===== Emby 专有字段：用户名/密码/API Key =====
+            if (serverType == ServerType.EMBY) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = viewModel::setUsername,
+                    label = { Text("用户名") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = outlinedTextFieldColors()
+                )
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = viewModel::setPassword,
+                    label = { Text("密码") },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = "切换密码可见性",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = outlinedTextFieldColors()
+                )
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = viewModel::setApiKey,
+                    label = { Text("API Key（可选）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = outlinedTextFieldColors()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ===== Plex 专有字段：Access Token =====
+            if (serverType == ServerType.PLEX) {
+                OutlinedTextField(
+                    value = accessToken,
+                    onValueChange = viewModel::setAccessToken,
+                    label = { Text("Access Token") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = outlinedTextFieldColors()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ===== 错误提示 =====
+            if (!errorMessage.isNullOrEmpty()) {
+                Text(
+                    text = errorMessage!!,
+                    color = Color(0xFFCF6679),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ===== 登录按钮 =====
             Button(
-                onClick = viewModel::login,
-                enabled = !uiState.isLoading,
+                onClick = { viewModel.login(onLoginSuccess) },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE91E63)
+                )
             ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("正在连接…")
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White)
                 } else {
-                    Text("登录", fontSize = 16.sp)
+                    Text(
+                        text = "登录",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
-
-            Text(
-                text = "本地收藏、观看历史等数据保存在设备本地",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            )
         }
     }
 }
 
-/**
- * 服务器类型切换（Emby / Plex）
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ServerTypeSelector(
-    selected: ServerType,
-    onSelected: (ServerType) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(8.dp)
-            ),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        ServerType.values().forEach { type ->
-            val isSelected = selected == type
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelected(type) },
-                label = {
-                    Text(
-                        text = type.name,
-                        color = if (isSelected) Color.White
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(4.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary
-                )
-            )
-        }
-    }
-}
-
-/**
- * 密码输入框（带显示/隐藏切换）
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PasswordField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String
-) {
-    var showPassword by remember { mutableStateOf(false) }
-
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            IconButton(onClick = { showPassword = !showPassword }) {
-                Icon(
-                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = if (showPassword) "隐藏密码" else "显示密码"
-                )
-            }
-        },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+private fun outlinedTextFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedBorderColor = Color(0xFFE91E63),
+        unfocusedBorderColor = Color(0xFF666666),
+        disabledBorderColor = Color(0xFF666666),
+        cursorColor = Color(0xFFE91E63),
+        focusedLabelColor = Color(0xFFE91E63),
+        unfocusedLabelColor = Color(0xFFB3B3B3),
+        focusedPlaceholderColor = Color(0xFF666666),
+        unfocusedPlaceholderColor = Color(0xFF666666)
     )
-}

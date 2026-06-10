@@ -1,12 +1,21 @@
 package com.embytok.app.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.embytok.app.ui.screens.feed.FeedScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
@@ -14,98 +23,89 @@ import com.embytok.app.ui.screens.settings.SettingsScreen
 import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
+import com.embytok.domain.model.EmbyItem
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
- * 导航路由常量
+ * EmbyTok 根组件。
+ *
+ * 负责：
+ *   - 应用级主题（Material 3 Dark）
+ *   - 路由：LOGIN -> FEED -> PLAYER / SETTINGS
+ *   - 注入 ViewModel
  */
+@Composable
+fun EmbyTokApp() {
+    MaterialTheme(colorScheme = darkColorScheme(
+        primary = Color(0xFFE91E63),
+        background = Color(0xFF0A0A0A),
+        surface = Color(0xFF1A1A1A)
+    )) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0A0A0A))
+        ) {
+            val navController = rememberNavController()
+
+            // ViewModels：跨页面共享
+            val loginViewModel: LoginViewModel = viewModel()
+            val feedViewModel: FeedViewModel = viewModel()
+            val playerViewModel: VideoPlayerViewModel = viewModel()
+
+            NavHost(navController = navController, startDestination = Routes.LOGIN) {
+                composable(Routes.LOGIN) {
+                    LoginScreen(loginViewModel) {
+                        navController.navigate(Routes.FEED) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
+                composable(Routes.FEED) {
+                    FeedScreen(
+                        viewModel = feedViewModel,
+                        onOpenPlayer = { item ->
+                            val json = Json.encodeToString(item)
+                            navController.navigate("${Routes.PLAYER}/$json")
+                        },
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                    )
+                }
+                composable(
+                    route = "${Routes.PLAYER}/{item}",
+                    arguments = listOf(navArgument("item") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val itemJson = backStackEntry.arguments?.getString("item") ?: return@composable
+                    val item: EmbyItem = remember(itemJson) {
+                        runCatching { Json.decodeFromString<EmbyItem>(itemJson) }.getOrNull()
+                    } ?: return@composable
+                    PlayerScreen(
+                        item = item,
+                        viewModel = playerViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        onLogout = {
+                            loginViewModel.logout()
+                            navController.navigate(Routes.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+    }
+}
+
 object Routes {
     const val LOGIN = "login"
     const val FEED = "feed"
-    const val PLAYER = "player/{itemId}"
+    const val PLAYER = "player"
     const val SETTINGS = "settings"
-
-    fun player(itemId: String) = "player/$itemId"
-}
-
-/**
- * EmbyTok 主应用（Compose 入口）
- *
- * 由 [com.embytok.app.MainActivity] 调用 setContent 启动
- * 负责：
- *  - 管理根级导航
- *  - 提供 ViewModel 实例到各个 Screen
- */
-@Composable
-fun EmbyTokApp(
-    loginViewModel: LoginViewModel,
-    feedViewModel: FeedViewModel,
-    playerViewModel: VideoPlayerViewModel,
-    modifier: Modifier = Modifier
-) {
-    val navController = rememberNavController()
-    val loginState by loginViewModel.uiState.collectAsState()
-
-    // 起始路由（根据登录状态判断）
-    val startDestination = if (loginState.isLoggedIn) Routes.FEED else Routes.LOGIN
-
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
-    ) {
-        // ============ 登录页 ============
-        composable(Routes.LOGIN) {
-            LoginScreen(
-                viewModel = loginViewModel,
-                onLoginSuccess = {
-                    navController.navigate(Routes.FEED) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        // ============ 视频流首页 ============
-        composable(Routes.FEED) {
-            FeedScreen(
-                feedViewModel = feedViewModel,
-                playerViewModel = playerViewModel,
-                onNavigateToPlayer = { itemId ->
-                    navController.navigate(Routes.player(itemId))
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Routes.SETTINGS)
-                },
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FEED) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        // ============ 播放器（详情页） ============
-        composable(Routes.PLAYER) { backStackEntry ->
-            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
-            PlayerScreen(
-                playerViewModel = playerViewModel,
-                itemId = itemId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // ============ 设置页 ============
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
-                onBack = { navController.popBackStack() },
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FEED) { inclusive = true }
-                    }
-                }
-            )
-        }
-    }
 }

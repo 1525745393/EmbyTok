@@ -3,142 +3,107 @@ package com.embytok.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.embytok.app.preferences.AppPreferences
+import com.embytok.app.usecase.AuthenticateUseCase
 import com.embytok.domain.model.ServerType
-import com.embytok.usecase.AuthenticateUseCase
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * 登录页 ViewModel
- *
- * 状态：
- *  - 输入框：serverUrl / username / password / apiKey / accessToken
- *  - serverType（Emby / Plex）
- *  - isLoggedIn
- *  - 登录状态
- *
- * 行为：
- *  - 调用 [AuthenticateUseCase]
- *  - 将配置保存到 [AppPreferences]
+ * 登录页状态机。集中管理所有输入字段与 UI 状态。
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModel(
     private val preferences: AppPreferences,
-    private val loginUseCase: AuthenticateUseCase
+    private val authenticateUseCase: AuthenticateUseCase
 ) : ViewModel() {
 
-    // ====== UI 输入状态 ======
-    private val _serverUrl = MutableStateFlow("")
-    private val _username = MutableStateFlow("")
-    private val _password = MutableStateFlow("")
-    private val _apiKey = MutableStateFlow("")
-    private val _accessToken = MutableStateFlow("")
+    // ===== 输入态 =====
     private val _serverType = MutableStateFlow(ServerType.EMBY)
+    val serverType: StateFlow<ServerType> = _serverType.asStateFlow()
 
-    // ====== 登录状态 ======
-    private val _isLoggedIn = MutableStateFlow(false)
+    private val _serverUrl = MutableStateFlow("")
+    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
+
+    private val _username = MutableStateFlow("")
+    val username: StateFlow<String> = _username.asStateFlow()
+
+    private val _password = MutableStateFlow("")
+    val password: StateFlow<String> = _password.asStateFlow()
+
+    private val _apiKey = MutableStateFlow("")
+    val apiKey: StateFlow<String> = _apiKey.asStateFlow()
+
+    private val _accessToken = MutableStateFlow("")
+    val accessToken: StateFlow<String> = _accessToken.asStateFlow()
+
+    // ===== UI 状态 =====
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    data class UiState(
-        val serverUrl: String,
-        val username: String,
-        val password: String,
-        val apiKey: String,
-        val accessToken: String,
-        val serverType: ServerType,
-        val isLoggedIn: Boolean,
-        val isLoading: Boolean,
-        val errorMessage: String?
-    )
+    private val _isLoggedIn = MutableStateFlow(false)
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    val uiState: StateFlow<UiState> = combine(
-        _serverUrl,
-        _username,
-        _password,
-        _apiKey,
-        _accessToken,
-        _serverType,
-        _isLoggedIn,
-        _isLoading,
-        _errorMessage
-    ) { a1, a2, a3, a4, a5, a6, a7, a8, a9 ->
-        UiState(a1, a2, a3, a4, a5, a6, a7, a8, a9)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = UiState(
-            serverUrl = "",
-            username = "",
-            password = "",
-            apiKey = "",
-            accessToken = "",
-            serverType = ServerType.EMBY,
-            isLoggedIn = false,
-            isLoading = false,
-            errorMessage = null
-        )
-    )
-
-    // ====== 初始化：从 preferences 读取已保存配置 ======
+    // ===== 初始化：检查是否已登录 =====
     init {
         viewModelScope.launch {
-            preferences.serverConfig.collect { config ->
-                config?.let {
-                    _serverUrl.value = it.serverUrl
-                    _username.value = it.username
-                    _apiKey.value = it.apiKey.orEmpty()
-                    _accessToken.value = it.accessToken.orEmpty()
-                    _serverType.value = it.serverType
+            var found: Boolean = false
+            preferences.serverConfig.collectLatest { config ->
+                if (config != null && !found) {
+                    found = true
+                    _isLoggedIn.value = true
+                    _serverType.value = config.serverType
+                    _serverUrl.value = config.url
+                    _username.value = config.username
                 }
             }
         }
     }
 
-    // ====== 输入绑定 ======
-    fun setServerUrl(value: String) { _serverUrl.value = value }
+    // ===== UI 输入事件 =====
+    fun setServerType(type: ServerType) { _serverType.value = type }
+    fun setServerUrl(url: String) { _serverUrl.value = url }
     fun setUsername(value: String) { _username.value = value }
     fun setPassword(value: String) { _password.value = value }
     fun setApiKey(value: String) { _apiKey.value = value }
     fun setAccessToken(value: String) { _accessToken.value = value }
-    fun setServerType(value: ServerType) { _serverType.value = value }
 
-    // ====== 登录 ======
+    // ===== 登录 =====
     fun login(onSuccess: () -> Unit) {
+        val url = _serverUrl.value.trim().trimEnd('/')
+        if (url.isEmpty()) {
+            _errorMessage.value = "请输入服务器地址"
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            try {
-                val result = loginUseCase.execute(
-                    serverType = _serverType.value,
-                    serverUrl = _serverUrl.value,
-                    username = _username.value,
-                    password = _password.value,
-                    apiKey = if (_apiKey.value.isBlank()) null else _apiKey.value,
-                    accessToken = if (_accessToken.value.isBlank()) null else _accessToken.value
-                )
-                if (result.isSuccess) {
-                    _isLoggedIn.value = true
-                    onSuccess()
-                } else {
-                    _errorMessage.value = "登录失败：${result.exceptionOrNull()?.message}"
-                }
-            } catch (e: Exception) {
-                _errorMessage.value = "登录失败：${e.message}"
-            } finally {
-                _isLoading.value = false
+
+            val result = authenticateUseCase.execute(
+                serverType = _serverType.value,
+                serverUrl = url,
+                username = _username.value,
+                password = if (_password.value.isBlank()) null else _password.value,
+                apiKey = if (_apiKey.value.isBlank()) null else _apiKey.value,
+                accessToken = if (_accessToken.value.isBlank()) null else _accessToken.value
+            )
+
+            if (result.isSuccess) {
+                _isLoggedIn.value = true
+                onSuccess()
+            } else {
+                _errorMessage.value = result.exceptionOrNull()?.message ?: "登录失败"
             }
+            _isLoading.value = false
         }
     }
 
-    /**
-     * 退出登录：清空 DataStore 中的 serverConfig。
-     */
+    // ===== 登出 =====
     fun logout() {
         viewModelScope.launch {
             preferences.clearServerConfig()
