@@ -1,6 +1,5 @@
 package com.embytok.app.ui.screens.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -18,7 +18,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -27,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +38,8 @@ import kotlinx.coroutines.launch
 
 /**
  * 设置界面
+ *
+ * 展示账户信息与登出功能。使用 ServiceLocator 获取认证用例。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +47,11 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var showConfirm by remember { mutableStateOf(false) }
+
+    // 当前已保存的配置，用于显示账户信息
+    val currentConfig = ServiceLocator.authenticateUseCase.currentConfigCached()
 
     Scaffold(
         containerColor = Color(0xFF0A0A0A),
@@ -80,7 +86,7 @@ fun SettingsScreen(
             )
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -90,16 +96,32 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("服务器类型", color = Color.White)
-                        Text("EmbyTok", color = Color(0xFFE91E63))
+                        Text(
+                            when (currentConfig?.serverType?.name) {
+                                "EMBY" -> "Emby"
+                                "PLEX" -> "Plex"
+                                else -> "未知"
+                            },
+                            color = Color(0xFFE91E63)
+                        )
                     }
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("播放速度", color = Color.White)
-                        Text("1.0x", color = Color(0xFFE91E63))
+                        Text("服务器地址", color = Color.White)
+                        Text(currentConfig?.url.orEmpty(), color = Color(0xFFE91E63), fontSize = 12.sp)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("用户名", color = Color.White)
+                        Text(currentConfig?.username.orEmpty(), color = Color(0xFFE91E63))
                     }
                 }
             }
@@ -110,12 +132,13 @@ fun SettingsScreen(
             Button(
                 onClick = { showConfirm = true },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63))
             ) {
                 Text("退出登录", color = Color.White, fontSize = 16.sp)
             }
 
+            // 退出确认对话框
             if (showConfirm) {
                 androidx.compose.material3.AlertDialog(
                     onDismissRequest = { showConfirm = false },
@@ -124,12 +147,11 @@ fun SettingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                androidx.lifecycle.viewmodel.compose.viewModel<LogoutHolder>()
-                                    .coroutineScope.launch {
-                                        ServiceLocator.authenticateUseCase.logout()
-                                        showConfirm = false
-                                        onLogout()
-                                    }
+                                scope.launch {
+                                    ServiceLocator.authenticateUseCase.logout()
+                                    showConfirm = false
+                                    onLogout()
+                                }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63))
                         ) { Text("确认", color = Color.White) }
@@ -153,9 +175,4 @@ fun SettingsScreen(
             )
         }
     }
-}
-
-/** 辅助 ViewModel，只是为了获得 coroutineScope */
-class LogoutHolder : androidx.lifecycle.ViewModel() {
-    val coroutineScope get() = viewModelScope
 }

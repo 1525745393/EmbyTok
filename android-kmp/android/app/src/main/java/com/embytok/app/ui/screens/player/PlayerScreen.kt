@@ -28,13 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,11 +41,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 import com.embytok.domain.model.EmbyItem
+import com.embytok.player.PlaybackState
 
 /**
  * 视频播放页。
  *
- * 包含一个全屏 Media3 PlayerView、以及一个用于填充字幕的信息条。
+ * 包含一个全屏 Media3 PlayerView、信息条和播放控制。
  */
 @Composable
 fun PlayerScreen(
@@ -54,8 +54,8 @@ fun PlayerScreen(
     viewModel: VideoPlayerViewModel,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val playbackState by viewModel.playbackState.collectAsState()
+    val isFavorite by viewModel.isFavorite.collectAsState()
 
     LaunchedEffect(item.Id) {
         viewModel.prepare(item)
@@ -85,11 +85,11 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* 收藏 TODO */ }) {
+                    IconButton(onClick = { viewModel.toggleFavorite() }) {
                         Icon(
-                            imageVector = Icons.Default.FavoriteBorder,
+                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "收藏",
-                            tint = Color.White
+                            tint = if (isFavorite) Color(0xFFE91E63) else Color.White
                         )
                     }
                 },
@@ -108,22 +108,24 @@ fun PlayerScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 播放器
+            // 播放器区域
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                when (playbackState) {
-                    com.embytok.player.PlaybackState.Loading,
-                    com.embytok.player.PlaybackState.Idle -> {
+                when (val state = playbackState) {
+                    // 加载中 / 初始态
+                    is PlaybackState.Idle,
+                    is PlaybackState.Buffering -> {
                         CircularProgressIndicator(color = Color(0xFFE91E63))
                     }
-                    is com.embytok.player.PlaybackState.Error -> {
+                    // 错误态
+                    is PlaybackState.Error -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = (playbackState as com.embytok.player.PlaybackState.Error).message,
+                                text = state.message,
                                 color = Color(0xFFCF6679)
                             )
                             Spacer(Modifier.height(16.dp))
@@ -131,11 +133,10 @@ fun PlayerScreen(
                                 onClick = { viewModel.prepare(item) },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
                                 shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text("重试", color = Color.White)
-                            }
+                            ) { Text("重试", color = Color.White) }
                         }
                     }
+                    // 其他态：Ready / Playing / Paused / Ended → 显示 ExoPlayer PlayerView
                     else -> {
                         AndroidView(
                             modifier = Modifier.fillMaxSize(),
@@ -154,11 +155,12 @@ fun PlayerScreen(
                 }
             }
 
-            // 底部信息条
-            if (playbackState is com.embytok.player.PlaybackState.Ready ||
-                playbackState is com.embytok.player.PlaybackState.Playing ||
-                playbackState is com.embytok.player.PlaybackState.Paused
-            ) {
+            // 底部信息条（准备好播放后显示）
+            val showInfo = playbackState is PlaybackState.Ready ||
+                    playbackState is PlaybackState.Playing ||
+                    playbackState is PlaybackState.Paused ||
+                    playbackState is PlaybackState.Ended
+            if (showInfo) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -173,7 +175,7 @@ fun PlayerScreen(
                     if (!item.Overview.isNullOrEmpty()) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = item.Overview!!,
+                            text = item.Overview,
                             color = Color(0xFFB3B3B3),
                             fontSize = 14.sp,
                             maxLines = 2

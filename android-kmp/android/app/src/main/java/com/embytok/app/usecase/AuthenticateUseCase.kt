@@ -5,19 +5,37 @@ import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.ServerConfig
 import com.embytok.domain.model.ServerType
 import com.embytok.network.ClientFactory
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
 /**
- * 登录用例：验证服务器凭据 → 持久化 ServerConfig → 可用于构造 MediaClient。
+ * 登录 / 登出用例。
+ *
+ * 封装认证逻辑：
+ *   - Emby：用户名+密码 或 API Key
+ *   - Plex：Access Token
+ *
+ * 成功后将服务器配置保存到 [AppPreferences]，供后续请求和播放使用。
  */
 class AuthenticateUseCase(
     private val preferences: AppPreferences
 ) {
 
+    /** 当前服务器配置 Flow（响应式） */
+    val configFlow: Flow<ServerConfig?> = preferences.serverConfig
+
+    /** 当前缓存的配置（用于 UI 显示，非挂起版本） */
+    @Volatile
+    private var cachedConfig: ServerConfig? = null
+
+    /** 当前缓存的 MediaClient（根据配置动态创建） */
+    @Volatile
+    private var cachedClient: MediaClient? = null
+
+    fun currentConfigCached(): ServerConfig? = cachedConfig
+
     /**
-     * 执行登录：
-     * - 对 Emby：若传入 apiKey 则直接 ping；否则用用户名/密码调用 authenticate。
-     * - 对 Plex：仅 token ping。
+     * 执行登录
      */
     suspend fun execute(
         serverType: ServerType,
@@ -32,64 +50,67 @@ class AuthenticateUseCase(
             throw IllegalArgumentException("服务器地址不能为空")
         }
 
-        val (token, userId) = when (serverType) {
+        val client = when (serverType) {
             ServerType.EMBY -> {
-                if (!apiKey.isNullOrBlank()) {
-                    val client = com.embytok.network.client.EmbyClient(
-                        baseUrl = trimmedUrl,
-                        apiKey = apiKey,
-                        userId = ""
-                    )
-                    val uid = client.ping().getOrThrow()
-                    apiKey to uid
-                } else if (password != null) {
-                    val client = com.embytok.network.client.EmbyClient(
-                        baseUrl = trimmedUrl,
-                        apiKey = "",
-                        userId = ""
-                    )
-                    val uid = client.authenticate(username, password).getOrThrow()
-                    "" to uid
-                } else {
-                    throw IllegalArgumentException("需要 API Key 或 用户名/密码")
+                val apiKeyVal = apiKey?.takeIf { it.isNotBlank() }
+                val passwordVal = password?.takeIf { it.isNotBlank() }
+                if (apiKeyVal == null && passwordVal == null) {
+                    throw IllegalArgumentException("请输入 API Key 或 用户名+密码")
                 }
+                // 使用 ClientFactory 基于最小配置构造 EmbyClient
+                ClientFactory.createEmby(
+                    baseUrl = trimmedUrl,
+                    apiKey = apiKeyVal,
+                    userId = null
+                )
             }
             ServerType.PLEX -> {
-                val tokenValue = accessToken ?: ""
-                if (tokenValue.isBlank()) {
-                    throw IllegalArgumentException("Plex 必须提供 Access Token")
-                }
-                val client = com.embytok.network.client.PlexClient(
+                val token = accessToken?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalArgumentException("Plex 必须提供 Access Token")
+                ClientFactory.createPlex(
                     baseUrl = trimmedUrl,
-                    token = tokenValue
+                    token = token
                 )
-                val uid = client.ping().getOrThrow()
-                tokenValue to uid
             }
         }
 
-        preferences.saveServerConfig(
-            ServerConfig(
-                url = trimmedUrl,
-                username = username,
-                token = token,
-                userId = userId,
-                serverType = serverType
-            )
+        // 验证服务器连通性
+        val serverUserId = client.ping().getOrThrow()
+
+        val config = ServerConfig(
+            url = trimmedUrl,
+            username = username,
+            token = apiKey ?: accessToken ?: "",
+            userId = serverUserId,
+            serverType = serverType
         )
+
+        preferences.saveServerConfig(config)
+        cachedConfig = config
+        cachedClient = client
     }
 
-    suspend fun logout() = preferences.clearServerConfig()
-
-    suspend fun currentConfig(): ServerConfig? = preferences.serverConfig.firstOrNull()
-
-    fun clientOrNull(): MediaClient? {
-        return null  // 非挂起版本，UI 层使用 currentClient()
+    /** 退出登录：清除服务器配置和缓存 */
+    suspend fun logout() {
+        preferences.clearServerConfig()
+        cachedConfig = null
+        cachedClient = null
     }
 
-    /** 挂起版本：读取偏好并构造 MediaClient */
+    /** 获取当前配置（挂起版） */
+    suspend fun currentConfig(): ServerConfig? {
+        val fromPrefs = preferences.serverConfig.firstOrNull()
+        if (fromPrefs != null) cachedConfig = fromPrefs
+        return fromPrefs
+    }
+
+    /** 获取当前 MediaClient（挂起版）。若未登录则返回 null。 */
     suspend fun currentClient(): MediaClient? {
+        cachedClient?.let { return it }
         val config = currentConfig() ?: return null
-        return runCatching { ClientFactory.create(config) }.getOrNull()
+        return ClientFactory.create(config).also { cachedClient = it }
     }
+
+    /** UI 调用：若已有缓存则直接返回，否则从偏好中构造 */
+    fun clientOrNull(): MediaClient? = cachedClient
 }
