@@ -6,16 +6,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.embytok.app.ui.screens.feed.FeedScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
@@ -24,17 +24,13 @@ import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 import com.embytok.domain.model.EmbyItem
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * EmbyTok 根组件。
+ * EmbyTok 根组件
  *
- * 负责：
- *   - 应用级主题（Material 3 Dark）
- *   - 路由：LOGIN -> FEED -> PLAYER / SETTINGS
- *   - 注入 ViewModel
+ * 页面路由：LOGIN -> FEED -> PLAYER / SETTINGS
  */
 @Composable
 fun EmbyTokApp() {
@@ -43,19 +39,18 @@ fun EmbyTokApp() {
         background = Color(0xFF0A0A0A),
         surface = Color(0xFF1A1A1A)
     )) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0A0A0A))
-        ) {
+        Surface(modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A))) {
             val navController = rememberNavController()
-
-            // ViewModels：跨页面共享
             val loginViewModel: LoginViewModel = viewModel()
             val feedViewModel: FeedViewModel = viewModel()
             val playerViewModel: VideoPlayerViewModel = viewModel()
+            val isLoggedIn by loginViewModel.isLoggedIn.collectAsState()
 
-            NavHost(navController = navController, startDestination = Routes.LOGIN) {
+            val startRoute = remember(isLoggedIn) {
+                if (isLoggedIn) Routes.FEED else Routes.LOGIN
+            }
+
+            NavHost(navController = navController, startDestination = startRoute) {
                 composable(Routes.LOGIN) {
                     LoginScreen(loginViewModel) {
                         navController.navigate(Routes.FEED) {
@@ -67,30 +62,40 @@ fun EmbyTokApp() {
                     FeedScreen(
                         viewModel = feedViewModel,
                         onOpenPlayer = { item ->
-                            val json = Json.encodeToString(item)
-                            navController.navigate("${Routes.PLAYER}/$json")
+                            val json = runCatching { Json.encodeToString(item) }.getOrDefault("")
+                            val safe = android.net.Uri.encode(json)
+                            navController.navigate("${Routes.PLAYER}/$safe")
                         },
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) }
                     )
                 }
                 composable(
                     route = "${Routes.PLAYER}/{item}",
-                    arguments = listOf(navArgument("item") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val itemJson = backStackEntry.arguments?.getString("item") ?: return@composable
-                    val item: EmbyItem = remember(itemJson) {
-                        runCatching { Json.decodeFromString<EmbyItem>(itemJson) }.getOrNull()
-                    } ?: return@composable
-                    PlayerScreen(
-                        item = item,
-                        viewModel = playerViewModel,
-                        onBack = { navController.popBackStack() }
+                    arguments = listOf(
+                        androidx.navigation.NamedNavArgument("item") {
+                            type = androidx.navigation.NavType.StringType
+                        }
                     )
+                ) { backStackEntry ->
+                    val json = backStackEntry.arguments?.getString("item").orEmpty()
+                    val decoded = runCatching { android.net.Uri.decode(json) }.getOrDefault("")
+                    val item: EmbyItem? = runCatching {
+                        Json.decodeFromString<EmbyItem>(decoded)
+                    }.getOrNull()
+
+                    if (item != null) {
+                        PlayerScreen(
+                            item = item,
+                            viewModel = playerViewModel,
+                            onBack = { navController.popBackStack() }
+                        )
+                    } else {
+                        navController.popBackStack()
+                    }
                 }
                 composable(Routes.SETTINGS) {
                     SettingsScreen(
                         onLogout = {
-                            loginViewModel.logout()
                             navController.navigate(Routes.LOGIN) {
                                 popUpTo(0) { inclusive = true }
                             }

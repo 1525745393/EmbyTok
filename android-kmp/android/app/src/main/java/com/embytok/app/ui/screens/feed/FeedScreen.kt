@@ -28,13 +28,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,52 +41,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embytok.app.viewmodel.FeedViewModel
-import com.embytok.app.viewmodel.FeedViewModel.OrientationFilter
-import com.embytok.app.viewmodel.FeedViewModel.SortMode
 import com.embytok.domain.model.EmbyItem
 
 /**
- * 视频流首页。包含：
- *   - 顶部栏：标题、媒体库选择、设置
- *   - 过滤器行：排序、方向
- *   - 主体：视频网格（若为竖屏则单列，若横屏则 2+ 列）
+ * 视频流首页
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
-    viewModel: FeedViewModel,
+    viewModel: FeedViewModel = viewModel(),
     onOpenPlayer: (EmbyItem) -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val items by viewModel.filteredItems.collectAsState()
+    val sort by viewModel.sort.collectAsState()
+    val orientation by viewModel.orientation.collectAsState()
 
     Scaffold(
         containerColor = Color(0xFF0A0A0A),
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "EmbyTok",
-                            color = Color(0xFFE91E63),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                },
+                title = { Text("EmbyTok", color = Color(0xFFE91E63)) },
                 actions = {
-                    // 媒体库选择下拉
                     var libraryExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { libraryExpanded = true }) {
                         Text(
                             text = state.selectedLibrary?.Name ?: "选择媒体库",
                             color = Color.White,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(end = 8.dp)
+                            fontSize = 14.sp
                         )
                     }
                     DropdownMenu(
@@ -106,42 +91,30 @@ fun FeedScreen(
                         }
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "设置",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Settings, contentDescription = "设置", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0A0A0A),
-                    titleContentColor = Color.White
+                    containerColor = Color(0xFF0A0A0A)
                 )
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            // ===== 过滤器行 =====
             if (state.libraries.isNotEmpty()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 排序
                     var sortExpanded by remember { mutableStateOf(false) }
                     Box {
                         FilterChip(
                             selected = false,
                             onClick = { sortExpanded = true },
-                            label = { Text("排序：${state.sort.display}") },
+                            label = { Text("排序: ${sort.display}", color = Color.White) },
                             colors = FilterChipDefaults.filterChipColors(
-                                labelColor = Color.White,
                                 containerColor = Color(0xFF1A1A1A)
                             )
                         )
@@ -149,7 +122,7 @@ fun FeedScreen(
                             expanded = sortExpanded,
                             onDismissRequest = { sortExpanded = false }
                         ) {
-                            SortMode.values().forEach { mode ->
+                            FeedViewModel.SortMode.values().forEach { mode ->
                                 DropdownMenuItem(
                                     text = { Text(mode.display) },
                                     onClick = {
@@ -160,18 +133,14 @@ fun FeedScreen(
                             }
                         }
                     }
-
                     Spacer(Modifier.width(8.dp))
-
-                    // 方向过滤
                     var orientExpanded by remember { mutableStateOf(false) }
                     Box {
                         FilterChip(
                             selected = false,
                             onClick = { orientExpanded = true },
-                            label = { Text(state.orientation.display) },
+                            label = { Text(orientation.display, color = Color.White) },
                             colors = FilterChipDefaults.filterChipColors(
-                                labelColor = Color.White,
                                 containerColor = Color(0xFF1A1A1A)
                             )
                         )
@@ -179,7 +148,7 @@ fun FeedScreen(
                             expanded = orientExpanded,
                             onDismissRequest = { orientExpanded = false }
                         ) {
-                            OrientationFilter.values().forEach { mode ->
+                            FeedViewModel.OrientationFilter.values().forEach { mode ->
                                 DropdownMenuItem(
                                     text = { Text(mode.display) },
                                     onClick = {
@@ -193,25 +162,22 @@ fun FeedScreen(
                 }
             }
 
-            // ===== 主体：加载中 / 网格 / 空状态 =====
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
-                    state.isLoading && state.filteredItems.isEmpty() -> {
+                    state.isLoading && items.isEmpty() -> {
                         CircularProgressIndicator(
                             color = Color(0xFFE91E63),
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
-                    !state.errorMessage.isNullOrEmpty() && state.filteredItems.isEmpty() -> {
+                    !state.errorMessage.isNullOrEmpty() && items.isEmpty() -> {
                         Text(
                             text = state.errorMessage!!,
                             color = Color(0xFFCF6679),
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .padding(24.dp)
+                            modifier = Modifier.align(Alignment.Center).padding(24.dp)
                         )
                     }
-                    state.filteredItems.isEmpty() -> {
+                    items.isEmpty() -> {
                         Text(
                             text = "没有可播放的视频",
                             color = Color(0xFFB3B3B3),
@@ -219,34 +185,21 @@ fun FeedScreen(
                         )
                     }
                     else -> {
-                        val isPortrait = state.orientation == OrientationFilter.PORTRAIT
-                        VideoGrid(
-                            items = state.filteredItems,
-                            columns = if (isPortrait) 1 else 2,
-                            onOpen = onOpenPlayer
-                        )
+                        val isPortrait = orientation == FeedViewModel.OrientationFilter.PORTRAIT
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(if (isPortrait) 1 else 2),
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                        ) {
+                            items(items, key = { it.Id }) { item ->
+                                VideoCard(item = item, onClick = { onOpenPlayer(item) })
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun VideoGrid(
-    items: List<EmbyItem>,
-    columns: Int,
-    onOpen: (EmbyItem) -> Unit
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
-    ) {
-        items(items) { item ->
-            VideoCard(item = item, onClick = { onOpen(item) })
         }
     }
 }
@@ -257,21 +210,16 @@ private fun VideoCard(item: EmbyItem, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1A1A1A)
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(if (item.Width != null && item.Height != null) {
                 item.Width.toFloat() / item.Height.toFloat()
-            } else 9f / 16f)
+            } else 16f / 9f)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(Color(0xFF2A2A2A)),
+                modifier = Modifier.fillMaxWidth().weight(1f).background(Color(0xFF2A2A2A)),
                 contentAlignment = Alignment.Center
             ) {
                 Text("▶", color = Color(0xFFE91E63), fontSize = 32.sp)
@@ -280,7 +228,6 @@ private fun VideoCard(item: EmbyItem, onClick: () -> Unit) {
                 Text(
                     text = item.Name,
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     maxLines = 1
                 )

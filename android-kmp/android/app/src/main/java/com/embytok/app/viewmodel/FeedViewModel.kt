@@ -1,45 +1,31 @@
 package com.embytok.app.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.embytok.app.usecase.AuthenticateUseCase
+import com.embytok.app.ui.di.ServiceLocator
 import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
 import com.embytok.domain.model.EmbyLibrary
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * 视频流首页视图模型。
- *
- * 负责：
- *   - 加载媒体库列表（Emby: /Libraries, Plex: /library/sections）
- *   - 根据当前选中的媒体库与筛选条件加载视频列表
- *   - 管理排序与方向过滤
+ * 首页视频流 ViewModel
  */
-class FeedViewModel(
-    private val authenticateUseCase: AuthenticateUseCase
-) : ViewModel() {
+class FeedViewModel(application: Application) : AndroidViewModel(application) {
 
     data class FeedState(
         val isLoading: Boolean = false,
         val libraries: List<EmbyLibrary> = emptyList(),
         val selectedLibrary: EmbyLibrary? = null,
         val items: List<EmbyItem> = emptyList(),
-        val filteredItems: List<EmbyItem> = emptyList(),
-        val sort: SortMode = SortMode.LATEST,
-        val orientation: OrientationFilter = OrientationFilter.ALL,
         val errorMessage: String? = null
     )
-
-    enum class SortMode(val display: String) {
-        LATEST("最新添加"),
-        MOST_PLAYED("最多播放"),
-        RATING("评分最高"),
-        NAME("按名称")
-    }
 
     enum class OrientationFilter(val display: String) {
         PORTRAIT("竖屏视频"),
@@ -47,116 +33,114 @@ class FeedViewModel(
         ALL("全部方向")
     }
 
+    enum class SortMode(val display: String) {
+        LATEST("最新添加"),
+        MOST_PLAYED("最多播放"),
+        NAME("按名称")
+    }
+
     private val _state = MutableStateFlow(FeedState())
     val state: StateFlow<FeedState> = _state.asStateFlow()
 
-    private var mediaClient: MediaClient? = null
+    private val _orientation = MutableStateFlow(OrientationFilter.ALL)
+    val orientation: StateFlow<OrientationFilter> = _orientation.asStateFlow()
+
+    private val _sort = MutableStateFlow(SortMode.LATEST)
+    val sort: StateFlow<SortMode> = _sort.asStateFlow()
+
+    private var client: MediaClient? = null
 
     init {
-        // 延迟创建媒体客户端（通过登录流程保存的配置）
         viewModelScope.launch {
-            ensureClient()
+            client = ServiceLocator.authenticateUseCase.currentClient()
             loadLibraries()
         }
     }
 
-    // ===== 公共 API：UI 事件 =====
+    fun reload() {
+        viewModelScope.launch {
+            client = ServiceLocator.authenticateUseCase.currentClient()
+            loadLibraries()
+        }
+    }
 
     fun selectLibrary(library: EmbyLibrary) {
         _state.value = _state.value.copy(selectedLibrary = library)
         loadItems()
     }
 
-    fun setSort(sort: SortMode) {
-        _state.value = _state.value.copy(sort = sort)
-        applyFilter()
-    }
-
     fun setOrientation(filter: OrientationFilter) {
-        _state.value = _state.value.copy(orientation = filter)
-        applyFilter()
+        _orientation.value = filter
     }
 
-    fun refresh() {
-        loadLibraries()
+    fun setSort(mode: SortMode) {
+        _sort.value = mode
     }
 
-    // ===== 内部逻辑 =====
-
-    private fun ensureClient() {
-        if (mediaClient != null) return
-        mediaClient = authenticateUseCase.clientOrNull()
-    }
-
-    private fun loadLibraries() {
-        val client = mediaClient ?: run {
-            _state.value = _state.value.copy(errorMessage = "尚未登录")
+    private suspend fun loadLibraries() {
+        val c = client ?: run {
+            _state.value = _state.value.copy(errorMessage = "需要先登录")
             return
         }
-        viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, errorMessage = null)
-            val result = runCatching { client.getLibraries() }
-            if (result.isSuccess) {
-                val libs = result.getOrDefault(emptyList())
-                val selected = _state.value.selectedLibrary
-                    ?: libs.firstOrNull()
-                _state.value = _state.value.copy(
-                    libraries = libs,
-                    selectedLibrary = selected
-                )
-                if (selected != null) {
-                    loadItems()
-                } else {
-                    _state.value = _state.value.copy(isLoading = false)
-                }
-            } else {
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "加载媒体库失败"
-                )
-            }
+        _state.value = _state.value.copy(isLoading = true, errorMessage = null)
+        val result = runCatching { c.getLibraries() }
+        if (result.isSuccess) {
+            val libs = result.getOrDefault(emptyList())
+            val selected = _state.value.selectedLibrary ?: libs.firstOrNull()
+            _state.value = _state.value.copy(
+                libraries = libs,
+                selectedLibrary = selected
+            )
+            if (selected != null) loadItems()
+            else _state.value = _state.value.copy(isLoading = false)
+        } else {
+            _state.value = _state.value.copy(
+                isLoading = false,
+                errorMessage = result.exceptionOrNull()?.message ?: "加载失败"
+            )
         }
     }
 
     private fun loadItems() {
-        val client = mediaClient ?: return
-        val library = _state.value.selectedLibrary ?: return
-
+        val c = client ?: return
+        val lib = _state.value.selectedLibrary ?: return
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
-            val itemsResult = runCatching { client.getLibraryItems(library.Id) }
+            _state.value = _state.value.copy(isLoading = true, errorMessage = null)
+            val itemsResult = runCatching { c.getLibraryItems(lib.Id) }
             if (itemsResult.isSuccess) {
                 val items = itemsResult.getOrDefault(emptyList())
                 _state.value = _state.value.copy(items = items, isLoading = false)
-                applyFilter()
             } else {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    errorMessage = itemsResult.exceptionOrNull()?.message ?: "加载视频失败"
+                    errorMessage = itemsResult.exceptionOrNull()?.message ?: "加载失败"
                 )
             }
         }
     }
 
-    private fun applyFilter() {
-        val s = _state.value
-        val oriented = when (s.orientation) {
-            OrientationFilter.PORTRAIT -> s.items.filter {
-                it.Width != null && it.Height != null && it.Height > it.Width
+    /** 根据方向和排序模式过滤后的视频列表 */
+    val filteredItems: StateFlow<List<EmbyItem>> =
+        kotlinx.coroutines.flow.combine(
+            _state,
+            _orientation,
+            _sort
+        ) { s, orient, mode ->
+            var list = s.items
+            list = when (orient) {
+                OrientationFilter.PORTRAIT -> list.filter {
+                    it.Width != null && it.Height != null && it.Height > it.Width
+                }
+                OrientationFilter.LANDSCAPE -> list.filter {
+                    it.Width != null && it.Height != null && it.Width > it.Height
+                }
+                OrientationFilter.ALL -> list
             }
-            OrientationFilter.LANDSCAPE -> s.items.filter {
-                it.Width != null && it.Height != null && it.Width > it.Height
+            list = when (mode) {
+                SortMode.LATEST -> list
+                SortMode.MOST_PLAYED -> list.sortedByDescending { it.UserData?.PlayCount ?: 0 }
+                SortMode.NAME -> list.sortedBy { it.Name }
             }
-            OrientationFilter.ALL -> s.items
-        }
-        val sorted = when (s.sort) {
-            SortMode.LATEST -> oriented // 服务端已按最新排序
-            SortMode.MOST_PLAYED -> oriented.sortedByDescending { it.UserData?.PlayCount ?: 0 }
-            SortMode.RATING -> oriented.sortedByDescending {
-                runCatching { it.UserData?.PlayCount ?: 0 }.getOrDefault(0)
-            }
-            SortMode.NAME -> oriented.sortedBy { it.Name }
-        }
-        _state.value = s.copy(filteredItems = sorted)
-    }
+            list
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 }

@@ -3,16 +3,7 @@ package com.embytok.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * 服务器类型
- */
-@Serializable
-enum class ServerType {
-    EMBY,
-    PLEX
-}
-
-/**
- * 服务器配置（登录后保存）
+ * 服务器配置（持久化到 DataStore）。
  */
 @Serializable
 data class ServerConfig(
@@ -21,27 +12,10 @@ data class ServerConfig(
     val token: String,
     val userId: String,
     val serverType: ServerType,
-    val serverName: String? = null
+    val serverName: String = ""
 ) {
-    /**
-     * 获取带协议前缀的完整 URL
-     */
-    fun getFullUrl(): String {
-        return if (url.startsWith("http://") || url.startsWith("https://")) {
-            url.trimEnd('/')
-        } else {
-            "http://${url.trimEnd('/')}"
-        }
-    }
-
-    /**
-     * 获取 API 基础路径
-     */
-    fun getApiBaseUrl(): String = "${getFullUrl()}/embyserver" // Emby 特有路径
-
-    /**
-     * 验证配置是否有效
-     */
+    fun getApiBaseUrl(): String = url.trimEnd('/')
+    fun getFullUrl(): String = url.trimEnd('/')
     fun isValid(): Boolean = url.isNotBlank() && token.isNotBlank() && userId.isNotBlank()
 }
 
@@ -68,7 +42,7 @@ data class EmbyPolicy(
 )
 
 /**
- * Plex 认证响应（简化版，直接使用 token）
+ * Plex 认证响应（简化版）
  */
 @Serializable
 data class PlexAuthResponse(

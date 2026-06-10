@@ -4,17 +4,12 @@ import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
 import com.embytok.domain.model.EmbyLibrary
 import com.embytok.domain.model.MediaSource
-import com.embytok.domain.model.MediaStream
-import com.embytok.domain.model.ServerConfig
 import com.embytok.domain.model.SubtitleTrack
 import com.embytok.domain.model.UserData
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.LogLevel
-import io.ktor.client.plugins.logging.Logger
-import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
@@ -23,262 +18,321 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * Emby 媒体服务器客户端（Ktor 实现）。
+ * Emby 服务器原生客户端（Ktor + JSON）。
  *
- * 构造方式：
- *   - 方式 A：用户名 + 密码登录 → [authenticate] 返回新 ServerConfig（带 token + userId）
- *   - 方式 B：已有 apiKey / token → 直接调用 [ping] 验证凭据
- *
- * 关键 API 端点：
- *   - POST /Users/AuthenticateByName  登录
- *   - GET  /Users/{userId}/Views       媒体库列表
- *   - GET  /Users/{userId}/Items       视频列表 / 最新 / 搜索 / 收藏
- *   - POST /Users/{userId}/FavoriteItems/{id}  收藏 / 取消收藏
- *   - GET  /Videos/{itemId}/stream     直链播放
- *   - GET  /Videos/{itemId}/master.m3u8 转码播放 (HLS)
+ * API 约定：
+ *   - HTTP Header: `X-Emby-Token` / `X-Emby-Authorization`
+ *   - 认证: POST /Users/AuthenticateByName
+ *   - 库列表: GET /Library/VirtualFolders  或  GET /Library/MediaFolders
+ *   - 条目列表: GET /Users/{userId}/Items?ParentId={libraryId}&Recursive=true
+ *   - 详情: GET /Users/{userId}/Items/{id}
  */
 class EmbyClient(
     private val baseUrl: String,
-    private val apiKey: String? = null,
-    private val userId: String? = null,
+    private val apiKey: String,
+    private val userId: String,
     private val httpClient: HttpClient = defaultHttpClient()
 ) : MediaClient {
 
-    /** 便捷构造：从 ServerConfig 构造。 */
-    constructor(config: ServerConfig) : this(
-        baseUrl = config.url,
-        apiKey = config.token.ifBlank { null },
-        userId = config.userId.ifBlank { null }
-    )
+    private val authHeaderValue =
+        "MediaBrowser Client=\"EmbyTok\", Device=\"Android\", DeviceId=\"embytok\", Version=\"1.0.0\""
 
-    private val authHeaderValue: String = buildString {
-        append("MediaBrowser ")
-        append("Client=\"EmbyTok\", ")
-        append("Device=\"Android\", ")
-        append("DeviceId=\"embytok-android\", ")
-        append("Version=\"1.0.0\"")
-        if (!userId.isNullOrBlank()) append(", UserId=\"$userId\"")
-        if (!apiKey.isNullOrBlank()) append(", Token=\"$apiKey\"")
-    }
+    private fun apiPath(path: String): String = "${baseUrl.trimEnd('/')}/${path.trimStart('/')}"
 
-    /** 公共辅助：拼接 Emby API URL。 */
-    private fun apiUrl(path: String): String =
-        "${baseUrl.trimEnd('/')}/emby/${path.trimStart('/')}"
+    private fun requireUserId(): String =
+        userId.ifBlank { throw IllegalStateException("需要先登录获取 userId") }
 
-    // ============ 认证 ============
+    // ===== 认证 =====
 
     override suspend fun ping(): Result<String> = runCatching {
-        httpClient.get(apiUrl("System/Info/Public")) {
-            header("Authorization", authHeaderValue)
-        }.body<EmbyPublicSystemInfo>()
-        // ping 成功：返回当前用户 id（若未知则用空串）
-        userId.orEmpty()
+        val resp = httpClient.get(apiPath("System/Info")) {
+            header("X-Emby-Token", apiKey)
+            header("X-Emby-Authorization", authHeaderValue)
+        }.body<EmbySystemInfo>()
+        resp.Id?.ifBlank { "emby-server" } ?: "emby-server"
     }
 
-    override suspend fun authenticate(username: String, password: String): Result<String> {
-        return runCatching {
-            val response = httpClient.post(apiUrl("Users/AuthenticateByName")) {
-                header("Authorization", authHeaderValue)
-                contentType(ContentType.Application.Json)
-                setBody(EmbyAuthRequest(username, password))
-            }.body<EmbyAuthResponse>()
-            response.User.Id
-        }
+    override suspend fun authenticate(username: String, password: String): Result<String> = runCatching {
+        val body = EmbyAuthBody(username, password, "EmbyTok", "Android", "embytok", "1.0.0")
+        val resp = httpClient.post(apiPath("Users/AuthenticateByName")) {
+            header("X-Emby-Authorization", authHeaderValue)
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body<EmbyAuthJsonResponse>()
+        resp.User.Id
     }
 
-    // ============ 媒体库 ============
+    // ===== 媒体库 =====
 
     override suspend fun getLibraries(): List<EmbyLibrary> {
-        val id = userId ?: return emptyList()
-        val response = httpClient.get(apiUrl("Users/$id/Views")) {
-            header("Authorization", authHeaderValue)
-        }.body<EmbyLibraryResponse>()
-        return response.Items.filter { !it.CollectionType.isNullOrBlank() }
+        return runCatching {
+            val resp = httpClient.get(apiPath("Library/VirtualFolders")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+            }.body<EmbyItemsResponse<EmbyLibraryJson>>()
+            resp.Items.map { json ->
+                EmbyLibrary(
+                    Id = json.Id,
+                    Name = json.Name,
+                    CollectionType = json.CollectionType
+                )
+            }
+        }.getOrDefault(emptyList())
     }
 
-    // ============ 视频列表 ============
+    // ===== 视频列表 =====
 
     override suspend fun getLibraryItems(libraryId: String): List<EmbyItem> {
-        val id = userId ?: return emptyList()
-        val response = httpClient.get(apiUrl("Users/$id/Items")) {
-            header("Authorization", authHeaderValue)
-            parameter("ParentId", libraryId)
-            parameter("Recursive", true)
-            parameter("IncludeItemTypes", "Movie,Video,Episode")
-            parameter("MediaTypes", "Video")
-            parameter("SortBy", "DateCreated")
-            parameter("SortOrder", "Descending")
-            parameter("Limit", 200)
-            parameter("Fields", "MediaSources,UserData,Width,Height,RunTimeTicks,Overview,ProductionYear")
-        }.body<EmbyItemListResponse>()
-        return response.Items
+        val uid = requireUserId()
+        return runCatching {
+            val resp = httpClient.get(apiPath("Users/$uid/Items")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                parameter("ParentId", libraryId)
+                parameter("Recursive", "true")
+                parameter("IncludeItemTypes", "Movie,Episode,Video")
+                parameter("Fields", "MediaSources,MediaStreams,Overview,ProductionYear,Width,Height,RuntimeTicks,UserData")
+                parameter("SortBy", "DateCreated,SortName")
+                parameter("SortOrder", "Descending")
+                parameter("Limit", "300")
+            }.body<EmbyItemsResponse<EmbyItemJson>>()
+            resp.Items.map { it.toEmbyItem() }
+        }.getOrDefault(emptyList())
     }
 
     override suspend fun getLatestItems(libraryId: String, limit: Int): List<EmbyItem> {
-        val id = userId ?: return emptyList()
-        val response = httpClient.get(apiUrl("Users/$id/Items/Latest")) {
-            header("Authorization", authHeaderValue)
-            parameter("ParentId", libraryId)
-            parameter("IncludeItemTypes", "Movie,Video,Episode")
-            parameter("Limit", limit)
-            parameter("Fields", "MediaSources,UserData,Width,Height,RunTimeTicks,Overview,ProductionYear")
-        }.body<List<EmbyItem>>()
-        return response
+        val uid = requireUserId()
+        return runCatching {
+            val resp = httpClient.get(apiPath("Users/$uid/Items/Latest")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                parameter("ParentId", libraryId)
+                parameter("Limit", limit.toString())
+                parameter("Fields", "MediaSources,Overview,ProductionYear,Width,Height,RuntimeTicks,UserData")
+            }.body<List<EmbyItemJson>>()
+            resp.map { it.toEmbyItem() }
+        }.getOrDefault(emptyList())
     }
 
     override suspend fun getFavoriteItems(libraryId: String): List<EmbyItem> {
-        val id = userId ?: return emptyList()
-        val response = httpClient.get(apiUrl("Users/$id/Items")) {
-            header("Authorization", authHeaderValue)
-            parameter("ParentId", libraryId)
-            parameter("Recursive", true)
-            parameter("Filters", "IsFavorite")
-            parameter("IncludeItemTypes", "Movie,Video,Episode")
-            parameter("Limit", 200)
-            parameter("Fields", "MediaSources,UserData,Width,Height,RunTimeTicks,Overview,ProductionYear")
-        }.body<EmbyItemListResponse>()
-        return response.Items
+        val uid = requireUserId()
+        return runCatching {
+            val resp = httpClient.get(apiPath("Users/$uid/Items")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                parameter("ParentId", libraryId)
+                parameter("Recursive", "true")
+                parameter("Filters", "IsFavorite")
+                parameter("IncludeItemTypes", "Movie,Episode,Video")
+                parameter("Fields", "MediaSources,Overview,ProductionYear,Width,Height,RuntimeTicks,UserData")
+                parameter("Limit", "300")
+            }.body<EmbyItemsResponse<EmbyItemJson>>()
+            resp.Items.map { it.toEmbyItem() }
+        }.getOrDefault(emptyList())
     }
 
-    // ============ 收藏 / 标记 ============
+    // ===== 收藏 / 观看状态 =====
 
     override suspend fun toggleFavorite(itemId: String): Boolean {
-        val id = userId ?: return false
+        val uid = requireUserId()
         return runCatching {
-            // 先查当前状态
-            val current = try {
-                httpClient.get(apiUrl("Users/$id/Items/$itemId")) {
-                    header("Authorization", authHeaderValue)
-                    parameter("Fields", "UserData")
-                }.body<EmbyItem>().UserData?.IsFavorite ?: false
-            } catch (_: Exception) { false }
-
-            val next = !current
-            if (next) {
-                httpClient.post(apiUrl("Users/$id/FavoriteItems/$itemId")) {
-                    header("Authorization", authHeaderValue)
-                }
-            } else {
-                httpClient.delete(
-                    apiUrl("Users/$id/FavoriteItems/$itemId"),
-                ) {
-                    header("Authorization", authHeaderValue)
-                }
+            httpClient.post(apiPath("Users/$uid/Favorites/$itemId")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                contentType(ContentType.Application.Json)
             }
-            next
+            true
         }.getOrDefault(false)
     }
 
     override suspend fun markAsWatched(itemId: String) {
-        val id = userId ?: return
+        val uid = requireUserId()
         runCatching {
-            httpClient.post(apiUrl("Users/$id/PlayedItems/$itemId")) {
-                header("Authorization", authHeaderValue)
+            httpClient.post(apiPath("Users/$uid/PlayedItems/$itemId")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                contentType(ContentType.Application.Json)
             }
         }
     }
 
-    // ============ 搜索 ============
-
-    suspend fun searchItems(query: String, limit: Int = 50): List<EmbyItem> {
-        val id = userId ?: return emptyList()
-        val response = httpClient.get(apiUrl("Users/$id/Items")) {
-            header("Authorization", authHeaderValue)
-            parameter("SearchTerm", query)
-            parameter("IncludeItemTypes", "Movie,Video,Episode,Series")
-            parameter("Recursive", true)
-            parameter("Limit", limit)
-            parameter("Fields", "MediaSources,UserData,Width,Height,RunTimeTicks,Overview,ProductionYear")
-        }.body<EmbyItemListResponse>()
-        return response.Items
-    }
-
-    // ============ 字幕 ============
+    // ===== 字幕 =====
 
     override suspend fun getSubtitles(itemId: String): List<SubtitleTrack> {
-        val id = userId ?: return emptyList()
-        val item = runCatching {
-            httpClient.get(apiUrl("Users/$id/Items/$itemId")) {
-                header("Authorization", authHeaderValue)
-                parameter("Fields", "MediaSources")
-            }.body<EmbyItem>()
+        val detail = runCatching {
+            val uid = requireUserId()
+            httpClient.get(apiPath("Users/$uid/Items/$itemId")) {
+                header("X-Emby-Token", apiKey)
+                header("X-Emby-Authorization", authHeaderValue)
+                parameter("Fields", "MediaSources,MediaStreams")
+            }.body<EmbyItemJson>()
         }.getOrNull() ?: return emptyList()
 
-        val source = item.MediaSources?.firstOrNull() ?: return emptyList()
-        return source.MediaStreams.orEmpty()
-            .filter { it.Type?.equals("Subtitle", ignoreCase = true) == true }
-            .mapNotNull { stream ->
-                val codec = stream.Codec ?: return@mapNotNull null
-                SubtitleTrack(
-                    id = "${stream.Index ?: 0}",
-                    label = stream.DisplayTitle ?: stream.Language ?: "Subtitle ${stream.Index ?: 0}",
+        val tracks = mutableListOf<SubtitleTrack>()
+        detail.MediaSources?.forEach { source ->
+            source.MediaStreams?.filter { it.Type == "Subtitle" }?.forEach { stream ->
+                val idx = stream.Index
+                val src = apiPath("Videos/$itemId/${source.Id}/Subtitles/$idx/0/WebVTT")
+                tracks += SubtitleTrack(
+                    id = "$itemId-${source.Id}-$idx",
+                    label = stream.DisplayTitle,
                     srclang = stream.Language,
-                    src = if (stream.IsExternal == true && stream.Path != null) {
-                        stream.Path
-                    } else {
-                        "${baseUrl.trimEnd('/')}/emby/Videos/$itemId/${stream.Index}/Stream" +
-                                "?MediaSourceId=${source.Id}&api_key=${apiKey.orEmpty()}"
-                    },
-                    type = when (codec.lowercase()) {
-                        "subrip" -> "srt"
-                        "webvtt" -> "vtt"
-                        else -> codec
-                    }
+                    src = src,
+                    type = "vtt"
                 )
             }
+        }
+        return tracks
     }
 
-    // ============ 视频 URL ============
+    // ===== 播放地址 =====
 
     override fun buildVideoStreamUrl(itemId: String, mediaSourceId: String?): String {
-        val source = mediaSourceId ?: itemId
-        return "${baseUrl.trimEnd('/')}/emby/Videos/$itemId/stream" +
-                "?Static=true&MediaSourceId=$source&api_key=${apiKey.orEmpty()}"
+        val sourceId = mediaSourceId ?: itemId
+        return apiPath("Videos/$itemId/stream.mp4?Static=true&MediaSourceId=$sourceId&X-Emby-Token=$apiKey")
     }
 
-    /** HLS 转码 URL（直链失败时降级使用）。 */
-    fun buildTranscodeUrl(itemId: String, mediaSourceId: String? = null): String {
-        val source = mediaSourceId ?: itemId
-        return "${baseUrl.trimEnd('/')}/emby/Videos/$itemId/master.m3u8" +
-                "?MediaSourceId=$source&VideoCodec=h264&AudioCodec=aac&api_key=${apiKey.orEmpty()}"
-    }
-
-    // ============ 内部请求 / 响应模型 ============
+    // ============ 内部 JSON 模型 ============
 
     @Serializable
-    private data class EmbyAuthRequest(val Username: String, val Pw: String)
-
-    @Serializable
-    private data class EmbyAuthResponse(
-        val AccessToken: String,
-        val User: EmbyUser
-    ) {
-        @Serializable
-        data class EmbyUser(val Id: String, val Name: String)
-    }
-
-    @Serializable
-    private data class EmbyPublicSystemInfo(
-        val ServerName: String? = null,
-        val Version: String? = null
+    private data class EmbySystemInfo(
+        val Id: String? = null,
+        val ServerName: String? = null
     )
 
     @Serializable
-    private data class EmbyLibraryResponse(val Items: List<EmbyLibrary>)
+    private data class EmbyAuthBody(
+        val Username: String,
+        val Pw: String,
+        val App: String,
+        val Device: String,
+        val DeviceId: String,
+        val Version: String
+    )
 
     @Serializable
-    private data class EmbyItemListResponse(
-        val Items: List<EmbyItem>,
-        val TotalRecordCount: Int = 0
+    private data class EmbyAuthJsonResponse(
+        val User: EmbyUserJson,
+        val AccessToken: String,
+        val ServerId: String
+    )
+
+    @Serializable
+    private data class EmbyUserJson(val Id: String, val Name: String)
+
+    @Serializable
+    private data class EmbyItemsResponse<T>(val Items: List<T>, val TotalRecordCount: Int)
+
+    @Serializable
+    private data class EmbyLibraryJson(
+        val Id: String,
+        val Name: String,
+        val CollectionType: String? = null
+    )
+
+    @Serializable
+    private data class EmbyItemJson(
+        val Id: String,
+        val Name: String,
+        val Type: String = "Video",
+        val Overview: String? = null,
+        val ProductionYear: Int? = null,
+        val RunTimeTicks: Long? = null,
+        val Width: Int? = null,
+        val Height: Int? = null,
+        val ParentId: String? = null,
+        val UserData: EmbyUserDataJson? = null,
+        val MediaSources: List<EmbyMediaSourceJson>? = null,
+        val IndexNumber: Int? = null,
+        val ParentIndexNumber: Int? = null,
+        val SeriesName: String? = null
+    ) {
+        fun toEmbyItem(): EmbyItem = EmbyItem(
+            Id = Id,
+            Name = Name,
+            Type = Type,
+            Overview = Overview,
+            ProductionYear = ProductionYear,
+            RunTimeTicks = RunTimeTicks,
+            Width = Width,
+            Height = Height,
+            ParentId = ParentId,
+            UserData = UserData?.let {
+                UserData(
+                    IsFavorite = it.IsFavorite ?: false,
+                    PlaybackPositionTicks = it.PlaybackPositionTicks ?: 0,
+                    PlayCount = it.PlayCount ?: 0,
+                    Played = it.Played ?: false
+                )
+            },
+            MediaSources = MediaSources?.map { ms ->
+                MediaSource(
+                    Id = ms.Id,
+                    Path = ms.Path,
+                    Container = ms.Container,
+                    Bitrate = ms.Bitrate,
+                    SupportsDirectPlay = ms.SupportsDirectPlay ?: true,
+                    SupportsDirectStream = ms.SupportsDirectStream,
+                    SupportsTranscoding = ms.SupportsTranscoding,
+                    Protocol = ms.Protocol,
+                    MediaStreams = ms.MediaStreams?.map { s ->
+                        com.embytok.domain.model.MediaStream(
+                            Index = s.Index,
+                            Type = s.Type,
+                            Codec = s.Codec,
+                            DisplayTitle = s.DisplayTitle,
+                            Language = s.Language,
+                            IsDefault = s.IsDefault,
+                            IsExternal = s.IsExternal ?: false,
+                            Path = s.Path
+                        )
+                    }
+                )
+            },
+            IndexNumber = IndexNumber,
+            ParentIndexNumber = ParentIndexNumber,
+            SeriesName = SeriesName
+        )
+    }
+
+    @Serializable
+    private data class EmbyUserDataJson(
+        val IsFavorite: Boolean? = null,
+        val PlaybackPositionTicks: Long? = null,
+        val PlayCount: Int? = null,
+        val Played: Boolean? = null
+    )
+
+    @Serializable
+    private data class EmbyMediaSourceJson(
+        val Id: String,
+        val Path: String? = null,
+        val Container: String? = null,
+        val Bitrate: Int? = null,
+        val Protocol: String? = null,
+        val SupportsDirectPlay: Boolean? = null,
+        val SupportsDirectStream: Boolean? = null,
+        val SupportsTranscoding: Boolean? = null,
+        val MediaStreams: List<EmbyMediaStreamJson>? = null
+    )
+
+    @Serializable
+    private data class EmbyMediaStreamJson(
+        val Index: Int = 0,
+        val Type: String? = null,
+        val Codec: String? = null,
+        val DisplayTitle: String? = null,
+        val Language: String? = null,
+        val IsDefault: Boolean? = null,
+        val IsExternal: Boolean? = null,
+        val Path: String? = null
     )
 }
 
-/** 默认 HttpClient：JSON 反序列化 + 超时 + 简单日志。 */
 private fun defaultHttpClient(): HttpClient = HttpClient {
     install(ContentNegotiation) {
         json(Json {
@@ -290,15 +344,6 @@ private fun defaultHttpClient(): HttpClient = HttpClient {
     install(HttpTimeout) {
         requestTimeoutMillis = 15_000
         connectTimeoutMillis = 10_000
-        socketTimeoutMillis = 30_000
-    }
-    install(Logging) {
-        level = LogLevel.INFO
-        logger = object : Logger {
-            override fun log(message: String) {
-                // 简单 println；Android 可替换为 Timber
-                println("EmbyClient: $message")
-            }
-        }
+        socketTimeoutMillis = 60_000
     }
 }
