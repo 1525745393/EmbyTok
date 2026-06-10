@@ -289,8 +289,6 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
     }
   }, []);
 
-
-
   const handlePlaying = useCallback(() => {
     setIsPlaying(true);
     setHasStarted(true);
@@ -1067,8 +1065,6 @@ const VideoCardComponent: React.FC<VideoCardProps> = ({
           <Infinity className="w-6 h-6" />
         </button>
       </div>
-
-
 
       {renderUI && (
         <div className="absolute right-2 bottom-24 flex flex-col items-center gap-4 z-30 pointer-events-auto">
