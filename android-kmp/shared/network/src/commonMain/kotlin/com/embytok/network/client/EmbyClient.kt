@@ -32,10 +32,17 @@ import kotlinx.serialization.json.Json
  */
 class EmbyClient(
     private val baseUrl: String,
-    private val apiKey: String,
-    private val userId: String,
+    apiKey: String? = null,
+    userId: String? = null,
     private val httpClient: HttpClient = defaultHttpClient()
 ) : MediaClient {
+
+    // 可变字段：authenticate 成功后会用 AccessToken / User.Id 填充
+    @Volatile
+    private var currentApiKey: String? = apiKey?.ifBlank { null }
+
+    @Volatile
+    private var currentUserId: String? = userId?.ifBlank { null }
 
     private val authHeaderValue =
         "MediaBrowser Client=\"EmbyTok\", Device=\"Android\", DeviceId=\"embytok\", Version=\"1.0.0\""
@@ -43,13 +50,17 @@ class EmbyClient(
     private fun apiPath(path: String): String = "${baseUrl.trimEnd('/')}/${path.trimStart('/')}"
 
     private fun requireUserId(): String =
-        userId.ifBlank { throw IllegalStateException("需要先登录获取 userId") }
+        currentUserId ?: throw IllegalStateException("需要先登录获取 userId")
+
+    private fun requireApiKey(): String =
+        currentApiKey ?: throw IllegalStateException("需要 API Key 或先登录")
 
     // ===== 认证 =====
 
     override suspend fun ping(): Result<String> = runCatching {
+        val token = currentApiKey
         val resp = httpClient.get(apiPath("System/Info")) {
-            header("X-Emby-Token", apiKey)
+            if (token != null) header("X-Emby-Token", token)
             header("X-Emby-Authorization", authHeaderValue)
         }.body<EmbySystemInfo>()
         resp.Id?.ifBlank { "emby-server" } ?: "emby-server"
@@ -62,15 +73,25 @@ class EmbyClient(
             contentType(ContentType.Application.Json)
             setBody(body)
         }.body<EmbyAuthJsonResponse>()
+        // 认证成功：保存 AccessToken 与 userId，供后续请求使用
+        currentApiKey = resp.AccessToken
+        currentUserId = resp.User.Id
         resp.User.Id
     }
+
+    /** 当前已登录的 userId（可用于构造 ServerConfig） */
+    fun currentUserId(): String? = currentUserId
+
+    /** 当前已登录的 token（可用于构造 ServerConfig） */
+    fun currentToken(): String? = currentApiKey
 
     // ===== 媒体库 =====
 
     override suspend fun getLibraries(): List<EmbyLibrary> {
         return runCatching {
+            val token = requireApiKey()
             val resp = httpClient.get(apiPath("Library/VirtualFolders")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
             }.body<EmbyItemsResponse<EmbyLibraryJson>>()
             resp.Items.map { json ->
@@ -87,9 +108,10 @@ class EmbyClient(
 
     override suspend fun getLibraryItems(libraryId: String): List<EmbyItem> {
         val uid = requireUserId()
+        val token = requireApiKey()
         return runCatching {
             val resp = httpClient.get(apiPath("Users/$uid/Items")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 parameter("ParentId", libraryId)
                 parameter("Recursive", "true")
@@ -105,9 +127,10 @@ class EmbyClient(
 
     override suspend fun getLatestItems(libraryId: String, limit: Int): List<EmbyItem> {
         val uid = requireUserId()
+        val token = requireApiKey()
         return runCatching {
             val resp = httpClient.get(apiPath("Users/$uid/Items/Latest")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 parameter("ParentId", libraryId)
                 parameter("Limit", limit.toString())
@@ -119,9 +142,10 @@ class EmbyClient(
 
     override suspend fun getFavoriteItems(libraryId: String): List<EmbyItem> {
         val uid = requireUserId()
+        val token = requireApiKey()
         return runCatching {
             val resp = httpClient.get(apiPath("Users/$uid/Items")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 parameter("ParentId", libraryId)
                 parameter("Recursive", "true")
@@ -138,9 +162,10 @@ class EmbyClient(
 
     override suspend fun toggleFavorite(itemId: String): Boolean {
         val uid = requireUserId()
+        val token = requireApiKey()
         return runCatching {
             httpClient.post(apiPath("Users/$uid/Favorites/$itemId")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 contentType(ContentType.Application.Json)
             }
@@ -150,9 +175,10 @@ class EmbyClient(
 
     override suspend fun markAsWatched(itemId: String) {
         val uid = requireUserId()
+        val token = requireApiKey()
         runCatching {
             httpClient.post(apiPath("Users/$uid/PlayedItems/$itemId")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 contentType(ContentType.Application.Json)
             }
@@ -164,8 +190,9 @@ class EmbyClient(
     override suspend fun getSubtitles(itemId: String): List<SubtitleTrack> {
         val detail = runCatching {
             val uid = requireUserId()
+            val token = requireApiKey()
             httpClient.get(apiPath("Users/$uid/Items/$itemId")) {
-                header("X-Emby-Token", apiKey)
+                header("X-Emby-Token", token)
                 header("X-Emby-Authorization", authHeaderValue)
                 parameter("Fields", "MediaSources,MediaStreams")
             }.body<EmbyItemJson>()
@@ -192,7 +219,8 @@ class EmbyClient(
 
     override fun buildVideoStreamUrl(itemId: String, mediaSourceId: String?): String {
         val sourceId = mediaSourceId ?: itemId
-        return apiPath("Videos/$itemId/stream.mp4?Static=true&MediaSourceId=$sourceId&X-Emby-Token=$apiKey")
+        val token = currentApiKey.orEmpty()
+        return apiPath("Videos/$itemId/stream.mp4?Static=true&MediaSourceId=$sourceId&X-Emby-Token=$token")
     }
 
     // ============ 内部 JSON 模型 ============

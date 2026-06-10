@@ -4,28 +4,40 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.embytok.app.ui.di.ServiceLocator
+import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
 import com.embytok.player.PlaybackState
 import com.embytok.player.VideoPlayerManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * 播放页 ViewModel
  *
- * 通过 ServiceLocator 获取当前认证 MediaClient，并创建 VideoPlayerManager 进行播放控制
+ * 构建过程:
+ *   1) 通过 ServiceLocator.authenticateUseCase 获取当前 MediaClient
+ *   2) 基于 MediaClient 创建 VideoPlayerManager 驱动 ExoPlayer
+ *
+ * 为了避免在构造过程中进行挂起调用，使用 runBlocking(Dispatchers.IO)
+ * 读取一次 DataStore 配置来构造 MediaClient。
  */
 class VideoPlayerViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val mediaClient: MediaClient? = runBlocking(Dispatchers.IO) {
+        ServiceLocator.authenticateUseCase.currentClient()
+    }
+
     private val manager: VideoPlayerManager by lazy {
-        val client = ServiceLocator.authenticateUseCase.currentClient()
         VideoPlayerManager(
             context = application.applicationContext,
-            mediaClient = client
+            mediaClient = mediaClient
         )
     }
 
@@ -49,7 +61,9 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
 
     fun prepare(item: EmbyItem) {
         viewModelScope.launch {
-            manager.prepare(item)
+            withContext(Dispatchers.Main.immediate) {
+                manager.prepare(item)
+            }
         }
     }
 

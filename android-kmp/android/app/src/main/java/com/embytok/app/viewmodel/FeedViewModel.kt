@@ -7,15 +7,21 @@ import com.embytok.app.ui.di.ServiceLocator
 import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
 import com.embytok.domain.model.EmbyLibrary
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * 首页视频流 ViewModel
+ *
+ * 构造时通过 ServiceLocator 读取一次保存的服务器配置，
+ * 构造对应的 MediaClient（EmbyClient 或 PlexClient），
+ * 然后通过该 MediaClient 拉取媒体库和视频列表。
  */
 class FeedViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -48,11 +54,16 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
     private val _sort = MutableStateFlow(SortMode.LATEST)
     val sort: StateFlow<SortMode> = _sort.asStateFlow()
 
-    private var client: MediaClient? = null
+    private var client: MediaClient? = runBlocking(Dispatchers.IO) {
+        ServiceLocator.authenticateUseCase.currentClient()
+    }
 
     init {
         viewModelScope.launch {
-            client = ServiceLocator.authenticateUseCase.currentClient()
+            if (client == null) {
+                // 尝试再次刷新（可能初始化时 DataStore 还没读到）
+                client = ServiceLocator.authenticateUseCase.currentClient()
+            }
             loadLibraries()
         }
     }
