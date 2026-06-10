@@ -11,139 +11,182 @@ import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import java.util.concurrent.TimeUnit
 
 /**
- * 客户端工厂
- * 根据配置创建对应的媒体服务器客户端
+ * HTTP 客户端工厂
+ *
+ * 配置统一的 Ktor HttpClient（OkHttp 引擎）：
+ * - JSON 自动序列化/反序列化
+ * - 合理的超时配置
+ * - 日志打印（仅 debug）
  */
-object ClientFactory {
+object HttpClientFactory {
 
-    private val logger = EmbyTokLogger
-
-    /**
-     * HTTP 客户端实例缓存
-     */
-    private var httpClient: HttpClient? = null
-
-    /**
-     * 获取或创建 HTTP 客户端
-     */
-    fun getHttpClient(): HttpClient {
-        return httpClient ?: createHttpClient().also { httpClient = it }
+    private val json by lazy {
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = true
+            explicitNulls = false
+        }
     }
 
     /**
-     * 创建 HTTP 客户端
+     * 创建通用 HTTP 客户端
      */
-    private fun createHttpClient(): HttpClient {
+    fun create(): HttpClient {
         return HttpClient(OkHttp) {
-            // JSON 序列化配置
+            // 引擎级配置（OkHttp）
+            engine {
+                config {
+                    connectTimeout(30, TimeUnit.SECONDS)
+                    readTimeout(60, TimeUnit.SECONDS)
+                    writeTimeout(60, TimeUnit.SECONDS)
+                    followRedirects(true)
+                    followSslRedirects(true)
+                    retryOnConnectionFailure(true)
+                }
+            }
+
+            // 默认请求头
+            defaultRequest {
+                header("Accept", "application/json")
+            }
+
+            // JSON 内容协商
             install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    encodeDefaults = true
-                    prettyPrint = false
-                })
+                json(json)
             }
 
-            // HTTP 超时配置
-            install(HttpTimeout) {
-                requestTimeoutMillis = 30_000
-                connectTimeoutMillis = 15_000
-                socketTimeoutMillis = 30_000
-            }
-
-            // 指数退避重试
-            install(HttpRequestRetry) {
-                retryOnServerErrors(maxRetries = 3)
-                retryOnException(maxRetries = 3, retryOnTimeout = true)
-                exponentialDelay()
-            }
-
-            // 日志（仅在调试模式）
+            // 日志（仅调试级）
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
-                        EmbyTokLogger.d("HTTP: $message", "KtorClient")
+                        EmbyTokLogger.d(message, "KtorHttpClient")
                     }
                 }
-                level = LogLevel.BODY
+                level = LogLevel.INFO
             }
 
-            // 引擎特定配置
-            engine {
-                config {
-                    retryOnConnectionFailure(true)
-                    connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            // HTTP 状态码处理
+            HttpResponseValidator {
+                validateResponse { response ->
+                    when (response.status) {
+                        HttpStatusCode.Unauthorized -> {
+                            throw IllegalStateException("未授权：请检查登录凭证")
+                        }
+                        HttpStatusCode.NotFound -> {
+                            throw IllegalStateException("资源未找到：${response.request.url}")
+                        }
+                        else -> {
+                            // 其他错误：5xx 等
+                            if (response.status.value >= 500) {
+                                throw IllegalStateException("服务器错误 (${response.status.value})")
+                            }
+                        }
+                    }
                 }
             }
+
+            // 响应缓存（避免重复请求相同数据）
+            expectSuccess = true
         }
+    }
+}
+
+/**
+ * 媒体客户端工厂
+ *
+ * 负责根据 [ServerType] 创建对应的 [MediaClient] 实现
+ * 并完成首次认证（Emby 用户名密码 / Plex Token 验证）
+ */
+object ClientFactory {
+
+    private var cachedClient: MediaClient? = null
+    private var cachedConfig: ServerConfig? = null
+
+    /**
+     * 创建并认证客户端
+     *
+     * @param type 服务器类型
+     * @param url 服务器地址（含 http/https）
+     * @param username 用户名（Emby 必填，Plex 可选）
+     * @param password 密码（Emby 必填，Plex 可选）
+     * @param token Token（Plex 必填，Emby 可选）
+     * @return 已认证的 ServerConfig
+     */
+    suspend fun create(
+        type: ServerType,
+        url: String,
+        username: String,
+        password: String,
+        token: String
+    ): ServerConfig {
+        val httpClient = HttpClientFactory.create()
+
+        val initialConfig = ServerConfig(
+            url = url,
+            username = username,
+            token = token,
+            userId = "",
+            serverType = type,
+            serverName = ""
+        )
+
+        val client: MediaClient = when (type) {
+            ServerType.EMBY -> EmbyClient(initialConfig, httpClient)
+            ServerType.PLEX -> PlexClient(initialConfig, httpClient)
+        }
+
+        // 执行认证
+        val authenticatedConfig = client.authenticate(username, password)
+
+        EmbyTokLogger.i("认证成功: server=$type, url=$url", "ClientFactory")
+
+        // 缓存带完整认证信息的客户端
+        val authenticatedClient: MediaClient = when (type) {
+            ServerType.EMBY -> EmbyClient(authenticatedConfig, httpClient)
+            ServerType.PLEX -> PlexClient(authenticatedConfig, httpClient)
+        }
+
+        cachedClient = authenticatedClient
+        cachedConfig = authenticatedConfig
+
+        return authenticatedConfig
     }
 
     /**
-     * 根据配置创建媒体客户端
-     * @param config 服务器配置
-     * @return 对应类型的 MediaClient 实例
+     * 从已保存的 ServerConfig 创建客户端（无需重新认证）
      */
-    fun create(config: ServerConfig): MediaClient {
-        logger.d("创建媒体客户端: type=${config.serverType}", "ClientFactory")
-
-        val client = when (config.serverType) {
-            ServerType.EMBY -> EmbyClient(config, getHttpClient())
-            ServerType.PLEX -> PlexClient(config, getHttpClient())
+    fun fromConfig(config: ServerConfig): MediaClient {
+        if (cachedConfig == config && cachedClient != null) {
+            return cachedClient!!
         }
-
+        val httpClient = HttpClientFactory.create()
+        val client: MediaClient = when (config.serverType) {
+            ServerType.EMBY -> EmbyClient(config, httpClient)
+            ServerType.PLEX -> PlexClient(config, httpClient)
+        }
+        cachedClient = client
+        cachedConfig = config
         return client
     }
 
     /**
-     * 认证并创建客户端
-     * @param type 服务器类型
-     * @param url 服务器地址
-     * @param username 用户名（Emby 使用）
-     * @param password 密码（Emby 使用）
-     * @param token Plex Token（Plex 使用）
+     * 获取当前已缓存的客户端（供 ViewModel 使用）
      */
-    suspend fun authenticate(
-        type: ServerType,
-        url: String,
-        username: String = "",
-        password: String = "",
-        token: String = ""
-    ): ServerConfig {
-        logger.d("开始认证: type=$type, url=$url", "ClientFactory")
-
-        // 构建初始配置
-        val initialConfig = ServerConfig(
-            url = url,
-            username = username,
-            token = if (type == ServerType.PLEX) token else "",
-            userId = if (type == ServerType.PLEX) "plex-user" else "",
-            serverType = type
-        )
-
-        // 创建临时客户端进行认证
-        val tempConfig = initialConfig.copy(
-            token = if (type == ServerType.PLEX) token else ""
-        )
-
-        val client = create(tempConfig)
-
-        return if (type == ServerType.EMBY) {
-            client.authenticate(username, password)
-        } else {
-            client.authenticate(username, password)
-        }
-    }
+    fun getCurrent(): MediaClient? = cachedClient
 
     /**
-     * 释放资源
+     * 清除缓存（登出时调用）
      */
-    fun release() {
-        httpClient?.close()
-        httpClient = null
+    fun clearCache() {
+        cachedClient = null
+        cachedConfig = null
     }
 }

@@ -1,25 +1,17 @@
 package com.embytok.app.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.embytok.app.ui.screens.feed.FeedScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
 import com.embytok.app.ui.screens.settings.SettingsScreen
+import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
-import org.koin.androidx.compose.koinViewModel
+import com.embytok.app.viewmodel.VideoPlayerViewModel
 
 /**
  * 导航路由
@@ -34,24 +26,32 @@ object Routes {
 }
 
 /**
- * EmbyTok 主应用入口
+ * EmbyTok 主应用（Compose 入口）
+ *
+ * 由 [com.embytok.app.MainActivity] 调用 setContent 启动
+ * 负责：
+ *  - 管理根级导航
+ *  - 提供 ViewModel 实例到各个 Screen
  */
 @Composable
 fun EmbyTokApp(
-    onNavigateToPlayer: (String) -> Unit = {}
+    loginViewModel: LoginViewModel,
+    feedViewModel: FeedViewModel,
+    playerViewModel: VideoPlayerViewModel,
+    modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
-    val loginViewModel: LoginViewModel = koinViewModel()
     val loginState by loginViewModel.uiState.collectAsState()
 
-    // 根据登录状态决定起始路由
+    // 起始路由（根据登录状态）
     val startDestination = if (loginState.isLoggedIn) Routes.FEED else Routes.LOGIN
 
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = startDestination,
+        modifier = modifier
     ) {
-        // 登录页
+        // ============ 登录页 ============
         composable(Routes.LOGIN) {
             LoginScreen(
                 viewModel = loginViewModel,
@@ -63,9 +63,11 @@ fun EmbyTokApp(
             )
         }
 
-        // 视频流页
+        // ============ 视频流首页 ============
         composable(Routes.FEED) {
             FeedScreen(
+                feedViewModel = feedViewModel,
+                playerViewModel = playerViewModel,
                 onNavigateToPlayer = { itemId ->
                     navController.navigate(Routes.player(itemId))
                 },
@@ -81,21 +83,17 @@ fun EmbyTokApp(
             )
         }
 
-        // 播放器页
-        composable(
-            route = Routes.PLAYER,
-            arguments = listOf(
-                navArgument("itemId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
+        // ============ 播放器（详情页） ============
+        composable(Routes.PLAYER) { backStackEntry ->
             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
             PlayerScreen(
+                playerViewModel = playerViewModel,
                 itemId = itemId,
                 onBack = { navController.popBackStack() }
             )
         }
 
-        // 设置页
+        // ============ 设置页 ============
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
@@ -111,39 +109,13 @@ fun EmbyTokApp(
 }
 
 /**
- * 加载状态组件
+ * 辅助方法：collectAsState（在 Composable 中直接暴露 State 简化代码）
  */
 @Composable
-fun LoadingScreen(
-    message: String = "加载中..."
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-        Text(
-            text = message,
-            modifier = Modifier.align(Alignment.Center)
-        )
-    }
-}
-
-/**
- * 错误状态组件
- */
-@Composable
-fun ErrorScreen(
-    message: String,
-    onRetry: () -> Unit = {}
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = message,
-            color = MaterialTheme.colorScheme.error
-        )
-    }
+private fun <T> androidx.compose.runtime.StateFlow<T>.collectAsState(
+    context: androidx.compose.runtime.CompositionContext? = null
+): androidx.compose.runtime.State<T> {
+    return (this as kotlinx.coroutines.flow.StateFlow<T>).collectAsState(
+        context = context
+    )
 }

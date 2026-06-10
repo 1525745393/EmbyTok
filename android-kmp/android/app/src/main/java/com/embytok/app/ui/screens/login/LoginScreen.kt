@@ -2,37 +2,41 @@ package com.embytok.app.ui.screens.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.embytok.app.R
+import androidx.compose.ui.unit.sp
 import com.embytok.app.viewmodel.LoginViewModel
-import com.embytok.app.viewmodel.LoginUiState
 import com.embytok.domain.model.ServerType
 
+/**
+ * 登录屏幕
+ *
+ * 支持两种模式：
+ *  - Emby: 通过 用户名 + 密码 认证
+ *  - Plex: 通过 Token 认证
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val focusManager = LocalFocusManager.current
 
-    // 登录成功时触发回调
+    // 当 isLoggedIn 变为 true 时触发回调
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onLoginSuccess()
@@ -43,209 +47,197 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Logo 区域
+            // Logo / Title
             Text(
                 text = "EmbyTok",
-                style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 36.sp
             )
 
             Text(
-                text = "Emby & Plex 竖屏视频客户端",
+                text = "为 Emby/Plex 打造的竖屏视频体验",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // 服务器类型选择
+            // 服务器类型切换
             ServerTypeSelector(
-                selectedType = uiState.serverType,
-                onTypeSelected = { viewModel.updateServerType(it) }
+                selected = uiState.serverType,
+                onSelected = viewModel::updateServerType
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 登录表单
-            LoginForm(
-                uiState = uiState,
-                onUrlChange = { viewModel.updateUrl(it) },
-                onUsernameChange = { viewModel.updateUsername(it) },
-                onPasswordChange = { viewModel.updatePassword(it) },
-                onTokenChange = { viewModel.updateToken(it) },
-                onLogin = {
-                    focusManager.clearFocus()
-                    viewModel.login()
-                },
-                onClearError = { viewModel.clearError() }
+            // URL 输入
+            TextField(
+                value = uiState.url,
+                onValueChange = viewModel::updateUrl,
+                label = { Text("服务器地址") },
+                placeholder = { Text("https://emby.example.com") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
             )
 
-            // 错误提示
-            uiState.error?.let { error ->
-                Spacer(modifier = Modifier.height(16.dp))
+            // 条件字段：根据服务器类型显示不同的输入
+            if (uiState.serverType == ServerType.EMBY) {
+                // Emby: 用户名 + 密码
+                TextField(
+                    value = uiState.username,
+                    onValueChange = viewModel::updateUsername,
+                    label = { Text("用户名") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                )
+
+                PasswordField(
+                    value = uiState.password,
+                    onValueChange = viewModel::updatePassword,
+                    label = "密码"
+                )
+            } else {
+                // Plex: Token
+                TextField(
+                    value = uiState.token,
+                    onValueChange = viewModel::updateToken,
+                    label = { Text("Plex Token") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    visualTransformation = PasswordVisualTransformation()
+                )
+
                 Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
+                    text = "提示：在 plex.tv 网页版登录后，访问 https://plex.tv/api/resources 可获取 token",
                     style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            // 错误提示
+            if (uiState.error != null) {
+                Text(
+                    text = uiState.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             // 登录按钮
             Button(
-                onClick = { viewModel.login() },
+                onClick = viewModel::login,
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !uiState.isLoading
+                    .height(48.dp),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = Color.White,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(20.dp)
                     )
+                    Spacer(Modifier.width(8.dp))
+                    Text("正在连接…")
                 } else {
-                    Text(
-                        text = stringResource(R.string.login_submit),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text("登录", fontSize = 16.sp)
                 }
             }
+
+            Text(
+                text = "本地收藏、观看历史等数据保存在设备本地",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
         }
     }
 }
 
+/**
+ * 服务器类型切换（Emby / Plex）
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ServerTypeSelector(
-    selectedType: ServerType,
-    onTypeSelected: (ServerType) -> Unit
+    selected: ServerType,
+    onSelected: (ServerType) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp)
+            ),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        ServerType.entries.forEach { type ->
+        ServerType.values().forEach { type ->
+            val isSelected = selected == type
             FilterChip(
-                selected = selectedType == type,
-                onClick = { onTypeSelected(type) },
+                selected = isSelected,
+                onClick = { onSelected(type) },
                 label = {
                     Text(
-                        text = when (type) {
-                            ServerType.EMBY -> stringResource(R.string.login_emby)
-                            ServerType.PLEX -> stringResource(R.string.login_plex)
-                        }
+                        text = type.name,
+                        color = if (isSelected) Color.White
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(4.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
     }
 }
 
+/**
+ * 密码输入框（带显示/隐藏切换）
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LoginForm(
-    uiState: LoginUiState,
-    onUrlChange: (String) -> Unit,
-    onUsernameChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onTokenChange: (String) -> Unit,
-    onLogin: () -> Unit,
-    onClearError: () -> Unit
+private fun PasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String
 ) {
-    val focusManager = LocalFocusManager.current
+    var showPassword by remember { mutableStateOf(false) }
 
-    // 服务器地址
-    OutlinedTextField(
-        value = uiState.url,
-        onValueChange = {
-            onUrlChange(it)
-            onClearError()
-        },
-        label = { Text(stringResource(R.string.login_server_address)) },
-        placeholder = { Text("192.168.1.100:8096") },
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Uri,
-            imeAction = if (uiState.serverType == ServerType.EMBY) ImeAction.Next else ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { focusManager.moveFocus(FocusDirection.Down) },
-            onDone = { onLogin() }
-        )
+        shape = RoundedCornerShape(8.dp),
+        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = { showPassword = !showPassword }) {
+                Icon(
+                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                    contentDescription = if (showPassword) "隐藏密码" else "显示密码"
+                )
+            }
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
     )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    if (uiState.serverType == ServerType.EMBY) {
-        // Emby 用户名
-        OutlinedTextField(
-            value = uiState.username,
-            onValueChange = {
-                onUsernameChange(it)
-                onClearError()
-            },
-            label = { Text(stringResource(R.string.login_username)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Emby 密码
-        OutlinedTextField(
-            value = uiState.password,
-            onValueChange = {
-                onPasswordChange(it)
-                onClearError()
-            },
-            label = { Text(stringResource(R.string.login_password)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onLogin() }
-            )
-        )
-    } else {
-        // Plex Token
-        OutlinedTextField(
-            value = uiState.token,
-            onValueChange = {
-                onTokenChange(it)
-                onClearError()
-            },
-            label = { Text(stringResource(R.string.login_plex_token)) },
-            placeholder = { Text(stringResource(R.string.login_plex_token)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { onLogin() }
-            )
-        )
-    }
 }

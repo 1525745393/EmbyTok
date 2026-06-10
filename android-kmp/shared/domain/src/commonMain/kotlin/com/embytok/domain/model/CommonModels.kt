@@ -3,7 +3,135 @@ package com.embytok.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * 视频流类型（排序方式）
+ * 服务器配置（持久化到 DataStore）
+ */
+@Serializable
+data class ServerConfig(
+    val url: String,
+    val username: String,
+    val token: String,
+    val userId: String,
+    val serverType: ServerType,
+    val serverName: String = ""
+) {
+    /**
+     * 获取基础 API URL（去掉末尾斜杠）
+     */
+    fun getApiBaseUrl(): String = url.trimEnd('/')
+
+    /**
+     * 获取完整 URL（用于 Plex 等）
+     */
+    fun getFullUrl(): String = url.trimEnd('/')
+}
+
+/**
+ * 服务器类型
+ */
+@Serializable
+enum class ServerType {
+    EMBY,
+    PLEX
+}
+
+/**
+ * Emby 库 / Plex 媒体容器
+ */
+@Serializable
+data class EmbyLibrary(
+    val Id: String,
+    val Name: String,
+    val CollectionType: String? = null
+)
+
+/**
+ * Emby 媒体项 / Plex Metadata 条目
+ */
+@Serializable
+data class EmbyItem(
+    val Id: String,
+    val Name: String,
+    val Type: String = "Video",
+    val Overview: String? = null,
+    val ProductionYear: Int? = null,
+    val OfficialRating: String? = null,
+    val RunTimeTicks: Long? = null,
+    val Width: Int? = null,
+    val Height: Int? = null,
+    val ParentId: String? = null,
+    val ImageTags: ImageTags? = null,
+    val UserData: UserData? = null,
+    val MediaSources: List<MediaSource>? = null,
+
+    // Plex 特有字段
+    val _PlexKey: String? = null
+) {
+    /** 是否为竖屏视频 */
+    fun isVertical(): Boolean {
+        val w = Width ?: return false
+        val h = Height ?: return false
+        return h > w
+    }
+
+    /** 是否为横屏视频 */
+    fun isHorizontal(): Boolean {
+        val w = Width ?: return false
+        val h = Height ?: return false
+        return w >= h
+    }
+}
+
+/**
+ * 图片标签（用于拼接封面 URL）
+ */
+@Serializable
+data class ImageTags(
+    val Primary: String? = null,
+    val Backdrop: String? = null,
+    val Logo: String? = null,
+    val Thumb: String? = null
+)
+
+/**
+ * 用户数据（收藏、播放次数等）
+ */
+@Serializable
+data class UserData(
+    val IsFavorite: Boolean = false,
+    val PlayCount: Int = 0,
+    val Played: Boolean = false,
+    val PlaybackPositionTicks: Long = 0
+)
+
+/**
+ * 媒体源（Emby MediaSourceInfo 的简化版）
+ */
+@Serializable
+data class MediaSource(
+    val Id: String,
+    val Path: String? = null,
+    val SupportsDirectPlay: Boolean = true,
+    val Container: String? = null,
+    val Bitrate: Int? = null,
+    val MediaStreams: List<MediaStream>? = null
+)
+
+/**
+ * 媒体流（视频/音频/字幕）
+ */
+@Serializable
+data class MediaStream(
+    val Index: Int = 0,
+    val Type: String? = null, // Video / Audio / Subtitle
+    val Codec: String? = null,
+    val DisplayTitle: String? = null,
+    val Language: String? = null,
+    val IsExternal: Boolean = false,
+    val Path: String? = null
+)
+
+/**
+ * 视频流类型
  */
 @Serializable
 enum class FeedType {
@@ -90,10 +218,11 @@ data class WatchHistoryItem(
     val totalTicks: Long,
     val watchedAtMillis: Long
 ) {
-    /**
-     * 获取进度百分比
-     */
-    fun getProgress(): Float = calculatePlaybackProgress(positionTicks, totalTicks)
+    /** 获取进度百分比 */
+    fun getProgress(): Float {
+        if (totalTicks <= 0) return 0f
+        return (positionTicks.toFloat() / totalTicks.toFloat()).coerceIn(0f, 1f)
+    }
 }
 
 /**
@@ -108,7 +237,6 @@ data class LocalFavoriteCollection(
     val itemIds: List<String> = emptyList()
 ) {
     companion object {
-        /** 默认合集 ID */
         const val DEFAULT_ID = "default"
     }
 }
@@ -119,11 +247,11 @@ data class LocalFavoriteCollection(
 @Serializable
 data class LocalFavoritesState(
     val collections: List<LocalFavoriteCollection>,
-    val favoriteIds: Set<String> // 全局收藏的 itemId 集合
+    val favoriteIds: Set<String>
 )
 
 /**
- * GitHub Release
+ * GitHub Release（用于 OTA 升级检查）
  */
 @Serializable
 data class GitHubRelease(
@@ -135,33 +263,11 @@ data class GitHubRelease(
 )
 
 /**
- * 更新检查结果
- */
-sealed class UpdateCheckResult {
-    data class NewVersionAvailable(val release: GitHubRelease) : UpdateCheckResult()
-    data object AlreadyUpToDate : UpdateCheckResult()
-    data class Error(val message: String) : UpdateCheckResult()
-}
-
-/**
- * 语言设置
+ * 应用语言
  */
 @Serializable
 enum class AppLanguage {
-    ZH,    // 中文
-    EN,    // 英文
-    SYSTEM // 跟随系统
+    SYSTEM,
+    ZH_CN,
+    EN_US
 }
-
-/**
- * 用户偏好设置
- */
-@Serializable
-data class UserPreferences(
-    val language: AppLanguage = AppLanguage.SYSTEM,
-    val orientationMode: OrientationMode = OrientationMode.BOTH,
-    val isMuted: Boolean = false,
-    val isAutoPlay: Boolean = true,
-    val subtitleSettings: SubtitleSettings = SubtitleSettings(),
-    val hiddenLibIds: Set<String> = emptySet()
-)

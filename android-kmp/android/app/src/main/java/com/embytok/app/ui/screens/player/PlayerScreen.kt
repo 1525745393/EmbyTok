@@ -1,233 +1,213 @@
 package com.embytok.app.ui.screens.player
 
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
-import com.embytok.app.R
-import com.embytok.app.ui.theme.Overlay
+import androidx.compose.ui.unit.sp
+import com.embytok.app.viewmodel.VideoPlayerViewModel
 
-@OptIn(UnstableApi::class)
+/**
+ * 播放器详情页
+ *
+ * 功能：
+ *  - 完整播放器（使用 VideoPlayerManager）
+ *  - 显示当前视频信息、播放进度
+ *  - 收藏/取消收藏
+ *  - 倍速/字幕切换
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
+    playerViewModel: VideoPlayerViewModel,
     itemId: String,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
+    // 从 ViewModel 获取当前播放项
+    val currentItem by playerViewModel.currentItem.collectAsState()
+    val positionMs by playerViewModel.currentPositionMs.collectAsState()
+    val durationMs by playerViewModel.durationMs.collectAsState()
+    val playbackState by playerViewModel.playbackState.collectAsState()
 
-    // 创建 ExoPlayer
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            // TODO: 从 ViewModel 获取实际视频 URL
-            val mediaItem = MediaItem.fromUri("https://example.com/video.mp4")
-            setMediaItem(mediaItem)
-            prepare()
-            playWhenReady = true
-        }
-    }
-
-    var showControls by remember { mutableStateOf(true) }
-    var isPlaying by remember { mutableStateOf(true) }
-
-    // 监听播放器状态
-    DisposableEffect(exoPlayer) {
-        val listener = object : Player.Listener {
-            override fun onIsPlayingChanged(playing: Boolean) {
-                isPlaying = playing
-            }
-        }
-        exoPlayer.addListener(listener)
-
-        onDispose {
-            exoPlayer.removeListener(listener)
-            exoPlayer.release()
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                showControls = !showControls
-            }
-    ) {
-        // 视频播放器
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(currentItem?.Name ?: "播放中") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
                 }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        // 控制栏
-        if (showControls) {
-            // 顶部栏
-            Row(
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(Color.Black)
+        ) {
+            // 顶部：视频区域（使用原生 PlayerView）
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Overlay)
-                    .statusBarsPadding()
-                    .padding(8.dp)
-                    .align(Alignment.TopCenter),
-                verticalAlignment = Alignment.CenterVertically
+                    .aspectRatio(16f / 9f)
+                    .background(Color.Black)
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back),
-                        tint = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Text(
-                    text = "Playing Video", // TODO: 显示视频名称
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
+                // 这里使用 AndroidView 嵌入原生 PlayerView
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { ctx ->
+                        androidx.media3.ui.PlayerView(ctx).apply {
+                            player = playerViewModel.playerManager.getExoPlayer()
+                            useController = true
+                            setShowPreviousButton(false)
+                            setShowNextButton(false)
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
-            // 底部控制栏
+            // 中部：视频信息 & 控制按钮
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Overlay)
-                    .navigationBarsPadding()
                     .padding(16.dp)
-                    .align(Alignment.BottomCenter)
             ) {
-                // 进度条
-                var position by remember { mutableLongStateOf(0L) }
-                var duration by remember { mutableLongStateOf(0L) }
-
-                // 更新进度
-                LaunchedEffect(exoPlayer) {
-                    while (true) {
-                        position = exoPlayer.currentPosition
-                        duration = exoPlayer.duration.coerceAtLeast(1L)
-                        kotlinx.coroutines.delay(500)
-                    }
-                }
-
-                Slider(
-                    value = position.toFloat(),
-                    onValueChange = { exoPlayer.seekTo(it.toLong()) },
-                    valueRange = 0f..duration.toFloat(),
-                    modifier = Modifier.fillMaxWidth()
+                // 标题
+                Text(
+                    text = currentItem?.Name ?: "",
+                    color = Color.White,
+                    fontSize = 20.sp
                 )
 
-                // 播放时间
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                // 副标题（年份 / 时长）
+                val subInfo = buildString {
+                    currentItem?.ProductionYear?.let { append(it) }
+                    currentItem?.RunTimeTicks?.let { ticks ->
+                        val minutes = ticks / 10_000_000L / 60L
+                        if (isNotEmpty()) append(" · ")
+                        append("${minutes}min")
+                    }
+                }
+
+                if (subInfo.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = formatTime(position),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White
-                    )
-                    Text(
-                        text = formatTime(duration),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White
+                        text = subInfo,
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 14.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // 简介
+                currentItem?.Overview?.let { overview ->
+                    if (overview.isNotBlank()) {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = overview,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+                }
 
-                // 控制按钮
+                // 控制按钮行
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 播放/暂停
+                    Button(
+                        onClick = { playerViewModel.togglePlayPause() },
+                        modifier = Modifier.size(width = 140.dp, height = 44.dp),
+                        shape = RoundedCornerShape(22.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (playbackState == com.embytok.player.PlaybackState.Playing)
+                                Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "播放/暂停"
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            if (playbackState == com.embytok.player.PlaybackState.Playing)
+                                "暂停" else "播放"
+                        )
+                    }
+
+                    // 收藏
+                    val isFav = currentItem?.UserData?.IsFavorite ?: false
+                    OutlinedButton(
+                        onClick = { /* TODO: toggle favorite */ },
+                        modifier = Modifier.size(width = 140.dp, height = 44.dp),
+                        shape = RoundedCornerShape(22.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "收藏",
+                            tint = if (isFav) Color(0xFFFF5252) else Color.White
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(if (isFav) "已收藏" else "收藏", color = Color.White)
+                    }
+                }
+
+                // 进度显示
+                Spacer(Modifier.height(24.dp))
+                val progress = if (durationMs > 0)
+                    positionMs.toFloat() / durationMs.toFloat() else 0f
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 快退
-                    IconButton(
-                        onClick = { exoPlayer.seekTo(exoPlayer.currentPosition - 10_000) }
-                    ) {
-                        Icon(
-                            Icons.Default.Replay10,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    // 播放/暂停
-                    IconButton(
-                        onClick = {
-                            if (isPlaying) exoPlayer.pause() else exoPlayer.play()
-                        }
-                    ) {
-                        Icon(
-                            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = stringResource(R.string.cd_play_pause),
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-
-                    // 快进
-                    IconButton(
-                        onClick = { exoPlayer.seekTo(exoPlayer.currentPosition + 10_000) }
-                    ) {
-                        Icon(
-                            Icons.Default.Forward10,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
+                    Text(
+                        text = formatDuration(positionMs),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        modifier = Modifier.width(60.dp)
+                    )
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                    Text(
+                        text = formatDuration(durationMs),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        modifier = Modifier.width(60.dp)
+                    )
                 }
             }
         }
     }
 }
 
-private fun formatTime(millis: Long): String {
-    val seconds = (millis / 1000) % 60
-    val minutes = (millis / (1000 * 60)) % 60
-    val hours = millis / (1000 * 60 * 60)
-
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
-    }
+/**
+ * 格式化毫秒为 mm:ss
+ */
+private fun formatDuration(ms: Long): String {
+    if (ms <= 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
 }
