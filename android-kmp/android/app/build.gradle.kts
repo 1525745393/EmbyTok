@@ -97,6 +97,7 @@ dependencies {
 
     // Koin DI
     implementation(libs.koin.android)
+    implementation(libs.koin.androidx.viewmodel)
 
     // Player module
     implementation(projects.android.player)

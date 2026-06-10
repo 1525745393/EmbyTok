@@ -1,6 +1,8 @@
 package com.embytok.app.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,7 +16,7 @@ import com.embytok.app.viewmodel.LoginViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 
 /**
- * 导航路由
+ * 导航路由常量
  */
 object Routes {
     const val LOGIN = "login"
@@ -43,7 +45,7 @@ fun EmbyTokApp(
     val navController = rememberNavController()
     val loginState by loginViewModel.uiState.collectAsState()
 
-    // 起始路由（根据登录状态）
+    // 起始路由（根据登录状态判断）
     val startDestination = if (loginState.isLoggedIn) Routes.FEED else Routes.LOGIN
 
     NavHost(
@@ -106,16 +108,4 @@ fun EmbyTokApp(
             )
         }
     }
-}
-
-/**
- * 辅助方法：collectAsState（在 Composable 中直接暴露 State 简化代码）
- */
-@Composable
-private fun <T> androidx.compose.runtime.StateFlow<T>.collectAsState(
-    context: androidx.compose.runtime.CompositionContext? = null
-): androidx.compose.runtime.State<T> {
-    return (this as kotlinx.coroutines.flow.StateFlow<T>).collectAsState(
-        context = context
-    )
 }
