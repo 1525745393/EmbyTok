@@ -1,237 +1,390 @@
 package com.embytok.app.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PauseCircle
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import com.embytok.app.R
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.ui.PlayerView
 import com.embytok.domain.model.EmbyItem
-import com.embytok.ui.theme.FavoriteActive
-import com.embytok.ui.theme.Overlay
+import com.embytok.player.PlaybackState
+import com.embytok.player.VideoPlayerManager
+import com.embytok.app.viewmodel.VideoPlayerViewModel
+import kotlinx.coroutines.delay
 
+/**
+ * 视频卡片（带原生播放器）
+ *
+ * 功能：
+ * - ExoPlayer 原生播放（Android 媒体框架）
+ * - 点击暂停/播放
+ * - 双击快进/快退
+ * - 双击侧边快进/快退
+ * - 底部信息叠加层
+ */
 @Composable
 fun VideoCard(
     item: EmbyItem,
-    isActive: Boolean,
-    isFavorite: Boolean,
-    onToggleFavorite: () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: VideoPlayerViewModel,
+    modifier: Modifier = Modifier,
+    onInfoClick: () -> Unit = {},
+    onHeartToggle: (Boolean) -> Unit = {}
 ) {
-    var showControls by remember { mutableStateOf(false) }
-    var showHeartAnimation by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // 播放状态
+    val playbackState by viewModel.playbackState.collectAsState()
+    val positionMs by viewModel.currentPositionMs.collectAsState()
+    val durationMs by viewModel.durationMs.collectAsState()
+    val playerMode by viewModel.currentMode.collectAsState()
+
+    // 显示播放/暂停按钮的标志（双击时显示，3秒后自动隐藏）
+    var showPlayOverlay by remember { mutableStateOf(false) }
+    var showRewindIndicator by remember { mutableStateOf(false) }
+    var showForwardIndicator by remember { mutableStateOf(false) }
+    var indicatorText by remember { mutableStateOf("") }
+
+    // 自动隐藏播放覆盖层
+    LaunchedEffect(showPlayOverlay) {
+        if (showPlayOverlay) {
+            delay(2000)
+            showPlayOverlay = false
+        }
+    }
+
+    LaunchedEffect(showRewindIndicator, showForwardIndicator) {
+        if (showRewindIndicator || showForwardIndicator) {
+            delay(1200)
+            showRewindIndicator = false
+            showForwardIndicator = false
+        }
+    }
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(600.dp)
-            .clickable { onClick() }
+            .fillMaxSize()
+            .background(Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { showControls = !showControls },
-                    onDoubleTap = {
-                        showHeartAnimation = true
-                        onToggleFavorite()
+                    onTap = { offset ->
+                        // 点击：切换播放/暂停
+                        viewModel.togglePlayPause()
+                        showPlayOverlay = true
+                    },
+                    onDoubleTap = { offset ->
+                        // 双击：根据位置判断是快进还是快退
+                        val screenWidth = size.width
+                        if (offset.x < screenWidth / 2) {
+                            // 左半边：快退 10s
+                            viewModel.seekBackward(10)
+                            showRewindIndicator = true
+                            indicatorText = "-10s"
+                        } else {
+                            // 右半边：快进 10s
+                            viewModel.seekForward(10)
+                            showForwardIndicator = true
+                            indicatorText = "+10s"
+                        }
                     }
                 )
             }
     ) {
-        // 海报图片
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(getImageUrl(item))
-                .crossfade(true)
-                .build(),
-            contentDescription = item.Name,
+        // ============ 原生 PlayerView ============
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    useController = false // 禁用原生控件，使用 Compose UI
+                    player = viewModel.playerManager.getExoPlayer()
+                }
+            },
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            update = { playerView ->
+                // 更新 Player 引用
+                playerView.player = viewModel.playerManager.getExoPlayer()
+            }
         )
 
-        // 底部渐变遮罩
-        Box(
+        // ============ 底部信息叠加层 ============
+        VideoInfoOverlay(
+            item = item,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Overlay)
-                    )
-                )
+                .align(Alignment.BottomStart)
+                .padding(bottom = 60.dp),
+            positionMs = positionMs,
+            durationMs = durationMs,
+            playerMode = playerMode.name
         )
 
-        // 右上角收藏按钮
-        IconButton(
-            onClick = onToggleFavorite,
+        // ============ 右侧操作按钮 ============
+        Column(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
+                .align(Alignment.CenterEnd)
+                .padding(end = 16.dp, bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = stringResource(R.string.cd_favorite),
-                tint = if (isFavorite) FavoriteActive else Color.White,
-                modifier = Modifier.size(32.dp)
-            )
+            // 播放进度（简单显示）
+            if (playbackState !is PlaybackState.Idle && playbackState !is PlaybackState.Buffering) {
+                IconButton(onClick = { onHeartToggle(true) }) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "收藏",
+                        tint = Color(0xFFE91E63),
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                IconButton(onClick = { onInfoClick() }) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "信息",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
         }
 
-        // 底部信息
-        if (showControls) {
-            Column(
+        // ============ 播放/暂停按钮覆盖层（点击时显示） ============
+        if (showPlayOverlay) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                val icon = if (playbackState == PlaybackState.Playing) {
+                    Icons.Default.PauseCircle
+                } else {
+                    Icons.Default.PlayCircle
+                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = if (playbackState == PlaybackState.Playing) "暂停" else "播放",
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(100.dp)
+                )
+            }
+        }
+
+        // ============ 快退/快进指示器 ============
+        if (showRewindIndicator) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(16.dp)
+                    .fillMaxSize()
+                    .padding(end = 100.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .background(
+                            Color.Black.copy(alpha = 0.55f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipPrevious,
+                        contentDescription = "快退",
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = indicatorText,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        if (showForwardIndicator) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 100.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .background(
+                            Color.Black.copy(alpha = 0.55f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "快进",
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = indicatorText,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // ============ 缓冲状态 ============
+        if (playbackState is PlaybackState.Buffering) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 4.dp,
+                    modifier = Modifier.size(56.dp)
+                )
+            }
+        }
+
+        // ============ 错误状态 ============
+        if (playbackState is PlaybackState.Error) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = item.getDisplayName(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    text = (playbackState as PlaybackState.Error).message,
+                    color = Color(0xFFFF5252),
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(24.dp)
                 )
+            }
+        }
+    }
+}
 
-                item.Overview?.let { overview ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = overview,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+/**
+ * 视频信息叠加层（标题、描述、进度条、播放模式）
+ */
+@Composable
+private fun VideoInfoOverlay(
+    item: EmbyItem,
+    positionMs: Long,
+    durationMs: Long,
+    playerMode: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+    ) {
+        // 标题
+        Text(
+            text = item.Name,
+            color = Color.White,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2
+        )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item.getDurationText().takeIf { it.isNotEmpty() }?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    }
-
-                    item.ProductionYear?.let { year ->
-                        Text(
-                            text = year.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
-                // 播放进度
-                item.UserData?.let { userData ->
-                    val progress = userData.getProgressPercentage(item.runTimeTicks ?: 0)
-                    if (progress > 0 && progress < 0.95f) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = Color.White.copy(alpha = 0.3f)
-                        )
-                    }
+        // 描述/年份信息
+        val subInfo = buildString {
+            if (item.ProductionYear != null) append("${item.ProductionYear}")
+            item.OfficialRating?.let { if (isNotEmpty()) append(" · ") ; append(it) }
+            item.RunTimeTicks?.let { ticks ->
+                val minutes = ticks / 10_000_000L / 60L
+                if (minutes > 0) {
+                    if (isNotEmpty()) append(" · ")
+                    append("${minutes}min")
                 }
             }
         }
 
-        // 爱心动画
-        if (showHeartAnimation) {
-            HeartAnimation(
-                onAnimationEnd = { showHeartAnimation = false }
-            )
-        }
-
-        // 提示标签
-        if (isActive) {
+        if (subInfo.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = when {
-                    item.UserData?.PlaybackPositionTicks ?: 0 > 0 -> stringResource(R.string.history_continue)
-                    item.UserData?.IsFavorite == true -> stringResource(R.string.favorites_title)
-                    else -> ""
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                text = subInfo,
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 14.sp
+            )
+        }
+
+        // 播放模式指示
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "播放模式: $playerMode",
+            color = Color(0xFF4FC3F7),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        // 简要概述
+        item.Overview?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = it,
+                color = Color.White.copy(alpha = 0.65f),
+                fontSize = 13.sp,
+                maxLines = 2
+            )
+        }
+
+        // 进度条
+        if (durationMs > 0) {
+            Spacer(Modifier.height(16.dp))
+            val progress = if (durationMs > 0) positionMs.toFloat() / durationMs.toFloat() else 0f
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { progress },
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .fillMaxWidth()
+                    .height(3.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = Color.White.copy(alpha = 0.2f)
             )
         }
     }
 }
 
-@Composable
-private fun HeartAnimation(
-    onAnimationEnd: () -> Unit
-) {
-    val scale by animateFloatAsState(
-        targetValue = 1.5f,
-        animationSpec = tween(300),
-        finishedListener = {
-            onAnimationEnd()
-        },
-        label = "heart_scale"
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = 0f,
-        animationSpec = tween(500, delayMillis = 300),
-        label = "heart_alpha"
-    )
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Favorite,
-            contentDescription = null,
-            tint = FavoriteActive,
-            modifier = Modifier
-                .size(100.dp)
-                .scale(scale)
-                .background(Color.Transparent)
-        )
-    }
-}
-
-@Composable
-private fun getImageUrl(item: EmbyItem): String {
-    // TODO: 从 EmbyClient 获取实际图片 URL
-    val tag = item.ImageTags?.Primary ?: ""
-    return "/api/Items/${item.Id}/Images/Primary?maxWidth=800&tag=$tag"
-}
+// ===== 辅助属性：ViewModel 中的 playerManager 需要对外暴露
+// （此文件为 ViewModel 增加扩展属性访问权限）
+private val VideoPlayerViewModel.playerManager: VideoPlayerManager
+    get() = this.playerManager

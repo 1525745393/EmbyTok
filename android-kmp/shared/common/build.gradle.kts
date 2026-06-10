@@ -1,42 +1,47 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    id("org.jetbrains.kotlin.multiplatform")
 }
 
 kotlin {
+    // 支持 JVM（Android + 桌面）
     jvm()
+
+    // 支持 JS（未来 Web 版本）
     js(IR) {
         browser()
     }
 
+    // 公共源集
     sourceSets {
-        commonMain {
+        val commonMain by getting {
             dependencies {
-                // Kotlin
-                implementation(libs.kotlin.stdlib)
-                implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.kotlinx.serialization.json)
-                implementation(libs.kotlinx.datetime)
+                // Kotlin 基础
+                implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
-                // Logging
-                implementation(libs.kermit)
+                // 日志
+                implementation("co.touchlab:kermit:2.0.2")
 
-                // DI (core only for common)
-                implementation(libs.koin.core)
+                // DI
+                implementation("io.insert-koin:koin-core:3.5.6")
             }
         }
 
-        commonTest {
+        val commonTest by getting {
             dependencies {
-                implementation(libs.kotlin.test)
-                implementation(libs.kotlin.test.junit)
-                implementation(libs.mockk)
-                implementation(libs.turbine)
+                implementation(kotlin("test"))
+                implementation(kotlin("test-junit"))
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
             }
         }
 
-        jvmMain {
+        val jvmMain by getting {
             dependencies {
-                implementation(libs.kotlinx.coroutines.android)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
             }
         }
     }

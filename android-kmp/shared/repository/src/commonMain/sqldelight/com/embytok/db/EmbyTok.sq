@@ -1,0 +1,47 @@
+-- EmbyTok 数据库 Schema
+-- 注意：SQLDelight 使用 SQL，不是 SQLite 语法
+-- 版本: 1.0
+
+CREATE TABLE watch_history (
+    itemId TEXT NOT NULL PRIMARY KEY,
+    positionTicks INTEGER NOT NULL,
+    totalTicks INTEGER NOT NULL,
+    watchedAtMillis INTEGER NOT NULL,
+    title TEXT,
+    imageUrl TEXT,
+    runTimeTicks INTEGER,
+    type TEXT,
+    parentId TEXT
+);
+
+CREATE TABLE search_history (
+    query TEXT NOT NULL PRIMARY KEY,
+    searchedAtMillis INTEGER NOT NULL
+);
+
+CREATE TABLE favorite_collections (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    createdAtMillis INTEGER NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE favorite_collection_items (
+    collectionId TEXT NOT NULL,
+    itemId TEXT NOT NULL,
+    title TEXT,
+    imageUrl TEXT,
+    PRIMARY KEY (collectionId, itemId),
+    FOREIGN KEY (collectionId) REFERENCES favorite_collections(id) ON DELETE CASCADE
+);
+
+CREATE TABLE hidden_libraries (
+    libId TEXT NOT NULL PRIMARY KEY,
+    name TEXT,
+    hiddenAtMillis INTEGER NOT NULL
+);
+
+-- 索引
+CREATE INDEX idx_watch_history_time ON watch_history (watchedAtMillis DESC);
+CREATE INDEX idx_search_history_time ON search_history (searchedAtMillis DESC);
+CREATE INDEX idx_favorite_items_collection ON favorite_collection_items (collectionId);

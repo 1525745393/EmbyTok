@@ -104,8 +104,14 @@ data class LocalFavoriteCollection(
     val id: String,
     val name: String,
     val createdAtMillis: Long,
-    val itemIds: List<String>
-)
+    val description: String? = null,
+    val itemIds: List<String> = emptyList()
+) {
+    companion object {
+        /** 默认合集 ID */
+        const val DEFAULT_ID = "default"
+    }
+}
 
 /**
  * 本地收藏状态
