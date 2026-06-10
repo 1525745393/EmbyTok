@@ -4,17 +4,19 @@ import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.ServerConfig
 import com.embytok.network.client.EmbyClient
 import com.embytok.network.client.PlexClient
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 
 /**
- * 媒体客户端工厂。基于 [ServerConfig] 构造 EmbyClient / PlexClient 实例。
+ * 媒体客户端工厂。
+ *
+ * 基于持久化的 [ServerConfig] 构造对应的 [EmbyClient] 或 [PlexClient] 实例。
  */
 object ClientFactory {
 
+    /**
+     * 根据 [ServerConfig.serverType] 构建相应的 [MediaClient]。
+     *
+     * @throws IllegalArgumentException 如果服务器类型未知。
+     */
     fun create(config: ServerConfig): MediaClient {
         val http = defaultHttpClient()
         return when (config.serverType) {
@@ -32,20 +34,6 @@ object ClientFactory {
         }
     }
 
+    /** Alias for [create]. */
     fun fromConfig(config: ServerConfig): MediaClient = create(config)
-}
-
-private fun defaultHttpClient(): HttpClient = HttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            encodeDefaults = true
-        })
-    }
-    install(HttpTimeout) {
-        requestTimeoutMillis = 15_000
-        connectTimeoutMillis = 10_000
-        socketTimeoutMillis = 60_000
-    }
 }

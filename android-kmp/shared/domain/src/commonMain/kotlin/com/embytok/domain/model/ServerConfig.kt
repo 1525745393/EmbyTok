@@ -3,7 +3,18 @@ package com.embytok.domain.model
 import kotlinx.serialization.Serializable
 
 /**
+ * 媒体服务器类型。
+ */
+@Serializable
+enum class ServerType {
+    EMBY,
+    PLEX
+}
+
+/**
  * 服务器配置（持久化到 DataStore）。
+ *
+ * 保存登录验证后所需的全部信息，用于后续构建 [MediaClient]。
  */
 @Serializable
 data class ServerConfig(

@@ -6,14 +6,13 @@ import com.embytok.domain.model.EmbyLibrary
 import com.embytok.domain.model.MediaSource
 import com.embytok.domain.model.SubtitleTrack
 import com.embytok.domain.model.UserData
+import com.embytok.network.defaultHttpClient
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -269,19 +268,4 @@ class PlexClient(
         val languageCode: String? = null,
         val key: String? = null
     )
-}
-
-private fun defaultHttpClient(): HttpClient = HttpClient {
-    install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            encodeDefaults = true
-        })
-    }
-    install(HttpTimeout) {
-        requestTimeoutMillis = 15_000
-        connectTimeoutMillis = 10_000
-        socketTimeoutMillis = 60_000
-    }
 }
