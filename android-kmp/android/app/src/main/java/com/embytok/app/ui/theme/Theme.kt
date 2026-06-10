@@ -1,0 +1,59 @@
+package com.embytok.app.ui.theme
+
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+
+private val DarkColorScheme = darkColorScheme(
+    primary = Pink500,
+    onPrimary = TextPrimary,
+    primaryContainer = Pink700,
+    onPrimaryContainer = TextPrimary,
+    secondary = Teal200,
+    onSecondary = DarkBackground,
+    secondaryContainer = Teal700,
+    onSecondaryContainer = TextPrimary,
+    tertiary = Pink200,
+    onTertiary = DarkBackground,
+    background = DarkBackground,
+    onBackground = TextPrimary,
+    surface = DarkSurface,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = TextSecondary,
+    error = ErrorColor,
+    onError = DarkBackground
+)
+
+@Composable
+fun EmbyTokTheme(
+    darkTheme: Boolean = true, // 默认使用深色主题
+    content: @Composable () -> Unit
+) {
+    val colorScheme = DarkColorScheme
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}

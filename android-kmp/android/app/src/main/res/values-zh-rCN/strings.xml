@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">EmbyTok</string>
+
+    <!-- Login Screen -->
+    <string name="login_server_address">服务器地址</string>
+    <string name="login_username">用户名</string>
+    <string name="login_password">密码</string>
+    <string name="login_plex_token">X-Plex-Token</string>
+    <string name="login_submit">连接</string>
+    <string name="login_connecting">连接中…</string>
+    <string name="login_error">连接失败，请检查账号密码</string>
+    <string name="login_emby">Emby</string>
+    <string name="login_plex">Plex</string>
+    <string name="login_language">语言</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_search">搜索</string>
+    <string name="nav_favorites">收藏</string>
+    <string name="nav_history">历史</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- Feed Types -->
+    <string name="feed_latest">最新</string>
+    <string name="feed_random">随机</string>
+    <string name="feed_favorites">收藏</string>
+    <string name="feed_shuffle">换一批</string>
+
+    <!-- Video Card -->
+    <string name="video_play">播放</string>
+    <string name="video_pause">暂停</string>
+    <string name="video_mute">静音</string>
+    <string name="video_unmute">取消静音</string>
+    <string name="video_fullscreen">全屏</string>
+    <string name="video_pip">画中画</string>
+    <string name="video_speed">播放速度</string>
+    <string name="video_error">无法加载视频</string>
+    <string name="video_try_transcode">尝试转码播放</string>
+
+    <!-- Subtitles -->
+    <string name="subtitles_on">开启</string>
+    <string name="subtitles_off">关闭</string>
+    <string name="subtitles_select">字幕</string>
+    <string name="subtitles_no_available">无可用字幕</string>
+    <string name="subtitles_settings">字幕设置</string>
+    <string name="subtitles_font_size">字体大小</string>
+    <string name="subtitles_small">小</string>
+    <string name="subtitles_medium">中</string>
+    <string name="subtitles_large">大</string>
+    <string name="subtitles_color">颜色</string>
+    <string name="subtitles_background">背景</string>
+    <string name="subtitles_position">位置</string>
+    <string name="subtitles_bottom">底部</string>
+    <string name="subtitles_top">顶部</string>
+
+    <!-- Search -->
+    <string name="search_placeholder">搜索视频…</string>
+    <string name="search_no_results">未找到结果</string>
+    <string name="search_recent">最近搜索</string>
+    <string name="search_clear">清空</string>
+    <string name="search_results">搜索结果</string>
+
+    <!-- Favorites -->
+    <string name="favorites_title">收藏</string>
+    <string name="favorites_create">创建合集</string>
+    <string name="favorites_collection_name">合集名称</string>
+    <string name="favorites_create_button">创建</string>
+    <string name="favorites_cancel">取消</string>
+    <string name="favorites_delete">删除合集</string>
+    <string name="favorites_delete_confirm">确定要删除这个合集吗？</string>
+    <string name="favorites_delete_button">删除</string>
+    <string name="favorites_rename">重命名</string>
+    <string name="favorites_add_to">添加到合集</string>
+    <string name="favorites_select_collection">选择合集</string>
+    <string name="favorites_remove_from">从合集中移除</string>
+    <string name="favorites_all">全部收藏</string>
+    <string name="favorites_empty">暂无收藏</string>
+    <string name="favorites_added">已添加到收藏</string>
+    <string name="favorites_removed">已取消收藏</string>
+
+    <!-- Watch History -->
+    <string name="history_title">观看历史</string>
+    <string name="history_empty">暂无观看历史</string>
+    <string name="history_clear">清空历史</string>
+    <string name="history_clear_confirm">确定要清空所有观看历史吗？</string>
+    <string name="history_clear_button">清空</string>
+    <string name="history_remove">移除</string>
+    <string name="history_continue">继续观看</string>
+    <string name="history_progress">%1$s / %2$s</string>
+
+    <!-- Library -->
+    <string name="library_title">媒体库</string>
+    <string name="library_all">所有媒体</string>
+    <string name="library_hidden">已隐藏</string>
+
+    <!-- Settings -->
+    <string name="settings_account">账户</string>
+    <string name="settings_libraries">媒体库</string>
+    <string name="settings_display">显示</string>
+    <string name="settings_language">界面语言</string>
+    <string name="settings_about">关于</string>
+    <string name="settings_logout">退出登录</string>
+    <string name="settings_check_update">检查更新</string>
+    <string name="settings_current_version">当前版本</string>
+    <string name="settings_version">版本 %1$s</string>
+    <string name="settings_orientation_vertical">竖屏</string>
+    <string name="settings_orientation_horizontal">横屏</string>
+    <string name="settings_orientation_both">全部</string>
+    <string name="settings_auto_play">自动连播</string>
+    <string name="settings_muted_by_default">默认静音</string>
+
+    <!-- Update -->
+    <string name="update_new_version">发现新版本</string>
+    <string name="update_current">当前版本</string>
+    <string name="update_latest">最新版本</string>
+    <string name="update_now">立即更新</string>
+    <string name="update_later">稍后再说</string>
+    <string name="update_no_new">已是最新版本</string>
+    <string name="update_check_failed">检查更新失败</string>
+    <string name="update_what_new">更新内容</string>
+    <string name="update_download">下载</string>
+
+    <!-- About -->
+    <string name="about_version">版本</string>
+    <string name="about_developer">开发者</string>
+    <string name="about_license">许可证</string>
+    <string name="about_open_source">开源项目</string>
+    <string name="about_github">在 GitHub 查看</string>
+    <string name="about_sponsor">赞助支持</string>
+    <string name="about_sponsor_text">如果你觉得这个项目对你有帮助，不妨请开发者喝杯咖啡吧！</string>
+
+    <!-- General -->
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+    <string name="error">错误</string>
+    <string name="loading">加载中…</string>
+    <string name="retry">重试</string>
+    <string name="exit">退出</string>
+    <string name="exit_confirm">确定要退出吗？</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="cd_back">返回</string>
+    <string name="cd_menu">打开菜单</string>
+    <string name="cd_search">搜索</string>
+    <string name="cd_play_pause">播放或暂停</string>
+    <string name="cd_mute">切换静音</string>
+    <string name="cd_fullscreen">切换全屏</string>
+    <string name="cd_pip">画中画</string>
+    <string name="cd_favorite">添加收藏</string>
+    <string name="cd_share">分享</string>
+    <string name="cd_settings">设置</string>
+    <string name="cd_poster">视频海报</string>
+    <string name="cd_progress">播放进度</string>
+</resources>
