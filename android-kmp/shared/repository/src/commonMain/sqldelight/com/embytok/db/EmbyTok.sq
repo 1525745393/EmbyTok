@@ -1,7 +1,9 @@
--- EmbyTok 数据库 Schema
--- 注意：SQLDelight 使用 SQL，不是 SQLite 语法
--- 版本: 1.0
+-- ============================================================
+-- EmbyTok Database Schema (SQLDelight 2.x)
+-- 内容: 观看历史 / 搜索历史 / 本地收藏合集 / 隐藏库
+-- ============================================================
 
+-- ---------- 观看历史 ----------
 CREATE TABLE watch_history (
     itemId TEXT NOT NULL PRIMARY KEY,
     positionTicks INTEGER NOT NULL,
@@ -14,11 +16,71 @@ CREATE TABLE watch_history (
     parentId TEXT
 );
 
+selectAllOrdered:
+SELECT * FROM watch_history
+ORDER BY watchedAtMillis DESC;
+
+selectById:
+SELECT * FROM watch_history
+WHERE itemId = ?;
+
+selectCount:
+SELECT COUNT(*) AS count FROM watch_history;
+
+insert:
+INSERT OR REPLACE INTO watch_history
+(itemId, positionTicks, totalTicks, watchedAtMillis, title, imageUrl, runTimeTicks, type, parentId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+update:
+UPDATE watch_history
+SET positionTicks = ?, totalTicks = ?, watchedAtMillis = ?, title = ?
+WHERE itemId = ?;
+
+deleteById:
+DELETE FROM watch_history WHERE itemId = ?;
+
+deleteAll:
+DELETE FROM watch_history;
+
+deleteOldestByLimit:
+DELETE FROM watch_history
+WHERE itemId IN (
+    SELECT itemId FROM watch_history
+    ORDER BY watchedAtMillis ASC
+    LIMIT ?
+);
+
+-- ---------- 搜索历史 ----------
 CREATE TABLE search_history (
     query TEXT NOT NULL PRIMARY KEY,
     searchedAtMillis INTEGER NOT NULL
 );
 
+selectRecent:
+SELECT query FROM search_history
+ORDER BY searchedAtMillis DESC
+LIMIT ?;
+
+selectCount:
+SELECT COUNT(*) AS count FROM search_history;
+
+insert:
+INSERT OR REPLACE INTO search_history (query, searchedAtMillis)
+VALUES (?, ?);
+
+deleteAll:
+DELETE FROM search_history;
+
+deleteOldestByLimit:
+DELETE FROM search_history
+WHERE query IN (
+    SELECT query FROM search_history
+    ORDER BY searchedAtMillis ASC
+    LIMIT ?
+);
+
+-- ---------- 本地收藏合集 ----------
 CREATE TABLE favorite_collections (
     id TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -26,22 +88,75 @@ CREATE TABLE favorite_collections (
     description TEXT
 );
 
+selectAll:
+SELECT * FROM favorite_collections
+ORDER BY createdAtMillis DESC;
+
+selectById:
+SELECT * FROM favorite_collections
+WHERE id = ?;
+
+insert:
+INSERT INTO favorite_collections (id, name, createdAtMillis, description)
+VALUES (?, ?, ?, ?);
+
+updateName:
+UPDATE favorite_collections SET name = ? WHERE id = ?;
+
+deleteById:
+DELETE FROM favorite_collections WHERE id = ?;
+
+-- ---------- 收藏合集条目 ----------
 CREATE TABLE favorite_collection_items (
     collectionId TEXT NOT NULL,
     itemId TEXT NOT NULL,
     title TEXT,
     imageUrl TEXT,
-    PRIMARY KEY (collectionId, itemId),
-    FOREIGN KEY (collectionId) REFERENCES favorite_collections(id) ON DELETE CASCADE
+    PRIMARY KEY (collectionId, itemId)
 );
 
+selectByCollectionId:
+SELECT itemId FROM favorite_collection_items
+WHERE collectionId = ?;
+
+insert:
+INSERT OR REPLACE INTO favorite_collection_items
+(collectionId, itemId, title, imageUrl)
+VALUES (?, ?, ?, ?);
+
+deleteByCollectionId:
+DELETE FROM favorite_collection_items WHERE collectionId = ?;
+
+deleteByCollectionAndItem:
+DELETE FROM favorite_collection_items
+WHERE collectionId = ? AND itemId = ?;
+
+existsByCollectionAndItem:
+SELECT COUNT(*) AS count FROM favorite_collection_items
+WHERE collectionId = ? AND itemId = ?
+LIMIT 1;
+
+-- ---------- 隐藏库 ----------
 CREATE TABLE hidden_libraries (
     libId TEXT NOT NULL PRIMARY KEY,
     name TEXT,
     hiddenAtMillis INTEGER NOT NULL
 );
 
--- 索引
+selectAll:
+SELECT libId FROM hidden_libraries;
+
+selectById:
+SELECT libId, name, hiddenAtMillis FROM hidden_libraries WHERE libId = ?;
+
+insert:
+INSERT OR REPLACE INTO hidden_libraries (libId, name, hiddenAtMillis)
+VALUES (?, ?, ?);
+
+deleteById:
+DELETE FROM hidden_libraries WHERE libId = ?;
+
+-- ---------- 索引 ----------
 CREATE INDEX idx_watch_history_time ON watch_history (watchedAtMillis DESC);
 CREATE INDEX idx_search_history_time ON search_history (searchedAtMillis DESC);
 CREATE INDEX idx_favorite_items_collection ON favorite_collection_items (collectionId);

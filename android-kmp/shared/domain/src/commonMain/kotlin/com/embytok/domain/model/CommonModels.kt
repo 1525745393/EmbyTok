@@ -138,7 +138,19 @@ enum class FeedType {
     LATEST,    // 最新
     RANDOM,    // 随机
     FAVORITES, // 服务端收藏
-    HISTORY    // 观看历史
+    HISTORY,   // 观看历史
+    ALL        // 全部
+}
+
+/**
+ * 排序模式
+ */
+@Serializable
+enum class SortMode {
+    DATE_ADDED_DESC,   // 最新添加
+    PLAY_COUNT_DESC,   // 最多播放
+    RATING_DESC,       // 评分最高
+    NAME_ASC           // 按名称
 }
 
 /**

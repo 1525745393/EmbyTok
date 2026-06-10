@@ -13,154 +13,155 @@ import com.embytok.domain.model.ServerConfig
 import com.embytok.domain.model.ServerType
 import com.embytok.domain.model.SubtitleSettings
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+
+// Context 扩展：单例 DataStore
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "embytok_preferences")
 
 /**
- * 应用偏好设置管理器（基于 Android DataStore Preferences
+ * AppPreferences — 应用偏好（DataStore 实现）
  *
- * 负责持久化：
- *  - 服务器配置（ServerConfig
- *  - UI 偏好（方向过滤、默认静音、自动连播等）
- *  - 字幕设置
- *  - 语言设置
+ * 负责:
+ *  - 服务器配置持久化 (ServerConfig: url / username / token / userId / serverType)
+ *  - 播放偏好 (orientationMode / isMuted / isAutoPlay / playbackSpeed)
+ *  - 字幕设置 (SubtitleSettings)
+ *  - 应用语言 (AppLanguage)
  */
-class AppPreferences(
-    private val context: Context
-) {
+class AppPreferences(private val context: Context) {
 
-    companion object {
-        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "embytok_preferences")
+    private val json = Json { ignoreUnknownKeys = true }
 
-        // ============ Keys ============
-        private object Keys {
-            // 服务器配置
-            val SERVER_TYPE = stringPreferencesKey("server_type")
-            val SERVER_URL = stringPreferencesKey("server_url")
-            val USERNAME = stringPreferencesKey("username")
-            val TOKEN = stringPreferencesKey("token")
-            val USER_ID = stringPreferencesKey("user_id")
+    // ================ 服务器配置 ================
 
-            // UI 偏好
-            val ORIENTATION_MODE = stringPreferencesKey("orientation_mode")
-            val IS_MUTED = booleanPreferencesKey("is_muted")
-            val AUTO_PLAY = booleanPreferencesKey("auto_play")
-
-            // 字幕
-            val SUBTITLE_ENABLED = booleanPreferencesKey("subtitle_enabled")
-            val SUBTITLE_SIZE = stringPreferencesKey("subtitle_size")
-            val SUBTITLE_COLOR = stringPreferencesKey("subtitle_color")
-            val SUBTITLE_POSITION = stringPreferencesKey("subtitle_position")
-            val SUBTITLE_BG = stringPreferencesKey("subtitle_bg_color")
-
-            // 语言
-            val LANGUAGE = stringPreferencesKey("language")
+    suspend fun saveServerConfig(config: ServerConfig) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVER_URL] = config.url
+            prefs[Keys.USERNAME] = config.username
+            prefs[Keys.TOKEN] = config.token
+            prefs[Keys.USER_ID] = config.userId
+            prefs[Keys.SERVER_TYPE] = config.serverType.name
+            prefs[Keys.SERVER_NAME] = config.serverName
         }
     }
 
-    private val dataStore = context.dataStore
-
-    // ============ 服务器配置 ============
-
-    fun getServerConfig(): ServerConfig? = runBlocking {
-        val prefs = dataStore.data.first()
-        val type = prefs[Keys.SERVER_TYPE] ?: return@runBlocking null
-        val url = prefs[Keys.SERVER_URL] ?: return@runBlocking null
-        val token = prefs[Keys.TOKEN] ?: return@runBlocking null
-        val username = prefs[Keys.USERNAME] ?: ""
-        val userId = prefs[Keys.USER_ID] ?: ""
-
+    val serverConfig: Flow<ServerConfig?> = context.dataStore.data.map { prefs ->
+        val url = prefs[Keys.SERVER_URL] ?: return@map null
+        val serverType = prefs[Keys.SERVER_TYPE]?.let {
+            try { ServerType.valueOf(it) } catch (_: Exception) { ServerType.EMBY }
+        } ?: ServerType.EMBY
         ServerConfig(
             url = url,
-            username = username,
-            token = token,
-            userId = userId,
-            serverType = ServerType.valueOf(type ?: "EMBY")
+            username = prefs[Keys.USERNAME].orEmpty(),
+            token = prefs[Keys.TOKEN].orEmpty(),
+            userId = prefs[Keys.USER_ID].orEmpty(),
+            serverType = serverType,
+            serverName = prefs[Keys.SERVER_NAME].orEmpty()
         )
     }
 
-    suspend fun saveServerConfig(config: ServerConfig) {
-        dataStore.edit {
-            it[Keys.SERVER_TYPE] = config.serverType.name
-            it[Keys.SERVER_URL] = config.url
-            it[Keys.USERNAME] = config.username
-            it[Keys.TOKEN] = config.token
-            it[Keys.USER_ID] = config.userId
-        }
-    }
-
     suspend fun clearServerConfig() {
-        dataStore.edit {
-            it.remove(Keys.SERVER_TYPE)
-            it.remove(Keys.SERVER_URL)
-            it.remove(Keys.USERNAME)
-            it.remove(Keys.TOKEN)
-            it.remove(Keys.USER_ID)
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.SERVER_URL)
+            prefs.remove(Keys.USERNAME)
+            prefs.remove(Keys.TOKEN)
+            prefs.remove(Keys.USER_ID)
+            prefs.remove(Keys.SERVER_TYPE)
+            prefs.remove(Keys.SERVER_NAME)
         }
     }
 
-    // ============ UI 偏好 ============
+    // ================ 播放偏好 ================
 
-    val orientationMode: Flow<OrientationMode> = dataStore.data.map {
-        val value = it[Keys.ORIENTATION_MODE] ?: "BOTH"
-        OrientationMode.valueOf(value)
+    val orientationMode: Flow<OrientationMode> = context.dataStore.data.map { prefs ->
+        prefs[Keys.ORIENTATION_MODE]?.let {
+            try { OrientationMode.valueOf(it) } catch (_: Exception) { null }
+        } ?: OrientationMode.BOTH
     }
 
     suspend fun setOrientationMode(mode: OrientationMode) {
-        dataStore.edit { it[Keys.ORIENTATION_MODE] = mode.name }
+        context.dataStore.edit { it[Keys.ORIENTATION_MODE] = mode.name }
     }
 
-    val isMuted: Flow<Boolean> = dataStore.data.map {
+    val isMuted: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.IS_MUTED] ?: false
     }
 
     suspend fun setMuted(muted: Boolean) {
-        dataStore.edit { it[Keys.IS_MUTED] = muted }
+        context.dataStore.edit { it[Keys.IS_MUTED] = muted }
     }
 
-    val isAutoPlay: Flow<Boolean> = dataStore.data.map {
-        it[Keys.AUTO_PLAY] ?: true
+    val isAutoPlay: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.IS_AUTO_PLAY] ?: true
     }
 
-    suspend fun setAutoPlay(enabled: Boolean) {
-        dataStore.edit { it[Keys.AUTO_PLAY] = enabled }
+    suspend fun setAutoPlay(auto: Boolean) {
+        context.dataStore.edit { it[Keys.IS_AUTO_PLAY] = auto }
     }
 
-    // ============ 字幕设置 ============
-
-    val subtitleSettings: Flow<SubtitleSettings> = dataStore.data.map {
-        SubtitleSettings(
-            enabled = it[Keys.SUBTITLE_ENABLED] ?: false,
-            selectedTrackId = null, // 不持久化 trackId
-            fontSize = FontSize.valueOf(
-                it[Keys.SUBTITLE_SIZE] ?: FontSize.MEDIUM.name
-            ),
-            textColor = it[Keys.SUBTITLE_COLOR] ?: "#FFFFFF",
-            backgroundColor = it[Keys.SUBTITLE_BG] ?: "#CC000000",
-            position = SubtitlePosition.valueOf(
-                it[Keys.SUBTITLE_POSITION] ?: SubtitlePosition.BOTTOM.name
-            )
-        )
+    val playbackSpeed: Flow<Float> = context.dataStore.data.map {
+        (it[Keys.PLAYBACK_SPEED] ?: "1.0").toFloatOrNull() ?: 1.0f
     }
 
-    suspend fun saveSubtitleSettings(settings: SubtitleSettings) {
-        dataStore.edit {
-            it[Keys.SUBTITLE_ENABLED] = settings.enabled
-            it[Keys.SUBTITLE_SIZE] = settings.fontSize.name
-            it[Keys.SUBTITLE_COLOR] = settings.textColor
-            it[Keys.SUBTITLE_BG] = settings.backgroundColor
-            it[Keys.SUBTITLE_POSITION] = settings.position.name
+    suspend fun setPlaybackSpeed(speed: Float) {
+        context.dataStore.edit { it[Keys.PLAYBACK_SPEED] = speed.toString() }
+    }
+
+    // ================ 字幕设置 ================
+
+    val subtitleSettings: Flow<SubtitleSettings> = context.dataStore.data.map { prefs ->
+        val jsonStr = prefs[Keys.SUBTITLE_SETTINGS] ?: return@map SubtitleSettings()
+        try {
+            json.decodeFromString<SubtitleSettings>(jsonStr)
+        } catch (_: Exception) {
+            SubtitleSettings()
         }
     }
 
-    // ============ 语言 ============
-
-    val language: Flow<AppLanguage> = dataStore.data.map {
-        AppLanguage.valueOf(it[Keys.LANGUAGE] ?: AppLanguage.SYSTEM.name)
+    suspend fun saveSubtitleSettings(settings: SubtitleSettings) {
+        context.dataStore.edit {
+            it[Keys.SUBTITLE_SETTINGS] = json.encodeToString(settings)
+        }
     }
 
-    suspend fun setLanguage(language: AppLanguage) {
-        dataStore.edit { it[Keys.LANGUAGE] = language.name }
+    // ================ 应用语言 ================
+
+    val appLanguage: Flow<AppLanguage> = context.dataStore.data.map { prefs ->
+        prefs[Keys.APP_LANGUAGE]?.let {
+            try { AppLanguage.valueOf(it) } catch (_: Exception) { null }
+        } ?: AppLanguage.SYSTEM
+    }
+
+    suspend fun setAppLanguage(lang: AppLanguage) {
+        context.dataStore.edit { it[Keys.APP_LANGUAGE] = lang.name }
+    }
+
+    // ================ 辅助方法 ================
+
+    suspend fun isLoggedIn(): Boolean {
+        return serverConfig.firstOrNull() != null
+    }
+
+    // ================ 偏好 Key 常量 ================
+
+    private object Keys {
+        // 服务器
+        val SERVER_URL = stringPreferencesKey("server_url")
+        val USERNAME = stringPreferencesKey("username")
+        val TOKEN = stringPreferencesKey("token")
+        val USER_ID = stringPreferencesKey("user_id")
+        val SERVER_TYPE = stringPreferencesKey("server_type")
+        val SERVER_NAME = stringPreferencesKey("server_name")
+        // 播放
+        val ORIENTATION_MODE = stringPreferencesKey("orientation_mode")
+        val IS_MUTED = booleanPreferencesKey("is_muted")
+        val IS_AUTO_PLAY = booleanPreferencesKey("is_auto_play")
+        val PLAYBACK_SPEED = stringPreferencesKey("playback_speed")
+        // 字幕
+        val SUBTITLE_SETTINGS = stringPreferencesKey("subtitle_settings")
+        // 语言
+        val APP_LANGUAGE = stringPreferencesKey("app_language")
     }
 }
