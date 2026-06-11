@@ -3,6 +3,7 @@ package com.embytok.app.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.embytok.app.pip.PictureInPictureManager
 import com.embytok.app.ui.di.ServiceLocator
 import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
@@ -62,6 +63,20 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     // 暴露 manager 供 VideoCard 使用
     val playerManager: VideoPlayerManager
         get() = _manager
+
+    // PiP 管理器
+    private val _pipManager: PictureInPictureManager by lazy {
+        PictureInPictureManager(
+            context = getApplication<Application>().applicationContext,
+            playerManager = _manager
+        )
+    }
+    val pipManager: PictureInPictureManager
+        get() = _pipManager
+
+    // PiP 支持状态
+    val isPipSupported: Boolean
+        get() = _pipManager.isSupported()
 
     val playbackState: StateFlow<PlaybackState> = _manager.playbackState
         .stateIn(viewModelScope, SharingStarted.Eagerly, PlaybackState.Idle)
@@ -139,12 +154,12 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
      * 切换收藏状态
      * 同时同步到服务器
      */
+    /** 切换收藏状态 */
     fun toggleFavorite() {
         val item = currentItem ?: return
         val newFavoriteState = !_isFavorite.value
 
         viewModelScope.launch {
-            // 同步到服务器
             val success = runCatching {
                 mediaClient?.toggleFavorite(item.Id) ?: false
             }.getOrDefault(false)
@@ -155,9 +170,23 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    /**
-     * 标记为已观看
-     */
+    /** 进入画中画模式 */
+    fun enterPictureInPicture(activityContext: android.content.Context): Boolean {
+        if (!_pipManager.isSupported()) return false
+        val activity = activityContext as? android.app.Activity ?: return false
+        return try {
+            val ratio = _pipManager.calculateVideoAspectRatio()
+            val pipManager = PictureInPictureManager(activity, _manager)
+            pipManager.enterPictureInPicture(
+                aspectRatio = ratio,
+                title = currentItem?.Name
+            )
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** 标记为已观看 */
     fun markAsWatched() {
         val item = currentItem ?: return
         viewModelScope.launch {

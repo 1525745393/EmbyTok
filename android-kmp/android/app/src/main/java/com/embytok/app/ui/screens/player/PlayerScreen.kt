@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VolumeDown
@@ -54,7 +55,6 @@ import com.embytok.app.ui.components.SubtitleSelector
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 import com.embytok.domain.model.EmbyItem
 import com.embytok.player.PlaybackState
-
 /**
  * 视频播放页。
  *
@@ -110,6 +110,21 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
+                    // 画中画按钮（仅在支持的设备上显示）
+                    val localContext = androidx.compose.ui.platform.LocalContext.current
+                    if (viewModel.isPipSupported) {
+                        IconButton(onClick = {
+                            val activity = (localContext as? android.app.Activity)?.let {
+                                viewModel.enterPictureInPicture(it)
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.PictureInPicture,
+                                contentDescription = "画中画",
+                                tint = Color.White
+                            )
+                        }
+                    }
                     // 字幕按钮（有字幕轨道时才显示）
                     if (subtitleTracks.isNotEmpty()) {
                         IconButton(onClick = { showSubtitleSelector = true }) {

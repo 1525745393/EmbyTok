@@ -15,11 +15,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -39,7 +45,10 @@ import kotlinx.coroutines.launch
 /**
  * 设置界面
  *
- * 展示账户信息与登出功能。使用 ServiceLocator 获取认证用例。
+ * 包含：
+ *  - 账户信息展示（服务器类型、地址、用户名）
+ *  - 播放设置（默认倍速、自动播放、字幕开关）
+ *  - 退出登录
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +58,12 @@ fun SettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     var showConfirm by remember { mutableStateOf(false) }
+
+    // 播放设置状态
+    var defaultSpeed by remember { mutableStateOf(1.0f) }
+    var autoPlay by remember { mutableStateOf(true) }
+    var enableSubtitles by remember { mutableStateOf(true) }
+    var speedMenuExpanded by remember { mutableStateOf(false) }
 
     // 当前已保存的配置，用于显示账户信息
     val currentConfig = ServiceLocator.authenticateUseCase.currentConfigCached()
@@ -77,7 +92,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.Top
         ) {
-            // 账户区块
+            // ============ 账户区块 ============
             Text(
                 "账户",
                 color = Color(0xFFB3B3B3),
@@ -126,9 +141,107 @@ fun SettingsScreen(
                 }
             }
 
+            // ============ 播放设置区块 ============
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "播放设置",
+                color = Color(0xFFB3B3B3),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A))
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    // 默认倍速选择
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("默认倍速", color = Color.White)
+                        ExposedDropdownMenuBox(
+                            expanded = speedMenuExpanded,
+                            onExpandedChange = { speedMenuExpanded = !speedMenuExpanded }
+                        ) {
+                            TextField(
+                                value = "${defaultSpeed}x",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = speedMenuExpanded)
+                                },
+                                colors = androidx.compose.material3.TextFieldDefaults.colors(
+                                    focusedContainerColor = Color(0xFF2A2A2A),
+                                    unfocusedContainerColor = Color(0xFF2A2A2A),
+                                    focusedTextColor = Color(0xFFE91E63),
+                                    unfocusedTextColor = Color(0xFFE91E63)
+                                ),
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .width(100.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = speedMenuExpanded,
+                                onDismissRequest = { speedMenuExpanded = false },
+                                containerColor = Color(0xFF2A2A2A)
+                            ) {
+                                listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
+                                    DropdownMenuItem(
+                                        text = { Text("${speed}x", color = Color.White) },
+                                        onClick = {
+                                            defaultSpeed = speed
+                                            speedMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+
+                    // 自动播放下一个
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("自动播放下一个", color = Color.White)
+                        Switch(
+                            checked = autoPlay,
+                            onCheckedChange = { autoPlay = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFE91E63),
+                                checkedTrackColor = Color(0xFFE91E63).copy(alpha = 0.5f)
+                            )
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+
+                    // 启用字幕
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("启用字幕", color = Color.White)
+                        Switch(
+                            checked = enableSubtitles,
+                            onCheckedChange = { enableSubtitles = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFE91E63),
+                                checkedTrackColor = Color(0xFFE91E63).copy(alpha = 0.5f)
+                            )
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(32.dp))
 
-            // 退出登录
+            // ============ 退出登录 ============
             Button(
                 onClick = { showConfirm = true },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
