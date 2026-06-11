@@ -58,7 +58,8 @@ fun FeedScreen(
     viewModel: FeedViewModel = viewModel(),
     onOpenPlayer: (EmbyItem) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenSearch: () -> Unit
+    onOpenSearch: () -> Unit,
+    onOpenVerticalFeed: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val items by viewModel.filteredItems.collectAsState()
@@ -98,6 +99,16 @@ fun FeedScreen(
                     }
                     IconButton(onClick = onOpenSearch) {
                         Icon(Icons.Default.Search, contentDescription = "搜索", tint = Color.White)
+                    }
+                    IconButton(onClick = onOpenVerticalFeed) {
+                        Text(
+                            text = "竖屏",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

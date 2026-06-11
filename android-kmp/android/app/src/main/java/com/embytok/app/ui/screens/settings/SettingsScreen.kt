@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
  *
  * 包含：
  *  - 账户信息展示（服务器类型、地址、用户名）
+ *  - 管理服务器入口
  *  - 播放设置（默认倍速、自动播放、字幕开关）
  *  - 退出登录
  */
@@ -54,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    onOpenServers: () -> Unit,
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -139,6 +141,17 @@ fun SettingsScreen(
                         Text(currentConfig?.username.orEmpty(), color = Color(0xFFE91E63))
                     }
                 }
+            }
+
+            // 管理服务器按钮
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onOpenServers,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2A2A))
+            ) {
+                Text("管理服务器", color = Color(0xFFE91E63), fontSize = 14.sp)
             }
 
             // ============ 播放设置区块 ============

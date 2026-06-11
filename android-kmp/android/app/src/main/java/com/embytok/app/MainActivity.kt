@@ -17,9 +17,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.embytok.app.ui.screens.feed.FeedScreen
+import com.embytok.app.ui.screens.feed.VerticalFeedScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
 import com.embytok.app.ui.screens.search.SearchScreen
+import com.embytok.app.ui.screens.servers.ServerManagerScreen
 import com.embytok.app.ui.screens.settings.SettingsScreen
 import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
@@ -117,13 +119,26 @@ fun EmbyTokAppRoot(
                             navController.navigate("${Routes.PLAYER}/$safe")
                         },
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                        onOpenSearch = { navController.navigate(Routes.SEARCH) }
+                        onOpenSearch = { navController.navigate(Routes.SEARCH) },
+                        onOpenVerticalFeed = { navController.navigate(Routes.VERTICAL_FEED) }
                     )
                 }
                 composable(Routes.SEARCH) {
                     SearchScreen(
                         viewModel = searchViewModel,
                         onItemClicked = { item ->
+                            val json = runCatching { Json.encodeToString(EmbyItem.serializer(), item) }
+                                .getOrDefault("")
+                            val safe = android.net.Uri.encode(json)
+                            navController.navigate("${Routes.PLAYER}/$safe")
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.VERTICAL_FEED) {
+                    VerticalFeedScreen(
+                        viewModel = feedViewModel,
+                        onOpenPlayer = { item ->
                             val json = runCatching { Json.encodeToString(EmbyItem.serializer(), item) }
                                 .getOrDefault("")
                             val safe = android.net.Uri.encode(json)
@@ -165,7 +180,21 @@ fun EmbyTokAppRoot(
                                 popUpTo(0) { inclusive = true }
                             }
                         },
+                        onOpenServers = { navController.navigate(Routes.SERVERS) },
                         onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.SERVERS) {
+                    ServerManagerScreen(
+                        onBack = { navController.popBackStack() },
+                        onAddNew = {
+                            // 添加新服务器：跳转到登录页，不清除历史
+                            navController.navigate(Routes.LOGIN)
+                        },
+                        onServerSwitched = {
+                            // 切换服务器后返回 Feed 刷新
+                            navController.popBackStack(Routes.FEED, inclusive = false)
+                        }
                     )
                 }
             }
@@ -182,4 +211,6 @@ object Routes {
     const val PLAYER = "player"
     const val SETTINGS = "settings"
     const val SEARCH = "search"
+    const val SERVERS = "servers"
+    const val VERTICAL_FEED = "vertical_feed"
 }
