@@ -52,7 +52,7 @@ jobs:
       - name: Build Debug APK
         run: |
           cd android-kmp
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Determine version
         id: version
@@ -116,7 +116,7 @@ jobs:
         run: |
           cd android-kmp
           if [ "${{ steps.prepare-signing.outputs.signing_enabled }}" = "true" ]; then
-            ./gradlew assembleRelease --no-daemon --stacktrace
+            gradle assembleRelease --no-daemon --stacktrace
           else
             echo "跳过 Release 构建（未配置签名）"
           fi

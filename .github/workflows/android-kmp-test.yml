@@ -37,7 +37,7 @@ jobs:
       - name: Build project (no tests yet)
         run: |
           cd android-kmp
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -69,9 +69,9 @@ jobs:
       - name: Run ktlint check
         run: |
           cd android-kmp
-          ./gradlew ktlintCheck --no-daemon || true
+          gradle ktlintCheck --no-daemon || true
 
       - name: Check Kotlin compiler warnings
         run: |
           cd android-kmp
-          ./gradlew compileDebugKotlin --no-daemon 2>&1 | grep -E "(warning|error)" | head -20 || true
+          gradle compileDebugKotlin --no-daemon 2>&1 | grep -E "(warning|error)" | head -20 || true
