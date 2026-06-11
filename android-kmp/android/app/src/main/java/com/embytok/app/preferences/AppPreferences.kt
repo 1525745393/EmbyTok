@@ -15,9 +15,8 @@ import com.embytok.domain.model.SubtitleSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 
 // Context 扩展：单例 DataStore
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "embytok_preferences")
@@ -37,6 +36,7 @@ class AppPreferences(private val context: Context) {
 
     // ================ 服务器配置 ================
 
+    /** 当前活动服务器（单用户登录场景使用的默认服务器 id） */
     suspend fun saveServerConfig(config: ServerConfig) {
         context.dataStore.edit { prefs ->
             prefs[Keys.SERVER_URL] = config.url
@@ -45,7 +45,10 @@ class AppPreferences(private val context: Context) {
             prefs[Keys.USER_ID] = config.userId
             prefs[Keys.SERVER_TYPE] = config.serverType.name
             prefs[Keys.SERVER_NAME] = config.serverName
+            prefs[Keys.CURRENT_SERVER_ID] = config.id
         }
+        // 同步写入服务器列表
+        addToServerList(config)
     }
 
     val serverConfig: Flow<ServerConfig?> = context.dataStore.data.map { prefs ->
@@ -53,9 +56,15 @@ class AppPreferences(private val context: Context) {
         val serverType = prefs[Keys.SERVER_TYPE]?.let {
             try { ServerType.valueOf(it) } catch (_: Exception) { ServerType.EMBY }
         } ?: ServerType.EMBY
+        // 回退：如果缺少 id 则临时从 url+username 合成
+        val urlVal = prefs[Keys.SERVER_URL].orEmpty()
+        val usernameVal = prefs[Keys.USERNAME].orEmpty()
+        val fallbackId = prefs[Keys.CURRENT_SERVER_ID]
+            ?: computeServerId(urlVal, usernameVal, serverType)
         ServerConfig(
+            id = fallbackId,
             url = url,
-            username = prefs[Keys.USERNAME].orEmpty(),
+            username = usernameVal,
             token = prefs[Keys.TOKEN].orEmpty(),
             userId = prefs[Keys.USER_ID].orEmpty(),
             serverType = serverType,
@@ -71,6 +80,77 @@ class AppPreferences(private val context: Context) {
             prefs.remove(Keys.USER_ID)
             prefs.remove(Keys.SERVER_TYPE)
             prefs.remove(Keys.SERVER_NAME)
+            prefs.remove(Keys.CURRENT_SERVER_ID)
+        }
+    }
+
+    /** 当前活动服务器 id */
+    val currentServerId: Flow<String?> = context.dataStore.data.map { it[Keys.CURRENT_SERVER_ID] }
+
+    /** 切换当前活动服务器 */
+    suspend fun switchToServer(serverId: String) {
+        val list = serverListRaw()
+        val target = list.firstOrNull { it.id == serverId } ?: return
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVER_URL] = target.url
+            prefs[Keys.USERNAME] = target.username
+            prefs[Keys.TOKEN] = target.token
+            prefs[Keys.USER_ID] = target.userId
+            prefs[Keys.SERVER_TYPE] = target.serverType.name
+            prefs[Keys.SERVER_NAME] = target.serverName
+            prefs[Keys.CURRENT_SERVER_ID] = target.id
+        }
+    }
+
+    // ================ 服务器列表 ================
+
+    private suspend fun serverListRaw(): List<ServerConfig> {
+        val jsonStr = context.dataStore.data.firstOrNull()?.get(Keys.SERVER_LIST)
+        return jsonStr?.let {
+            try { json.decodeFromString<List<ServerConfig>>(it) } catch (_: Exception) { emptyList() }
+        }.orEmpty()
+    }
+
+    /** 已保存的服务器列表 Flow */
+    val serverList: Flow<List<ServerConfig>> = context.dataStore.data.map { prefs ->
+        val jsonStr = prefs[Keys.SERVER_LIST]
+        jsonStr?.let {
+            try { json.decodeFromString<List<ServerConfig>>(it) } catch (_: Exception) { emptyList() }
+        }.orEmpty()
+    }
+
+    private suspend fun addToServerList(config: ServerConfig) {
+        val current = serverListRaw()
+        val updated = (current.filterNot { it.id == config.id } + config)
+            .sortedByDescending { it.createdAt }
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVER_LIST] = json.encodeToString(updated)
+        }
+    }
+
+    /** 从列表中删除一个服务器；若它是当前活动服务器，则同时清除登录状态 */
+    suspend fun removeServer(serverId: String) {
+        val current = serverListRaw()
+        val remain = current.filterNot { it.id == serverId }
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVER_LIST] = json.encodeToString(remain)
+        }
+        val activeId = context.dataStore.data.firstOrNull()?.get(Keys.CURRENT_SERVER_ID)
+        if (activeId == serverId) clearServerConfig()
+    }
+
+    /** 更新服务器名称（用户自定义名称） */
+    suspend fun updateServerName(serverId: String, newName: String) {
+        val list = serverListRaw().map { if (it.id == serverId) it.copy(serverName = newName) else it }
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVER_LIST] = json.encodeToString(list)
+        }
+        // 如果是当前活动服务器也同步更新
+        val activeId = context.dataStore.data.firstOrNull()?.get(Keys.CURRENT_SERVER_ID)
+        if (activeId == serverId) {
+            context.dataStore.edit { prefs ->
+                prefs[Keys.SERVER_NAME] = newName
+            }
         }
     }
 
@@ -108,69 +188,6 @@ class AppPreferences(private val context: Context) {
 
     suspend fun setPlaybackSpeed(speed: Float) {
         context.dataStore.edit { it[Keys.PLAYBACK_SPEED] = speed.toString() }
-    }
-
-    // ================ 多服务器列表 ================
-
-    /**
-     * 已保存的所有服务器列表
-     * 通过 JSON 编码存储，支持多服务器管理
-     */
-    private val serversJsonFlow: Flow<String?> = context.dataStore.data.map { prefs ->
-        prefs[Keys.SERVERS_JSON]
-    }
-
-    val savedServers: Flow<List<ServerConfig>> = serversJsonFlow.map { json ->
-        if (json.isNullOrBlank()) {
-            // 兼容旧格式：只有一个 serverConfig 时转为列表
-            val single = serverConfig.firstOrNull()
-            if (single != null) listOf(single) else emptyList()
-        } else {
-            try {
-                json.decodeFromString<List<SerializableServerConfig>>(json)
-                    .map { it.toServerConfig() }
-            } catch (_: Exception) {
-                emptyList()
-            }
-        }
-    }
-
-    /**
-     * 保存服务器列表
-     */
-    suspend fun saveServers(servers: List<ServerConfig>) {
-        val jsonStr = json.encodeToString(
-            servers.map { SerializableServerConfig.from(it) }
-        )
-        context.dataStore.edit { prefs ->
-            prefs[Keys.SERVERS_JSON] = jsonStr
-        }
-    }
-
-    /**
-     * 添加一个服务器到列表
-     */
-    suspend fun addServer(server: ServerConfig) {
-        val current = savedServers.firstOrNull() ?: emptyList()
-        // 如果已存在相同 URL 的服务器则替换
-        val filtered = current.filter { it.url != server.url }
-        saveServers(filtered + server)
-    }
-
-    /**
-     * 从列表中移除指定服务器
-     */
-    suspend fun removeServer(serverUrl: String) {
-        val current = savedServers.firstOrNull() ?: emptyList()
-        saveServers(current.filter { it.url != serverUrl })
-    }
-
-    /**
-     * 设置当前活跃服务器（会同步更新 serverConfig）
-     */
-    suspend fun setActiveServer(server: ServerConfig) {
-        saveServerConfig(server)
-        addServer(server) // 确保在列表中
     }
 
     // ================ 字幕设置 ================
@@ -218,8 +235,8 @@ class AppPreferences(private val context: Context) {
         val USER_ID = stringPreferencesKey("user_id")
         val SERVER_TYPE = stringPreferencesKey("server_type")
         val SERVER_NAME = stringPreferencesKey("server_name")
-        // 多服务器列表（JSON 编码）
-        val SERVERS_JSON = stringPreferencesKey("servers_json")
+        val CURRENT_SERVER_ID = stringPreferencesKey("current_server_id")
+        val SERVER_LIST = stringPreferencesKey("server_list_json")
         // 播放
         val ORIENTATION_MODE = stringPreferencesKey("orientation_mode")
         val IS_MUTED = booleanPreferencesKey("is_muted")
@@ -232,35 +249,3 @@ class AppPreferences(private val context: Context) {
     }
 }
 
-/**
- * 用于 JSON 序列化的服务器配置（因为 kotlinx.serialization 需要显式声明可序列化类）
- */
-@Serializable
-private data class SerializableServerConfig(
-    val url: String,
-    val username: String,
-    val token: String,
-    val userId: String,
-    val serverType: String,
-    val serverName: String
-) {
-    fun toServerConfig(): ServerConfig = ServerConfig(
-        url = url,
-        username = username,
-        token = token,
-        userId = userId,
-        serverType = try { ServerType.valueOf(serverType) } catch (_: Exception) { ServerType.EMBY },
-        serverName = serverName
-    )
-
-    companion object {
-        fun from(config: ServerConfig): SerializableServerConfig = SerializableServerConfig(
-            url = config.url,
-            username = config.username,
-            token = config.token,
-            userId = config.userId,
-            serverType = config.serverType.name,
-            serverName = config.serverName
-        )
-    }
-}

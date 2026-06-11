@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.embytok.app.ui.screens.feed.FeedScreen
+import com.embytok.app.ui.screens.feed.VerticalFeedScreen
 import com.embytok.app.ui.screens.history.WatchHistoryScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
@@ -123,13 +124,26 @@ fun EmbyTokAppRoot(
                             navController.navigate("${Routes.PLAYER}/$safe")
                         },
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                        onOpenSearch = { navController.navigate(Routes.SEARCH) }
+                        onOpenSearch = { navController.navigate(Routes.SEARCH) },
+                        onOpenVerticalFeed = { navController.navigate(Routes.VERTICAL_FEED) }
                     )
                 }
                 composable(Routes.SEARCH) {
                     SearchScreen(
                         viewModel = searchViewModel,
                         onItemClicked = { item ->
+                            val json = runCatching { Json.encodeToString(EmbyItem.serializer(), item) }
+                                .getOrDefault("")
+                            val safe = android.net.Uri.encode(json)
+                            navController.navigate("${Routes.PLAYER}/$safe")
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.VERTICAL_FEED) {
+                    VerticalFeedScreen(
+                        viewModel = feedViewModel,
+                        onOpenPlayer = { item ->
                             val json = runCatching { Json.encodeToString(EmbyItem.serializer(), item) }
                                 .getOrDefault("")
                             val safe = android.net.Uri.encode(json)
@@ -214,4 +228,5 @@ object Routes {
     const val SEARCH = "search"
     const val SERVERS = "servers"
     const val HISTORY = "history"
+    const val VERTICAL_FEED = "vertical_feed"
 }

@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.firstOrNull
  *   - Emby：用户名+密码 或 API Key
  *   - Plex：Access Token
  *
- * 成功后将服务器配置保存到 [AppPreferences]，供后续请求和播放使用。
+ * 支持多服务器管理：保存多个配置，自由切换当前活动服务器。
  */
 class AuthenticateUseCase(
     private val preferences: AppPreferences
@@ -23,6 +23,12 @@ class AuthenticateUseCase(
 
     /** 当前服务器配置 Flow（响应式） */
     val configFlow: Flow<ServerConfig?> = preferences.serverConfig
+
+    /** 已保存的服务器列表 Flow（响应式） */
+    val serverListFlow: Flow<List<ServerConfig>> = preferences.serverList
+
+    /** 当前活动服务器 id Flow */
+    val currentServerIdFlow: Flow<String?> = preferences.currentServerId
 
     /** 当前缓存的配置（用于 UI 显示，非挂起版本） */
     @Volatile
@@ -77,12 +83,17 @@ class AuthenticateUseCase(
         // 验证服务器连通性
         val serverUserId = client.ping().getOrThrow()
 
+        // 计算服务器唯一 id
+        val svcId = computeServerId(trimmedUrl, username, serverType)
+
         val config = ServerConfig(
+            id = svcId,
             url = trimmedUrl,
             username = username,
             token = apiKey ?: accessToken ?: "",
             userId = serverUserId,
-            serverType = serverType
+            serverType = serverType,
+            serverName = ""
         )
 
         preferences.saveServerConfig(config)
@@ -113,4 +124,37 @@ class AuthenticateUseCase(
 
     /** UI 调用：若已有缓存则直接返回，否则从偏好中构造 */
     fun clientOrNull(): MediaClient? = cachedClient
+
+    // ================ 多服务器管理 ================
+
+    /** 切换到指定服务器（更新活动配置 + 重建 MediaClient） */
+    suspend fun switchToServer(serverId: String): Result<Unit> = runCatching {
+        preferences.switchToServer(serverId)
+        // 重建缓存
+        val newConfig = preferences.serverConfig.firstOrNull()
+            ?: throw IllegalStateException("切换后读取配置失败")
+        cachedConfig = newConfig
+        cachedClient = ClientFactory.create(newConfig)
+    }
+
+    /** 删除一个已保存的服务器 */
+    suspend fun removeServer(serverId: String): Result<Unit> = runCatching {
+        preferences.removeServer(serverId)
+        // 如果删除的是当前服务器，重置缓存
+        if (cachedConfig?.id == serverId) {
+            cachedConfig = null
+            cachedClient = null
+        }
+    }
+
+    /** 更新服务器自定义名称 */
+    suspend fun renameServer(serverId: String, newName: String) {
+        preferences.updateServerName(serverId, newName)
+        cachedConfig?.let {
+            if (it.id == serverId) cachedConfig = it.copy(serverName = newName)
+        }
+    }
+
+    /** 获取服务器列表（一次性读取） */
+    suspend fun serverList(): List<ServerConfig> = preferences.serverList.firstOrNull().orEmpty()
 }
