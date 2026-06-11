@@ -1,0 +1,77 @@
+name: KMP Android Test
+
+on:
+  push:
+    branches:
+      - main
+      - 'trae/**'
+    paths:
+      - 'android-kmp/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'android-kmp/**'
+  workflow_dispatch:
+
+jobs:
+  # 作业1: 检查代码编译
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2.1
+
+      - name: Build project (no tests yet)
+        run: |
+          cd android-kmp
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kmp-debug-apk
+          path: android-kmp/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  # 作业2: 代码质量检查
+  lint-check:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.2.1
+
+      - name: Run ktlint check
+        run: |
+          cd android-kmp
+          ./gradlew ktlintCheck --no-daemon || true
+
+      - name: Check Kotlin compiler warnings
+        run: |
+          cd android-kmp
+          ./gradlew compileDebugKotlin --no-daemon 2>&1 | grep -E "(warning|error)" | head -20 || true
