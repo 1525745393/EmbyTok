@@ -1,4 +1,18 @@
 # Changelog
+## [1.11.0] - 2026-06-11
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [1.10.20] - 2026-06-09
 
 ### Removed
