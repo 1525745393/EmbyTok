@@ -1,0 +1,180 @@
+# ============================================
+# KMP Android 自动化发布工作流
+# ============================================
+name: KMP Android Release
+
+on:
+  # 方式1: 推送 kmp-* 标签触发
+  push:
+    tags:
+      - 'kmp-*'
+
+  # 方式2: 手动触发
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: '是否作为预发布版本'
+        required: false
+        default: 'false'
+
+# ============================================
+# 工作流权限配置
+# ============================================
+permissions:
+  contents: write
+
+# ============================================
+# 任务定义
+# ============================================
+jobs:
+  # -------------------------------------------
+  # 任务1: 构建 Android 应用
+  # -------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ========================================
+      # 步骤1: 代码检出
+      # ========================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # ========================================
+      # 步骤2: 环境设置
+      # ========================================
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ========================================
+      # 步骤3: 构建 Web 应用
+      # ========================================
+      - name: Build web
+        run: npm run build
+
+      # ========================================
+      # 步骤4: 同步 Capacitor
+      # ========================================
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # ========================================
+      # 步骤5: 设置 JDK 17
+      # ========================================
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # ========================================
+      # 步骤6: 准备 Android 签名
+      # ========================================
+      - name: Prepare Android signing
+        id: prepare-signing
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE }}" | tr -d '[:space:]' | base64 -d > android/app/embytok-release.keystore
+            echo "ANDROID_KEYSTORE=1" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PATH=embytok-release.keystore" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "signing_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "signing_enabled=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ========================================
+      # 步骤7: 设置 Gradle
+      # ========================================
+      - name: Gradle Setup
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+          cache-read-only: false
+
+      # ========================================
+      # 步骤8: 构建 Debug APK
+      # ========================================
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      # ========================================
+      # 步骤9: 构建 Release APK
+      # ========================================
+      - name: Build Release APK
+        if: steps.prepare-signing.outputs.signing_enabled == 'true'
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      # ========================================
+      # 步骤10: 重命名 APK 文件
+      # ========================================
+      - name: Rename APKs
+        run: |
+          version=${TAG_NAME#$"refs/tags/"}
+          version=${version#v}
+          echo "Version: $version"
+
+          # 重命名 Debug APK
+          mv android/app/build/outputs/apk/debug/app-debug.apk "EmbyTok-KMP-$version-debug.apk" 2>/dev/null || true
+
+          # 重命名 Release APK
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            mv android/app/build/outputs/apk/release/app-release.apk "EmbyTok-KMP-$version-release.apk"
+          fi
+
+          ls -la *.apk 2>/dev/null || echo "No APKs found"
+
+      # ========================================
+      # 步骤11: 上传 Artifacts
+      # ========================================
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: kmp-android-apks
+          path: EmbyTok-KMP-*.apk
+
+  # -------------------------------------------
+  # 任务2: 创建 GitHub Release
+  # -------------------------------------------
+  create-release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: kmp-android-apks
+          path: artifacts/
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.apk
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          generate_release_notes: true
+          name: 'KMP Android ${{ github.ref_name }}'
