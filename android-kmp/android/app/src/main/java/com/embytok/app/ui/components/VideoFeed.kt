@@ -15,7 +15,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.embytok.app.viewmodel.VideoPlayerViewModel
+import com.embytok.app.viewmodel.VideoFeedViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -23,13 +23,13 @@ import kotlinx.coroutines.launch
  *
  * 使用 VerticalPager 实现，每页一个视频卡片
  *
- * @param viewModel 播放 ViewModel
+ * @param viewModel 视频流 ViewModel
  * @param onPageChanged 页面切换回调
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VideoFeed(
-    viewModel: VideoPlayerViewModel,
+    viewModel: VideoFeedViewModel,
     modifier: Modifier = Modifier,
     onPageChanged: (Int) -> Unit = {}
 ) {
@@ -78,8 +78,13 @@ fun VideoFeed(
             if (item != null) {
                 VideoCard(
                     item = item,
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize()
+                    playerViewModel = viewModel,
+                    onCardClick = { viewModel.togglePlayPause() },
+                    onDoubleClickLeft = { viewModel.seekTo(viewModel.currentPositionMs.value - 10000) },
+                    onDoubleClickRight = { viewModel.seekTo(viewModel.currentPositionMs.value + 10000) },
+                    onInfoClick = {},
+                    modifier = Modifier.fillMaxSize(),
+                    isCurrentItem = page == viewModel.currentIndex.value
                 )
             }
         }
@@ -92,7 +97,7 @@ fun VideoFeed(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HorizontalVideoFeed(
-    viewModel: VideoPlayerViewModel,
+    viewModel: VideoFeedViewModel,
     modifier: Modifier = Modifier
 ) {
     val items by viewModel.items.collectAsState()
@@ -119,8 +124,13 @@ fun HorizontalVideoFeed(
             items.getOrNull(page)?.let { item ->
                 VideoCard(
                     item = item,
-                    viewModel = viewModel,
-                    modifier = Modifier.fillMaxSize()
+                    playerViewModel = viewModel,
+                    onCardClick = { viewModel.togglePlayPause() },
+                    onDoubleClickLeft = { viewModel.seekTo(viewModel.currentPositionMs.value - 10000) },
+                    onDoubleClickRight = { viewModel.seekTo(viewModel.currentPositionMs.value + 10000) },
+                    onInfoClick = {},
+                    modifier = Modifier.fillMaxSize(),
+                    isCurrentItem = page == viewModel.currentIndex.value
                 )
             }
         }

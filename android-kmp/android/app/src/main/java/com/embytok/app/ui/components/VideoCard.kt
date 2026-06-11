@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
+import com.embytok.app.viewmodel.VideoFeedViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 import com.embytok.domain.model.EmbyItem
 import kotlinx.coroutines.delay
@@ -75,16 +76,9 @@ fun VideoCard(
     val playbackState by playerViewModel.playbackState.collectAsState(
         androidx.compose.runtime.State { com.embytok.player.PlaybackState.Idle }
     )
-    val thumbnailUrl = remember(item.Id) {
-        // Emby 缩略图 URL 模板
-        // 示例：http://server:8096/emby/Items/{id}/Images/Primary?width=800
-        // 这里仅保存 item.Id，具体 URL 由 MediaClient 构造
-        item.Id
-    }
 
     // 双击检测状态
     var lastClickTime by remember { mutableStateOf(0L) }
-    var lastClickX by remember { mutableStateOf(0f) }
 
     Box(
         modifier = modifier
@@ -102,7 +96,6 @@ fun VideoCard(
             if (!isCurrentItem || playbackState == com.embytok.player.PlaybackState.Idle) {
                 VideoThumbnail(
                     item = item,
-                    // serverUrl 由外部传递；此处保留空字符串则显示深色占位
                     serverUrl = "",
                     modifier = Modifier.fillMaxSize()
                 )
@@ -111,8 +104,8 @@ fun VideoCard(
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {
-                            player = playerViewModel.playerManager.getExoPlayer()
-                            useController = false  // 我们自定义控制器
+                            player = playerViewModel.playerManager.getPlayer()
+                            useController = false
                             setShutterBackgroundColor(0xFF121212.toInt())
                         }
                     },
@@ -127,8 +120,6 @@ fun VideoCard(
                     .clickable(
                         onClick = {
                             val now = System.currentTimeMillis()
-                            // 获取点击的 x 坐标 — 用全局坐标模拟左右半屏
-                            // 此处简化：连续两次点击 <400ms 视为双击，第二次点击位置近似
                             if (now - lastClickTime < 400) {
                                 // 简化：第二次点击若处于左半部分为后退，否则前进
                                 // 由于 clickable 不携带 x，此处让调用方自己分：用两个 Box 分区
@@ -229,8 +220,9 @@ fun VideoCard(
 
             Spacer(Modifier.weight(1f))
 
+            // 收藏按钮（已实现）
             val isFav = item.UserData?.IsFavorite ?: false
-            IconButton(onClick = { /* TODO: 切换收藏 */ }) {
+            IconButton(onClick = { playerViewModel.toggleFavorite() }) {
                 Icon(
                     imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "收藏",
