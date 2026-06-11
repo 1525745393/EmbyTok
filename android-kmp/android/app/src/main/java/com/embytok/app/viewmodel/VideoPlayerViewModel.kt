@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.embytok.app.ui.di.ServiceLocator
 import com.embytok.domain.client.MediaClient
 import com.embytok.domain.model.EmbyItem
+import com.embytok.domain.model.SubtitleTrack
 import com.embytok.player.PlaybackState
 import com.embytok.player.VideoPlayerManager
 import kotlinx.coroutines.Dispatchers
@@ -80,8 +81,25 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     private val _isMuted = MutableStateFlow(false)
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
 
+    // 字幕状态
+    val subtitleTracks: StateFlow<List<SubtitleTrack>> = _manager.subtitleTracksState
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    private val _currentSubtitleIndex = MutableStateFlow(-1)
+    val currentSubtitleIndex: StateFlow<Int> = _currentSubtitleIndex.asStateFlow()
+
     val exoPlayer: androidx.media3.exoplayer.ExoPlayer?
         get() = _manager.getPlayer()
+
+    /** 切换到指定字幕轨道，-1 表示关闭 */
+    fun selectSubtitle(index: Int) {
+        _currentSubtitleIndex.value = index
+        if (index >= 0) {
+            _manager.setSubtitleTrack(index)
+        } else {
+            _manager.disableSubtitles()
+        }
+    }
 
     fun prepare(item: EmbyItem) {
         currentItem = item
