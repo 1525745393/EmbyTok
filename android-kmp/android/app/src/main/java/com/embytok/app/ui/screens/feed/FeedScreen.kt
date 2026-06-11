@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,7 +56,8 @@ import com.embytok.domain.model.EmbyItem
 fun FeedScreen(
     viewModel: FeedViewModel = viewModel(),
     onOpenPlayer: (EmbyItem) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val items by viewModel.filteredItems.collectAsState()
@@ -92,6 +94,9 @@ fun FeedScreen(
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "设置", tint = Color.White)
+                    }
+                    IconButton(onClick = onOpenSearch) {
+                        Icon(Icons.Default.Search, contentDescription = "搜索", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

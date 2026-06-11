@@ -215,6 +215,25 @@ class EmbyClient(
         return tracks
     }
 
+    // ===== 搜索 =====
+
+    override suspend fun searchItems(query: String, limit: Int): List<EmbyItem> {
+        val uid = requireUserId()
+        val token = requireApiKey()
+        return runCatching {
+            val resp = httpClient.get(apiPath("Users/$uid/Items")) {
+                header("X-Emby-Token", token)
+                header("X-Emby-Authorization", authHeaderValue)
+                parameter("SearchTerm", query)
+                parameter("Recursive", "true")
+                parameter("IncludeItemTypes", "Movie,Episode,Video")
+                parameter("Fields", "MediaSources,MediaStreams,Overview,ProductionYear,Width,Height,RuntimeTicks,UserData")
+                parameter("Limit", limit.toString())
+            }.body<EmbyItemsResponse<EmbyItemJson>>()
+            resp.Items.map { it.toEmbyItem() }
+        }.getOrDefault(emptyList())
+    }
+
     // ===== 播放地址 =====
 
     override fun buildVideoStreamUrl(itemId: String, mediaSourceId: String?): String {

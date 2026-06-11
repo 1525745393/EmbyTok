@@ -19,9 +19,11 @@ import androidx.navigation.compose.rememberNavController
 import com.embytok.app.ui.screens.feed.FeedScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
+import com.embytok.app.ui.screens.search.SearchScreen
 import com.embytok.app.ui.screens.settings.SettingsScreen
 import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
+import com.embytok.app.viewmodel.SearchViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
 import com.embytok.domain.model.EmbyItem
 import kotlinx.serialization.json.Json
@@ -92,6 +94,7 @@ fun EmbyTokAppRoot(
             val loginViewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val feedViewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val playerViewModel: VideoPlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val searchViewModel: SearchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
             NavHost(
                 navController = navController,
@@ -113,7 +116,20 @@ fun EmbyTokAppRoot(
                             val safe = android.net.Uri.encode(json)
                             navController.navigate("${Routes.PLAYER}/$safe")
                         },
-                        onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                        onOpenSearch = { navController.navigate(Routes.SEARCH) }
+                    )
+                }
+                composable(Routes.SEARCH) {
+                    SearchScreen(
+                        viewModel = searchViewModel,
+                        onItemClicked = { item ->
+                            val json = runCatching { Json.encodeToString(EmbyItem.serializer(), item) }
+                                .getOrDefault("")
+                            val safe = android.net.Uri.encode(json)
+                            navController.navigate("${Routes.PLAYER}/$safe")
+                        },
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable(
@@ -165,4 +181,5 @@ object Routes {
     const val FEED = "feed"
     const val PLAYER = "player"
     const val SETTINGS = "settings"
+    const val SEARCH = "search"
 }

@@ -37,6 +37,9 @@ interface MediaClient {
     /** 获取字幕轨道。 */
     suspend fun getSubtitles(itemId: String): List<SubtitleTrack>
 
+    /** 搜索视频项。 */
+    suspend fun searchItems(query: String, limit: Int = 50): List<EmbyItem>
+
     /** 构造视频直链。 */
     fun buildVideoStreamUrl(itemId: String, mediaSourceId: String? = null): String
 }

@@ -1,8 +1,12 @@
 package com.embytok.app.ui.di
 
 import android.content.Context
+import com.embytok.app.db.AndroidDatabaseDriverFactory
 import com.embytok.app.preferences.AppPreferences
 import com.embytok.app.usecase.AuthenticateUseCase
+import com.embytok.db.EmbyTokDatabase
+import com.embytok.repository.LocalRepository
+import com.embytok.repository.SqlDelightLocalRepository
 
 /**
  * 简化的单例依赖容器。
@@ -28,5 +32,14 @@ object ServiceLocator {
 
     val authenticateUseCase: AuthenticateUseCase by lazy {
         AuthenticateUseCase(preferences)
+    }
+
+    private val database: EmbyTokDatabase by lazy {
+        val driver = AndroidDatabaseDriverFactory(appContext ?: error("ServiceLocator 未初始化")).createDriver()
+        EmbyTokDatabase(driver)
+    }
+
+    val localRepository: LocalRepository by lazy {
+        SqlDelightLocalRepository(database)
     }
 }

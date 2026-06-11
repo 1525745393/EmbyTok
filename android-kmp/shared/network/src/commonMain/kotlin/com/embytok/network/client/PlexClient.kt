@@ -163,6 +163,23 @@ class PlexClient(
         return tracks
     }
 
+    // ===== 搜索 =====
+
+    override suspend fun searchItems(query: String, limit: Int): List<EmbyItem> {
+        return runCatching {
+            // 使用 Ktor 的参数编码
+            val resp = httpClient.get(apiUrl("search")) {
+                header("X-Plex-Token", token)
+                parameter("query", query)
+                parameter("limit", limit.toString())
+            }.body<PlexItemsResponse>()
+            resp.MediaContainer.Metadata
+                ?.filter { it.type in listOf("movie", "episode") }
+                ?.map { it.toEmbyItem() }
+                ?: emptyList()
+        }.getOrDefault(emptyList())
+    }
+
     // ===== 播放地址 =====
 
     override fun buildVideoStreamUrl(itemId: String, mediaSourceId: String?): String {
