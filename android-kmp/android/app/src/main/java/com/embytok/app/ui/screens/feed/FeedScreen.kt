@@ -11,14 +11,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,10 +54,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.embytok.app.viewmodel.FeedViewModel
+import com.embytok.app.viewmodel.VideoFeedViewModel
 import com.embytok.domain.model.EmbyItem
 
 /**
  * 视频流首页
+ *
+ * 支持两种浏览模式：
+ *  - 网格模式：两列瀑布流，适合快速浏览
+ *  - 竖屏模式：TikTok 风格全屏视频流
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,12 +77,71 @@ fun FeedScreen(
     val sort by viewModel.sort.collectAsState()
     val orientation by viewModel.orientation.collectAsState()
 
+    // 竖屏/网格模式切换
+    var isVerticalFeed by remember { mutableStateOf(false) }
+
+    // 竖屏 Feed ViewModel（仅在竖屏模式下使用）
+    val verticalFeedViewModel: VideoFeedViewModel = viewModel()
+
+    // 切换到竖屏模式时，加载视频列表
+    androidx.compose.runtime.LaunchedEffect(isVerticalFeed, items) {
+        if (isVerticalFeed && items.isNotEmpty()) {
+            verticalFeedViewModel.setItems(items)
+        }
+    }
+
+    // 根据模式选择渲染网格或竖屏流
+    if (isVerticalFeed) {
+        VerticalFeedScreen(
+            viewModel = verticalFeedViewModel,
+            mediaClient = viewModel.mediaClient,
+            onExitVerticalMode = { isVerticalFeed = false },
+            onOpenPlayer = onOpenPlayer
+        )
+    } else {
+        GridFeedScreen(
+            state = state,
+            items = items,
+            sort = sort,
+            orientation = orientation,
+            viewModel = viewModel,
+            onOpenPlayer = onOpenPlayer,
+            onOpenSettings = onOpenSettings,
+            onOpenSearch = onOpenSearch,
+            onToggleVerticalMode = { isVerticalFeed = true }
+        )
+    }
+}
+
+/** 网格模式（默认视图） */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GridFeedScreen(
+    state: FeedViewModel.FeedState,
+    items: List<EmbyItem>,
+    sort: FeedViewModel.SortMode,
+    orientation: FeedViewModel.OrientationFilter,
+    viewModel: FeedViewModel,
+    onOpenPlayer: (EmbyItem) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onToggleVerticalMode: () -> Unit
+) {
+
     Scaffold(
         containerColor = Color(0xFF0A0A0A),
         topBar = {
             TopAppBar(
                 title = { Text("EmbyTok", color = Color(0xFFE91E63)) },
                 actions = {
+                    // 竖屏 TikTok 模式切换按钮
+                    IconButton(onClick = onToggleVerticalMode) {
+                        Icon(
+                            Icons.Default.SwapVert,
+                            contentDescription = "竖屏模式",
+                            tint = Color(0xFFE91E63)
+                        )
+                    }
                     var libraryExpanded by remember { mutableStateOf(false) }
                     IconButton(onClick = { libraryExpanded = true }) {
                         Text(
@@ -208,6 +279,294 @@ fun FeedScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * TikTok 风格竖屏视频流全屏界面
+ *
+ * 使用 VerticalPager 实现上下滑动切换视频
+ * 每个页面：全屏封面图 + 底部视频信息 + 侧边操作按钮
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VerticalFeedScreen(
+    viewModel: VideoFeedViewModel,
+    mediaClient: com.embytok.domain.client.MediaClient?,
+    onExitVerticalMode: () -> Unit,
+    onOpenPlayer: (EmbyItem) -> Unit
+) {
+    val items by viewModel.items.collectAsState()
+    val currentIndex by viewModel.currentIndex.collectAsState()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        if (items.isEmpty()) {
+            // 空列表
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("暂无视频", color = Color(0xFF888888), fontSize = 16.sp)
+                Spacer(Modifier.height(16.dp))
+                androidx.compose.material3.Button(
+                    onClick = onExitVerticalMode,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    )
+                ) {
+                    Text("返回网格视图", color = Color.White)
+                }
+            }
+        } else {
+            // VerticalPager 实现竖屏滑动
+            androidx.compose.foundation.pager.VerticalPager(
+                state = rememberPagerState(initialPage = currentIndex) { items.size },
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                val item = items[page]
+                val isCurrentPage = page == currentIndex
+
+                VerticalFeedPage(
+                    item = item,
+                    mediaClient = mediaClient,
+                    isPlaying = isCurrentPage && viewModel.isPlaying.value,
+                    onPlayPause = { viewModel.togglePlayPause() },
+                    onSeekBack = { viewModel.seekTo((viewModel.currentPositionMs.value - 10000).coerceAtLeast(0)) },
+                    onSeekForward = { viewModel.seekTo(viewModel.currentPositionMs.value + 10000) },
+                    onOpenFullPlayer = { onOpenPlayer(item) },
+                    onPrevious = { viewModel.playPrevious() },
+                    onNext = { viewModel.playNext() },
+                    canGoPrevious = page > 0,
+                    canGoNext = page < items.size - 1
+                )
+            }
+
+            // 顶部返回按钮
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                androidx.compose.material3.IconButton(
+                    onClick = onExitVerticalMode,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(50))
+                ) {
+                    Icon(
+                        Icons.Default.Apps,
+                        contentDescription = "返回网格",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VerticalFeedPage(
+    item: EmbyItem,
+    mediaClient: com.embytok.domain.client.MediaClient?,
+    isPlaying: Boolean,
+    onPlayPause: () -> Unit,
+    onSeekBack: () -> Unit,
+    onSeekForward: () -> Unit,
+    onOpenFullPlayer: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    canGoPrevious: Boolean,
+    canGoNext: Boolean
+) {
+    val imageUrl = mediaClient?.buildImageUrl(
+        itemId = item.Id,
+        imageTag = "Primary",
+        maxWidth = 1080,
+        maxHeight = 1920
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+    ) {
+        // 封面图（竖屏海报比例）
+        coil.compose.AsyncImage(
+            model = coil.request.ImageRequest.Builder(
+                androidx.compose.ui.platform.LocalContext.current
+            )
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = item.Name,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            error = {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("▶", color = Color(0xFFE91E63), fontSize = 48.sp)
+                }
+            }
+        )
+
+        // 半透明渐变遮罩
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.7f)
+                        )
+                    )
+                )
+        )
+
+        // ===== 右侧操作按钮列 =====
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 头像/封面按钮
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFE91E63), RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("▶", color = Color.White, fontSize = 20.sp)
+                }
+            }
+
+            // 收藏
+            val isFav = item.UserData?.IsFavorite ?: false
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButton(onClick = { /* TODO: 切换收藏 */ }) {
+                    Icon(
+                        if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "收藏",
+                        tint = if (isFav) Color(0xFFFF4444) else Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Text(
+                    text = "${item.UserData?.PlayCount ?: 0}",
+                    color = Color.White,
+                    fontSize = 11.sp
+                )
+            }
+
+            // 评论（暂无）
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "评论",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                )
+                Text("评论", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+            }
+
+            // 分享（暂无）
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "分享",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.size(32.dp)
+                )
+                Text("分享", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+            }
+        }
+
+        // ===== 底部视频信息 =====
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 32.dp, end = 72.dp)
+        ) {
+            // 作者/标题
+            Text(
+                text = item.Name,
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = item.Overview?.take(80) ?: "",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 13.sp,
+                maxLines = 2
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // 标签行
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                item.ProductionYear?.let {
+                    Text(
+                        text = "$it",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp
+                    )
+                }
+                item.RunTimeTicks?.let { ticks ->
+                    val minutes = ticks / 600_000_000L
+                    if (minutes > 0) {
+                        Text(
+                            text = " · ${minutes}m",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // 播放控制按钮
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.IconButton(onClick = onSeekBack) {
+                    Text("⏪", fontSize = 20.sp)
+                }
+                Spacer(Modifier.width(8.dp))
+                androidx.compose.material3.IconButton(onClick = onPlayPause) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        tint = Color.White,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                androidx.compose.material3.IconButton(onClick = onSeekForward) {
+                    Text("⏩", fontSize = 20.sp)
+                }
+                Spacer(Modifier.width(16.dp))
+                androidx.compose.material3.Button(
+                    onClick = onOpenFullPlayer,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE91E63)
+                    )
+                ) {
+                    Text("全屏播放", color = Color.White, fontSize = 12.sp)
                 }
             }
         }

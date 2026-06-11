@@ -79,12 +79,18 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun removeRecentSearch(query: String) {
+        viewModelScope.launch {
+            ServiceLocator.localRepository.removeFromSearchHistory(query)
+        }
         _state.value = _state.value.copy(
             recentSearches = _state.value.recentSearches.filter { it != query }
         )
     }
 
     fun clearRecentSearches() {
+        viewModelScope.launch {
+            ServiceLocator.localRepository.clearSearchHistory()
+        }
         _state.value = _state.value.copy(recentSearches = emptyList())
     }
 
@@ -107,8 +113,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     results = items,
                     isLoading = false
                 )
-                // 保存到搜索历史
-                addToRecentSearches(q)
+                // 保存到搜索历史（持久化到 SQLDelight）
+                ServiceLocator.localRepository.addToSearchHistory(q)
             } else {
                 _state.value = _state.value.copy(
                     isLoading = false,
@@ -119,18 +125,19 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun addToRecentSearches(query: String) {
+        // 从 UI 状态中添加（持久化已在 performSearch 中完成）
         val current = _state.value.recentSearches.toMutableList()
-        // 移除重复项
         current.remove(query)
-        // 添加到开头
         current.add(0, query)
-        // 最多保留 10 条
         val trimmed = current.take(10)
         _state.value = _state.value.copy(recentSearches = trimmed)
     }
 
     private fun loadRecentSearches() {
-        // TODO: 从 SQLDelight 加载搜索历史
-        // 暂时使用空列表
+        viewModelScope.launch {
+            ServiceLocator.localRepository.getRecentSearches().collect { searches ->
+                _state.value = _state.value.copy(recentSearches = searches)
+            }
+        }
     }
 }

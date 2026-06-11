@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.embytok.app.ui.di.ServiceLocator
@@ -46,14 +51,17 @@ import kotlinx.coroutines.launch
  * 设置界面
  *
  * 包含：
- *  - 账户信息展示（服务器类型、地址、用户名）
+ *  - 账户信息展示（服务器类型、地址、用户名）+ 管理服务器入口
  *  - 播放设置（默认倍速、自动播放、字幕开关）
+ *  - 观看历史入口
  *  - 退出登录
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
+    onOpenServerManager: () -> Unit,
+    onOpenHistory: () -> Unit,
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -65,7 +73,7 @@ fun SettingsScreen(
     var enableSubtitles by remember { mutableStateOf(true) }
     var speedMenuExpanded by remember { mutableStateOf(false) }
 
-    // 当前已保存的配置，用于显示账户信息
+    // 当前已保存的配置
     val currentConfig = ServiceLocator.authenticateUseCase.currentConfigCached()
 
     Scaffold(
@@ -89,8 +97,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
         ) {
             // ============ 账户区块 ============
             Text(
@@ -137,6 +145,26 @@ fun SettingsScreen(
                     ) {
                         Text("用户名", color = Color.White)
                         Text(currentConfig?.username.orEmpty(), color = Color(0xFFE91E63))
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    // 管理服务器按钮
+                    Button(
+                        onClick = onOpenServerManager,
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2A2A2A),
+                            contentColor = Color(0xFFE91E63)
+                        )
+                    ) {
+                        Text("管理服务器", color = Color(0xFFE91E63), fontSize = 14.sp)
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFFE91E63),
+                            modifier = Modifier.height(18.dp)
+                        )
                     }
                 }
             }
@@ -201,7 +229,6 @@ fun SettingsScreen(
                         }
                     }
                     Spacer(Modifier.height(16.dp))
-
                     // 自动播放下一个
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -219,7 +246,6 @@ fun SettingsScreen(
                         )
                     }
                     Spacer(Modifier.height(16.dp))
-
                     // 启用字幕
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -237,6 +263,32 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            // ============ 历史记录 ============
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "历史",
+                color = Color(0xFFB3B3B3),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Button(
+                onClick = onOpenHistory,
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1A1A1A)
+                )
+            ) {
+                Text("观看历史", color = Color.White, fontSize = 15.sp)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Color(0xFF888888),
+                    modifier = Modifier.height(20.dp)
+                )
             }
 
             Spacer(Modifier.height(32.dp))

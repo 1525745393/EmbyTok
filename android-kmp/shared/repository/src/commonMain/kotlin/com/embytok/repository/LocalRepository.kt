@@ -25,6 +25,7 @@ interface LocalRepository {
     // ===== 搜索历史 =====
     fun getRecentSearches(limit: Int = 10): Flow<List<String>>
     suspend fun addToSearchHistory(query: String)
+    suspend fun removeFromSearchHistory(query: String)
     suspend fun clearSearchHistory()
 
     // ===== 本地收藏合集 =====
@@ -143,6 +144,10 @@ class SqlDelightLocalRepository(
         if (count > 10) {
             searchHistoryQueries.deleteOldestByLimit(count - 10)
         }
+    }
+
+    override suspend fun removeFromSearchHistory(query: String) {
+        searchHistoryQueries.deleteByQuery(query)
     }
 
     override suspend fun clearSearchHistory() {

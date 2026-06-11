@@ -72,6 +72,9 @@ VALUES (?, ?);
 deleteAll:
 DELETE FROM search_history;
 
+deleteByQuery:
+DELETE FROM search_history WHERE query = ?;
+
 deleteOldestByLimit:
 DELETE FROM search_history
 WHERE query IN (

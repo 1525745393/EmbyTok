@@ -15,8 +15,9 @@ import com.embytok.domain.model.SubtitleSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 // Context 扩展：单例 DataStore
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "embytok_preferences")
@@ -109,6 +110,69 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit { it[Keys.PLAYBACK_SPEED] = speed.toString() }
     }
 
+    // ================ 多服务器列表 ================
+
+    /**
+     * 已保存的所有服务器列表
+     * 通过 JSON 编码存储，支持多服务器管理
+     */
+    private val serversJsonFlow: Flow<String?> = context.dataStore.data.map { prefs ->
+        prefs[Keys.SERVERS_JSON]
+    }
+
+    val savedServers: Flow<List<ServerConfig>> = serversJsonFlow.map { json ->
+        if (json.isNullOrBlank()) {
+            // 兼容旧格式：只有一个 serverConfig 时转为列表
+            val single = serverConfig.firstOrNull()
+            if (single != null) listOf(single) else emptyList()
+        } else {
+            try {
+                json.decodeFromString<List<SerializableServerConfig>>(json)
+                    .map { it.toServerConfig() }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    /**
+     * 保存服务器列表
+     */
+    suspend fun saveServers(servers: List<ServerConfig>) {
+        val jsonStr = json.encodeToString(
+            servers.map { SerializableServerConfig.from(it) }
+        )
+        context.dataStore.edit { prefs ->
+            prefs[Keys.SERVERS_JSON] = jsonStr
+        }
+    }
+
+    /**
+     * 添加一个服务器到列表
+     */
+    suspend fun addServer(server: ServerConfig) {
+        val current = savedServers.firstOrNull() ?: emptyList()
+        // 如果已存在相同 URL 的服务器则替换
+        val filtered = current.filter { it.url != server.url }
+        saveServers(filtered + server)
+    }
+
+    /**
+     * 从列表中移除指定服务器
+     */
+    suspend fun removeServer(serverUrl: String) {
+        val current = savedServers.firstOrNull() ?: emptyList()
+        saveServers(current.filter { it.url != serverUrl })
+    }
+
+    /**
+     * 设置当前活跃服务器（会同步更新 serverConfig）
+     */
+    suspend fun setActiveServer(server: ServerConfig) {
+        saveServerConfig(server)
+        addServer(server) // 确保在列表中
+    }
+
     // ================ 字幕设置 ================
 
     val subtitleSettings: Flow<SubtitleSettings> = context.dataStore.data.map { prefs ->
@@ -154,6 +218,8 @@ class AppPreferences(private val context: Context) {
         val USER_ID = stringPreferencesKey("user_id")
         val SERVER_TYPE = stringPreferencesKey("server_type")
         val SERVER_NAME = stringPreferencesKey("server_name")
+        // 多服务器列表（JSON 编码）
+        val SERVERS_JSON = stringPreferencesKey("servers_json")
         // 播放
         val ORIENTATION_MODE = stringPreferencesKey("orientation_mode")
         val IS_MUTED = booleanPreferencesKey("is_muted")
@@ -163,5 +229,38 @@ class AppPreferences(private val context: Context) {
         val SUBTITLE_SETTINGS = stringPreferencesKey("subtitle_settings")
         // 语言
         val APP_LANGUAGE = stringPreferencesKey("app_language")
+    }
+}
+
+/**
+ * 用于 JSON 序列化的服务器配置（因为 kotlinx.serialization 需要显式声明可序列化类）
+ */
+@Serializable
+private data class SerializableServerConfig(
+    val url: String,
+    val username: String,
+    val token: String,
+    val userId: String,
+    val serverType: String,
+    val serverName: String
+) {
+    fun toServerConfig(): ServerConfig = ServerConfig(
+        url = url,
+        username = username,
+        token = token,
+        userId = userId,
+        serverType = try { ServerType.valueOf(serverType) } catch (_: Exception) { ServerType.EMBY },
+        serverName = serverName
+    )
+
+    companion object {
+        fun from(config: ServerConfig): SerializableServerConfig = SerializableServerConfig(
+            url = config.url,
+            username = config.username,
+            token = config.token,
+            userId = config.userId,
+            serverType = config.serverType.name,
+            serverName = config.serverName
+        )
     }
 }

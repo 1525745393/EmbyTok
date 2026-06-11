@@ -17,14 +17,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.embytok.app.ui.screens.feed.FeedScreen
+import com.embytok.app.ui.screens.history.WatchHistoryScreen
 import com.embytok.app.ui.screens.login.LoginScreen
 import com.embytok.app.ui.screens.player.PlayerScreen
 import com.embytok.app.ui.screens.search.SearchScreen
+import com.embytok.app.ui.screens.server.ServerManagerScreen
 import com.embytok.app.ui.screens.settings.SettingsScreen
 import com.embytok.app.viewmodel.FeedViewModel
 import com.embytok.app.viewmodel.LoginViewModel
 import com.embytok.app.viewmodel.SearchViewModel
+import com.embytok.app.viewmodel.ServerManagerViewModel
 import com.embytok.app.viewmodel.VideoPlayerViewModel
+import com.embytok.app.viewmodel.WatchHistoryViewModel
 import com.embytok.domain.model.EmbyItem
 import kotlinx.serialization.json.Json
 
@@ -95,6 +99,8 @@ fun EmbyTokAppRoot(
             val feedViewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val playerViewModel: VideoPlayerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
             val searchViewModel: SearchViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val serverManagerViewModel: ServerManagerViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val watchHistoryViewModel: WatchHistoryViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
             NavHost(
                 navController = navController,
@@ -165,6 +171,30 @@ fun EmbyTokAppRoot(
                                 popUpTo(0) { inclusive = true }
                             }
                         },
+                        onOpenServerManager = { navController.navigate(Routes.SERVERS) },
+                        onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.SERVERS) {
+                    ServerManagerScreen(
+                        viewModel = serverManagerViewModel,
+                        onBack = { navController.popBackStack() },
+                        onServerSwitched = {
+                            // 切换服务器后重新加载 Feed 数据
+                            feedViewModel.reload()
+                            navController.popBackStack()
+                        }
+                    )
+                }
+                composable(Routes.HISTORY) {
+                    WatchHistoryScreen(
+                        viewModel = watchHistoryViewModel,
+                        onItemClicked = { itemId, startPositionMs ->
+                            // TODO: 根据 itemId 从服务器获取 EmbyItem 然后跳转到 PlayerScreen
+                            // 简化处理：直接弹回 Feed
+                            navController.popBackStack()
+                        },
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -182,4 +212,6 @@ object Routes {
     const val PLAYER = "player"
     const val SETTINGS = "settings"
     const val SEARCH = "search"
+    const val SERVERS = "servers"
+    const val HISTORY = "history"
 }
