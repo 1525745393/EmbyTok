@@ -242,6 +242,31 @@ class EmbyClient(
         return apiPath("Videos/$itemId/stream.mp4?Static=true&MediaSourceId=$sourceId&X-Emby-Token=$token")
     }
 
+    // ===== 图片 URL 构建 =====
+
+    /**
+     * 构造 Emby 图片 URL。
+     *
+     * Emby 图片 API 格式：
+     *   /Items/{itemId}/Images/{imageTag}?MaxWidth={w}&MaxHeight={h}&X-Emby-Token={token}
+     *
+     * 常见 imageTag 值：
+     *   - "Primary"   主封面图（海报）
+     *   - "Thumb"     缩略图（横向）
+     *   - "Backdrop"  背景/场景图
+     *   - "Logo"      标题 Logo
+     */
+    override fun buildImageUrl(
+        itemId: String,
+        imageTag: String,
+        maxWidth: Int,
+        maxHeight: Int
+    ): String {
+        val token = currentApiKey.orEmpty()
+        return apiPath("Items/$itemId/Images/$imageTag") +
+                "?MaxWidth=$maxWidth&MaxHeight=$maxHeight&X-Emby-Token=$token"
+    }
+
     // ============ 内部 JSON 模型 ============
 
     @Serializable

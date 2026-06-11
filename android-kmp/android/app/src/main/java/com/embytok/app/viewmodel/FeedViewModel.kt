@@ -58,6 +58,10 @@ class FeedViewModel(application: Application) : AndroidViewModel(application) {
         ServiceLocator.authenticateUseCase.currentClient()
     }
 
+    /** 对外暴露 MediaClient 实例，供 UI 层构造图片/视频 URL */
+    val mediaClient: MediaClient?
+        get() = client
+
     init {
         viewModelScope.launch {
             if (client == null) {

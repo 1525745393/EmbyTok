@@ -85,6 +85,9 @@ fun PlayerScreen(
 
     LaunchedEffect(item.Id) {
         viewModel.prepare(item)
+        // 初始化 PiP 管理器，绑定当前 Activity
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        (ctx as? android.app.Activity)?.let { viewModel.initPipManager(it) }
     }
 
     Scaffold(
@@ -111,12 +114,9 @@ fun PlayerScreen(
                 },
                 actions = {
                     // 画中画按钮（仅在支持的设备上显示）
-                    val localContext = androidx.compose.ui.platform.LocalContext.current
                     if (viewModel.isPipSupported) {
                         IconButton(onClick = {
-                            val activity = (localContext as? android.app.Activity)?.let {
-                                viewModel.enterPictureInPicture(it)
-                            }
+                            viewModel.enterPictureInPicture()
                         }) {
                             Icon(
                                 imageVector = Icons.Default.PictureInPicture,

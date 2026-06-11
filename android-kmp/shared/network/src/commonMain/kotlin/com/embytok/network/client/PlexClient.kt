@@ -187,6 +187,34 @@ class PlexClient(
         return apiUrl("library/parts/$key/file.mp4") + "?X-Plex-Token=$token"
     }
 
+    // ===== 图片 URL 构建 =====
+
+    /**
+     * 构造 Plex 图片 URL。
+     *
+     * Plex 的 thumb 字段是一个相对路径（如 /library/metadata/1234/thumb/567890），
+     * 或 Transcoded 路径（如 /photo/:/transcode?width=..&height=..&url=/library/..）。
+     *
+     * 这里直接返回原始 thumb 路径 + token 参数，并指定宽高让 Plex 服务器进行压缩。
+     *
+     * @param itemId 视频的 ratingKey
+     * @param imageTag Plex 下不使用，保留占位
+     * @param maxWidth 用于服务器压缩的最大宽度
+     * @param maxHeight 用于服务器压缩的最大高度
+     */
+    override fun buildImageUrl(
+        itemId: String,
+        imageTag: String,
+        maxWidth: Int,
+        maxHeight: Int
+    ): String {
+        // 优先使用 Transcoded 路径：让 Plex 服务器压缩图片到指定尺寸
+        return apiUrl("photo/:/transcode") +
+                "?width=$maxWidth&height=$maxHeight" +
+                "&url=/library/metadata/$itemId/thumb/0" +
+                "&X-Plex-Token=$token"
+    }
+
     // ============ 内部 JSON 模型 ============
 
     @Serializable

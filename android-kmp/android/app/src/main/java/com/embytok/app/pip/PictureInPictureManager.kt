@@ -16,10 +16,13 @@ import com.embytok.player.VideoPlayerManager
  * - 配置 PiP 参数（宽高比、Action 按钮）
  * - 监听 PiP 状态变化
  *
- * 使用方法：在 Activity 的 onUserLeaveHint() / onStop() 中调用 enterPictureInPicture()
+ * 使用方法：
+ * - Activity 创建时传入 Activity context
+ * - 在 onUserLeaveHint() / 用户点击 PiP 按钮时调用 enterPictureInPicture()
+ * - 在 onPictureInPictureModeChanged() 中调用 onPictureInPictureModeChanged()
  */
 class PictureInPictureManager(
-    private val context: Context,
+    private var activityContext: android.app.Activity?,
     private val playerManager: VideoPlayerManager
 ) {
     private var isInPipMode: Boolean = false
@@ -41,8 +44,9 @@ class PictureInPictureManager(
      * 是否支持 PiP（Android 8.0+）
      */
     fun isSupported(): Boolean {
+        val ctx = activityContext ?: return false
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                context.packageManager.hasSystemFeature(
+                ctx.packageManager.hasSystemFeature(
                     android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE
                 )
     }
@@ -59,13 +63,14 @@ class PictureInPictureManager(
         title: String? = null
     ): Boolean {
         if (!isSupported()) return false
+        val activity = activityContext ?: return false
 
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val params = PictureInPictureParams.Builder()
                     .setAspectRatio(aspectRatio)
                     .apply {
-                        // Android 12+ 支持自动进入 PiP
+                        // Android 12+ 支持自动进入 PiP 和无缝调整
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             setAutoEnterEnabled(true)
                             setSeamlessResizeEnabled(true)
@@ -73,7 +78,6 @@ class PictureInPictureManager(
                     }
                     .build()
 
-                val activity = context as? android.app.Activity ?: return false
                 activity.enterPictureInPictureMode(params)
                 isInPipMode = true
                 listener?.onEnteredPip()
@@ -116,17 +120,24 @@ class PictureInPictureManager(
         title: String? = null
     ): Boolean {
         if (!isSupported() || !isInPipMode) return false
+        val activity = activityContext ?: return false
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(aspectRatio)
                 .build()
-            val activity = context as? android.app.Activity ?: return false
             activity.setPictureInPictureParams(params)
             true
         } else {
             false
         }
+    }
+
+    /**
+     * 更新当前 Activity 引用（在 Activity recreate 等场景下使用）
+     */
+    fun updateActivity(activity: android.app.Activity?) {
+        this.activityContext = activity
     }
 
     /**
@@ -147,5 +158,6 @@ class PictureInPictureManager(
      */
     fun onDestroy() {
         listener = null
+        activityContext = null
     }
 }

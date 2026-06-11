@@ -38,6 +38,10 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
         ServiceLocator.authenticateUseCase.currentClient()
     }
 
+    /** 对外暴露 MediaClient 实例，供 UI 层构造图片/视频 URL */
+    val client: MediaClient?
+        get() = mediaClient
+
     private var currentItem: EmbyItem? = null
 
     private val _manager: VideoPlayerManager by lazy {
@@ -64,20 +68,45 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     val playerManager: VideoPlayerManager
         get() = _manager
 
-    // PiP 管理器
-    private val _pipManager: PictureInPictureManager by lazy {
-        PictureInPictureManager(
-            context = getApplication<Application>().applicationContext,
-            playerManager = _manager
-        )
-    }
-    val pipManager: PictureInPictureManager
+    // PiP 管理器（初始为 null，首次需要时创建，并绑定当前 Activity）
+    private var _pipManager: PictureInPictureManager? = null
+
+    val pipManager: PictureInPictureManager?
         get() = _pipManager
 
     // PiP 支持状态
     val isPipSupported: Boolean
-        get() = _pipManager.isSupported()
+        get() = _pipManager?.isSupported() == true
 
+    /**
+     * 初始化/更新 PiP 管理器与当前 Activity 的绑定
+     * 必须在 Activity 创建后调用（如 PlayerScreen 的 LaunchedEffect 中）
+     */
+    fun initPipManager(activity: android.app.Activity) {
+        val existing = _pipManager
+        if (existing == null) {
+            _pipManager = PictureInPictureManager(activity, _manager)
+        } else {
+            existing.updateActivity(activity)
+        }
+    }
+
+    /** 进入画中画模式 */
+    fun enterPictureInPicture(): Boolean {
+        val pip = _pipManager ?: return false
+        return try {
+            val ratio = pip.calculateVideoAspectRatio()
+            pip.enterPictureInPicture(
+                aspectRatio = ratio,
+                title = currentItem?.Name
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("VideoPlayerViewModel", "进入 PiP 失败", e)
+            false
+        }
+    }
+
+    // ===== 播放状态
     val playbackState: StateFlow<PlaybackState> = _manager.playbackState
         .stateIn(viewModelScope, SharingStarted.Eagerly, PlaybackState.Idle)
 
@@ -173,15 +202,15 @@ class VideoPlayerViewModel(application: Application) : AndroidViewModel(applicat
     /** 进入画中画模式 */
     fun enterPictureInPicture(activityContext: android.content.Context): Boolean {
         if (!_pipManager.isSupported()) return false
-        val activity = activityContext as? android.app.Activity ?: return false
         return try {
             val ratio = _pipManager.calculateVideoAspectRatio()
-            val pipManager = PictureInPictureManager(activity, _manager)
-            pipManager.enterPictureInPicture(
+            // 复用已有 _pipManager，但传入当前 activity context
+            _pipManager.enterPictureInPicture(
                 aspectRatio = ratio,
                 title = currentItem?.Name
             )
         } catch (e: Exception) {
+            android.util.Log.e("VideoPlayerViewModel", "进入 PiP 失败", e)
             false
         }
     }

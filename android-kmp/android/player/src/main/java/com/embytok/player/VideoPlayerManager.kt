@@ -240,10 +240,50 @@ class VideoPlayerManager(
 
     fun setSubtitleTrack(index: Int) {
         currentSubtitleIndex = index
+        val player = exoPlayer ?: return
+        // 从所有轨道组中找出 TEXT 类型的轨道
+        val trackSelector = (player.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+            .build())
+        player.trackSelectionParameters = trackSelector
+
+        // 更细粒度的轨道选择
+        val trackGroups = player.currentTracks.groups
+        var textGroupIndex = -1
+        var currentTextIndex = 0
+        for (i in trackGroups.indices) {
+            val group = trackGroups[i]
+            if (group.type == C.TRACK_TYPE_TEXT) {
+                if (currentTextIndex == index) {
+                    textGroupIndex = i
+                    break
+                }
+                currentTextIndex++
+            }
+        }
+        if (textGroupIndex >= 0) {
+            val group = trackGroups[textGroupIndex]
+            player.trackSelectionParameters = player.trackSelectionParameters
+                .buildUpon()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                .setOverrideForType(
+                    androidx.media3.common.TrackSelectionOverride(
+                        group.mediaTrackGroup,
+                        listOf(0)
+                    )
+                )
+                .build()
+        }
     }
 
     fun disableSubtitles() {
         currentSubtitleIndex = -1
+        val player = exoPlayer ?: return
+        player.trackSelectionParameters = player.trackSelectionParameters
+            .buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+            .build()
     }
 
     fun release() {

@@ -42,6 +42,22 @@ interface MediaClient {
 
     /** 构造视频直链。 */
     fun buildVideoStreamUrl(itemId: String, mediaSourceId: String? = null): String
+
+    /**
+     * 构造封面/海报图片 URL。
+     *
+     * @param itemId 视频/条目的 ID
+     * @param imageTag Emby 用："Primary" / "Thumb" / "Backdrop"；Plex 自动忽略，使用内部 thumb 路径
+     * @param maxWidth 期望的最大宽度（用于服务器端压缩，节省带宽）
+     * @param maxHeight 期望的最大高度
+     * @return 完整的图片 URL（包含认证 token 参数）
+     */
+    fun buildImageUrl(
+        itemId: String,
+        imageTag: String = "Primary",
+        maxWidth: Int = 400,
+        maxHeight: Int = 600
+    ): String
 }
 
 /**
