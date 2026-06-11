@@ -99,6 +99,12 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.viewmodel)
 
+    // Media3 (媒体会话 & 播放控制)
+    implementation(libs.media3.session)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.common)
+    implementation(libs.media3.ui)
+
     // Player module
     implementation(projects.android.player)
 
